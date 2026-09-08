@@ -96,6 +96,7 @@ def get_session_roster(session_id: int, admin: dict = Depends(require_admin)):
 
     # All profiles
     profiles = db.table("profiles").select("*").order("name").execute().data
+    profile_map = {p["id"]: p for p in profiles}
 
     # Payments for this session
     payments = (
@@ -107,35 +108,53 @@ def get_session_roster(session_id: int, admin: dict = Depends(require_admin)):
     )
     payments_by_user = {p["user_id"]: p for p in payments}
 
+    # The roster contains players who are in the squad for this session
     roster = []
-    for user in profiles:
-        pay = payments_by_user.get(user["id"])
-        status = pay.get("status") if pay else "unpaid"
+    for pay in payments:
+        user = profile_map.get(pay["user_id"])
+        if not user:
+            continue
         roster.append({
             "user_id": user["id"],
             "name": user.get("name", "Unknown"),
             "role": user.get("role", "user"),
             "payment": pay,
-            "status": status,
+            "status": pay.get("status", "unpaid"),
             "amount": pay.get("amount", session.get("cost_per_person", 200)),
-            "upi_ref": pay.get("upi_ref") if pay else None,
-            "submitted_at": pay.get("submitted_at") if pay else None,
+            "upi_ref": pay.get("upi_ref"),
+            "submitted_at": pay.get("submitted_at"),
         })
 
-    # Generate WhatsApp share message
+    # Sort roster alphabetically by player name
+    roster.sort(key=lambda r: r["name"].lower())
+
+    # All registered players with selection state for admin squad selector
+    all_registered_players = [
+        {
+            "id": user["id"],
+            "name": user.get("name", "Unknown"),
+            "role": user.get("role", "user"),
+            "is_selected": user["id"] in payments_by_user,
+            "status": payments_by_user.get(user["id"], {}).get("status", "not_selected"),
+        }
+        for user in profiles
+    ]
+
+    # Generate WhatsApp share message for the selected squad
     confirmed_players = [r["name"] for r in roster if r["status"] == "confirmed"]
     pending_players = [r["name"] for r in roster if r["status"] == "pending"]
-    unpaid_players = [r["name"] for r in roster if r["status"] == "unpaid"]
+    unpaid_players = [r["name"] for r in roster if r["status"] in ["unpaid", "rejected"]]
 
     collected = sum(r["payment"]["amount"] for r in roster if r["status"] == "confirmed" and r["payment"])
-    turf_target = len(profiles) * session.get("cost_per_person", 200)
+    expected_total = len(roster) * session.get("cost_per_person", 200)
 
     wa_lines = [
-        f"⚽ *Elite Football Turf — Match Roster*",
+        f"⚽ *Elite Football Turf — Match Squad*",
         f"📅 *Date:* {session['session_date']} (Friday)",
         f"⏰ *Slot:* {session.get('start_time', '20:00')} - {session.get('end_time', '22:00')}",
-        f"💰 *Cost:* ₹{session.get('cost_per_person', 200)} / player",
-        f"📊 *Total Collected:* ₹{collected:,}",
+        f"👥 *Squad:* {len(roster)} Players Selected",
+        f"💰 *Fee:* ₹{session.get('cost_per_person', 200)} / player",
+        f"📊 *Collected:* ₹{collected:,} / ₹{expected_total:,}",
         "",
         f"✅ *PAID / CONFIRMED ({len(confirmed_players)}):*",
     ]
@@ -151,27 +170,73 @@ def get_session_roster(session_id: int, admin: dict = Depends(require_admin)):
             wa_lines.append(f"{idx}. {name}")
 
     if unpaid_players:
-        wa_lines.extend(["", f"⚠️ *UNPAID / NOT RECORDED ({len(unpaid_players)}):*"])
+        wa_lines.extend(["", f"⚠️ *UNPAID ({len(unpaid_players)}):*"])
         for idx, name in enumerate(unpaid_players, 1):
             wa_lines.append(f"{idx}. {name}")
 
     wa_lines.extend([
         "",
-        "📲 *Please clear your turf payment before kickoff!*",
+        "📲 *Please pay ₹200 via UPI to confirm your spot!*",
     ])
     whatsapp_text = "\n".join(wa_lines)
 
     return {
         "session": session,
         "roster": roster,
+        "all_registered_players": all_registered_players,
         "summary": {
+            "squad_size": len(roster),
             "confirmed_count": len(confirmed_players),
             "pending_count": len(pending_players),
             "unpaid_count": len(unpaid_players),
             "total_collected": collected,
+            "expected_total": expected_total,
         },
         "whatsapp_text": whatsapp_text,
     }
+
+
+class UpdateSquadRequest(BaseModel):
+    player_ids: list[str]
+
+
+@router.post("/session/{session_id}/squad")
+def update_session_squad(session_id: int, data: UpdateSquadRequest, admin: dict = Depends(require_admin)):
+    db = service_client()
+    session_res = db.table("turf_sessions").select("*").eq("id", session_id).single().execute()
+    if not session_res.data:
+        raise HTTPException(status_code=404, detail="Session not found")
+    cost = session_res.data.get("cost_per_person", 200)
+
+    # Fetch current payments for this session
+    existing = db.table("payments").select("*").eq("session_id", session_id).execute().data
+    existing_by_user = {p["user_id"]: p for p in existing}
+
+    target_ids = set(data.player_ids)
+
+    # 1. Add players who are not in this session yet
+    for uid in target_ids:
+        if uid not in existing_by_user:
+            db.table("payments").insert({
+                "user_id": uid,
+                "session_id": session_id,
+                "amount": cost,
+                "status": "unpaid",
+            }).execute()
+
+    # 2. Remove players who were unchecked and have status == 'unpaid'
+    for uid, pay in existing_by_user.items():
+        if uid not in target_ids and pay.get("status") == "unpaid":
+            db.table("payments").delete().eq("id", pay["id"]).execute()
+
+    return {"message": f"Match squad updated! {len(target_ids)} player(s) selected."}
+
+
+@router.post("/session/{session_id}/remove-player/{user_id}")
+def remove_player_from_squad(session_id: int, user_id: str, admin: dict = Depends(require_admin)):
+    db = service_client()
+    res = db.table("payments").delete().eq("session_id", session_id).eq("user_id", user_id).execute()
+    return {"message": "Player removed from match squad"}
 
 
 @router.post("/payments/{payment_id}/confirm")

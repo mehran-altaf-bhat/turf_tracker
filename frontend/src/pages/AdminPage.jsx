@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
+import SquadModal from '../components/SquadModal';
 import {
   ShieldCheck,
   CheckCircle,
@@ -13,7 +14,8 @@ import {
   PlusCircle,
   AlertCircle,
   Check,
-  ArrowRight
+  ArrowRight,
+  UserX
 } from 'lucide-react';
 
 export default function AdminPage() {
@@ -24,6 +26,7 @@ export default function AdminPage() {
   const [rosterLoading, setRosterLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [toast, setToast] = useState(null);
+  const [squadModalOpen, setSquadModalOpen] = useState(false);
 
   const loadOverview = async () => {
     try {
@@ -107,11 +110,36 @@ export default function AdminPage() {
     }
   };
 
+  const handleSaveSquad = async (playerIds) => {
+    try {
+      await api.updateSessionSquad(selectedSessionId, playerIds);
+      setToast(`Match squad updated! ${playerIds.length} player(s) selected.`);
+      setTimeout(() => setToast(null), 4000);
+      loadRoster(selectedSessionId);
+      loadOverview();
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const handleRemoveFromSquad = async (userId) => {
+    if (!window.confirm('Remove this player from this match squad?')) return;
+    try {
+      await api.removePlayerFromSquad(selectedSessionId, userId);
+      setToast('Player removed from match squad.');
+      setTimeout(() => setToast(null), 4000);
+      loadRoster(selectedSessionId);
+      loadOverview();
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
   const copyWhatsAppText = () => {
     if (!rosterData?.whatsapp_text) return;
     navigator.clipboard.writeText(rosterData.whatsapp_text);
     setCopied(true);
-    setToast('WhatsApp roster copied to clipboard!');
+    setToast('WhatsApp match roster copied to clipboard!');
     setTimeout(() => {
       setCopied(false);
       setToast(null);
@@ -130,6 +158,7 @@ export default function AdminPage() {
   const stats = overview?.stats || {};
   const sessions = overview?.sessions || [];
   const currentSessionObj = sessions.find((s) => s.session.id === selectedSessionId)?.session;
+  const currentSquadCount = rosterData?.roster?.length || 0;
 
   return (
     <div>
@@ -147,18 +176,28 @@ export default function AdminPage() {
           <span className="badge" style={{ background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.3)', marginBottom: '0.4rem' }}>
             <ShieldCheck size={14} /> Admin Command Center
           </span>
-          <h2 style={{ fontSize: '1.75rem' }}>Turf Finance & Roster Management</h2>
+          <h2 style={{ fontSize: '1.75rem' }}>Turf Squad & Payment Management</h2>
         </div>
 
-        {/* WhatsApp Share Button */}
-        <button
-          className="btn btn-whatsapp"
-          onClick={copyWhatsAppText}
-          disabled={!rosterData}
-        >
-          {copied ? <Check size={18} /> : <Share2 size={18} />}
-          <span>{copied ? 'Copied to Clipboard!' : 'Copy WhatsApp Match List'}</span>
-        </button>
+        {/* Squad & WhatsApp Action Buttons */}
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <button
+            className="btn btn-primary"
+            onClick={() => setSquadModalOpen(true)}
+          >
+            <Users size={18} />
+            <span>Select Match Squad ({currentSquadCount})</span>
+          </button>
+
+          <button
+            className="btn btn-whatsapp"
+            onClick={copyWhatsAppText}
+            disabled={!rosterData}
+          >
+            {copied ? <Check size={18} /> : <Share2 size={18} />}
+            <span>{copied ? 'Copied to Clipboard!' : 'Copy WhatsApp Match List'}</span>
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -178,7 +217,7 @@ export default function AdminPage() {
         </div>
 
         <div className="stat-box">
-          <div className="stat-label">Registered Players</div>
+          <div className="stat-label">Registered Players in Group</div>
           <div className="stat-val" style={{ color: '#60a5fa' }}>
             {stats.total_players_registered || 0}
           </div>
@@ -194,13 +233,13 @@ export default function AdminPage() {
 
       {/* Match Session Selector Bar */}
       <div className="card" style={{ marginBottom: '2rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.25rem' }}>
           <div>
-            <label className="form-label" htmlFor="session-select">Select Friday Session to Manage:</label>
+            <label className="form-label" htmlFor="session-select">Select Friday Match Session:</label>
             <select
               id="session-select"
               className="form-input"
-              style={{ minWidth: '260px', padding: '0.6rem 1rem' }}
+              style={{ minWidth: '280px', padding: '0.65rem 1rem' }}
               value={selectedSessionId || ''}
               onChange={(e) => setSelectedSessionId(Number(e.target.value))}
             >
@@ -213,12 +252,15 @@ export default function AdminPage() {
           </div>
 
           {currentSessionObj && (
-            <div style={{ display: 'flex', gap: '1.5rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+            <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
               <div>
                 Slot: <strong style={{ color: '#fff' }}>{currentSessionObj.start_time || '20:00'} - {currentSessionObj.end_time || '22:00'}</strong>
               </div>
               <div>
-                Fee: <strong style={{ color: 'var(--pitch-green-light)' }}>₹{currentSessionObj.cost_per_person || 200}</strong>
+                Squad Size: <strong style={{ color: '#60a5fa' }}>{currentSquadCount} Players</strong>
+              </div>
+              <div>
+                Target: <strong style={{ color: '#fff' }}>₹{rosterData?.summary?.expected_total || 0}</strong>
               </div>
               <div>
                 Collected: <strong style={{ color: '#34d399' }}>₹{rosterData?.summary?.total_collected || 0}</strong>
@@ -232,8 +274,9 @@ export default function AdminPage() {
       <div className="card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
           <div>
-            <h3 style={{ fontSize: '1.25rem' }}>
-              Player Roster & Payment Status
+            <h3 style={{ fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Users size={20} color="var(--pitch-green-light)" />
+              Match Squad ({currentSquadCount} Players)
             </h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
               {rosterData ? (
@@ -242,40 +285,72 @@ export default function AdminPage() {
                   <strong style={{ color: '#fbbf24' }}>{rosterData.summary.pending_count} Pending</strong> •{' '}
                   <strong style={{ color: '#f87171' }}>{rosterData.summary.unpaid_count} Unpaid</strong>
                 </>
-              ) : 'Loading roster...'}
+              ) : 'Loading squad...'}
             </p>
           </div>
 
-          <button
-            className="btn btn-sm btn-whatsapp"
-            onClick={copyWhatsAppText}
-          >
-            <Copy size={15} />
-            <span>Copy WhatsApp Roster</span>
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button
+              className="btn btn-sm btn-primary"
+              onClick={() => setSquadModalOpen(true)}
+            >
+              <Users size={15} />
+              <span>Select / Edit Squad</span>
+            </button>
+            <button
+              className="btn btn-sm btn-whatsapp"
+              onClick={copyWhatsAppText}
+            >
+              <Copy size={15} />
+              <span>Copy WhatsApp List</span>
+            </button>
+          </div>
         </div>
 
         {rosterLoading ? (
           <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
-            Updating player roster...
+            Updating match squad...
+          </div>
+        ) : currentSquadCount === 0 ? (
+          <div style={{
+            textAlign: 'center',
+            padding: '3rem 1.5rem',
+            background: 'rgba(255, 255, 255, 0.02)',
+            borderRadius: 'var(--radius-sm)',
+            border: '1px dashed var(--border-subtle)',
+          }}>
+            <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>⚽</div>
+            <h4 style={{ fontSize: '1.2rem', marginBottom: '0.4rem' }}>No Players Selected for This Friday Yet</h4>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '1.25rem', maxWidth: '460px', margin: '0 auto 1.25rem' }}>
+              Select which players from your group will be playing in this match (e.g. 20 players out of 25).
+            </p>
+            <button
+              className="btn btn-primary"
+              onClick={() => setSquadModalOpen(true)}
+            >
+              <Users size={16} />
+              <span>Select Match Squad</span>
+            </button>
           </div>
         ) : (
           <div className="table-wrap">
             <table className="data-table">
               <thead>
                 <tr>
+                  <th>#</th>
                   <th>Player Name</th>
                   <th>Role</th>
                   <th>Status</th>
                   <th>Amount</th>
                   <th>UPI Ref / UTR</th>
-                  <th>Submitted At</th>
+                  <th>Submitted</th>
                   <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {rosterData?.roster?.map((player) => (
+                {rosterData?.roster?.map((player, idx) => (
                   <tr key={player.user_id}>
+                    <td style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{idx + 1}</td>
                     <td>
                       <strong style={{ color: '#fff' }}>{player.name}</strong>
                     </td>
@@ -288,6 +363,11 @@ export default function AdminPage() {
                       )}
                       {player.status === 'pending' && (
                         <span className="badge badge-pending">Pending ⏳</span>
+                      )}
+                      {player.status === 'rejected' && (
+                        <span className="badge badge-unpaid" style={{ background: 'rgba(239, 68, 68, 0.2)', borderColor: 'rgba(239, 68, 68, 0.4)' }}>
+                          Rejected ❌
+                        </span>
                       )}
                       {player.status === 'unpaid' && (
                         <span className="badge badge-unpaid">Unpaid ⚠️</span>
@@ -303,7 +383,7 @@ export default function AdminPage() {
                         : '—'}
                     </td>
                     <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'inline-flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                      <div style={{ display: 'inline-flex', gap: '0.5rem', justifyContent: 'flex-end', alignItems: 'center' }}>
                         {player.status === 'pending' && player.payment && (
                           <>
                             <button
@@ -326,17 +406,26 @@ export default function AdminPage() {
                         )}
 
                         {player.status === 'unpaid' && (
-                          <button
-                            className="btn btn-sm btn-secondary"
-                            onClick={() => handleManualPay(player.user_id)}
-                            title="Player paid cash at turf"
-                          >
-                            <span>Mark Paid (Cash)</span>
-                          </button>
+                          <>
+                            <button
+                              className="btn btn-sm btn-secondary"
+                              onClick={() => handleManualPay(player.user_id)}
+                              title="Player paid cash at turf"
+                            >
+                              <span>Cash</span>
+                            </button>
+                            <button
+                              className="btn btn-sm btn-danger"
+                              onClick={() => handleRemoveFromSquad(player.user_id)}
+                              title="Remove from this match squad"
+                            >
+                              <UserX size={14} />
+                            </button>
+                          </>
                         )}
 
                         {player.status === 'confirmed' && (
-                          <span style={{ fontSize: '0.8rem', color: 'var(--pitch-green-light)' }}>
+                          <span style={{ fontSize: '0.8rem', color: 'var(--pitch-green-light)', fontWeight: 600 }}>
                             Verified ✓
                           </span>
                         )}
@@ -351,13 +440,13 @@ export default function AdminPage() {
       </div>
 
       {/* WhatsApp Preview Box */}
-      {rosterData?.whatsapp_text && (
+      {rosterData?.whatsapp_text && currentSquadCount > 0 && (
         <div className="card" style={{ marginTop: '2rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
             <h4 style={{ fontSize: '1rem', color: 'var(--text-secondary)' }}>
-              📱 WhatsApp Message Preview (Ready to Share)
+              📱 WhatsApp Message Preview (Only Selected Squad)
             </h4>
-            <button className="btn btn-sm btn-secondary" onClick={copyWhatsAppText}>
+            <button className="btn btn-sm btn-whatsapp" onClick={copyWhatsAppText}>
               <Copy size={14} />
               <span>Copy</span>
             </button>
@@ -376,6 +465,16 @@ export default function AdminPage() {
           </pre>
         </div>
       )}
+
+      {/* Match Squad Selector Modal */}
+      <SquadModal
+        isOpen={squadModalOpen}
+        onClose={() => setSquadModalOpen(false)}
+        sessionDate={currentSessionObj?.session_date}
+        allPlayers={rosterData?.all_registered_players || []}
+        currentSquadIds={rosterData?.roster?.map((r) => r.user_id) || []}
+        onSaveSquad={handleSaveSquad}
+      />
     </div>
   );
 }

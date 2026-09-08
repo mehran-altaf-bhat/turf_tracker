@@ -126,4 +126,17 @@ export const api = {
       body: JSON.stringify({ user_id, session_id, amount, payment_method }),
     });
   },
+
+  updateSessionSquad: async (sessionId, playerIds) => {
+    return request(`/admin/session/${sessionId}/squad`, {
+      method: 'POST',
+      body: JSON.stringify({ player_ids: playerIds }),
+    });
+  },
+
+  removePlayerFromSquad: async (sessionId, userId) => {
+    return request(`/admin/session/${sessionId}/remove-player/${userId}`, {
+      method: 'POST',
+    });
+  },
 };
