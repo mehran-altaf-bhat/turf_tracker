@@ -50,7 +50,7 @@ def login_submit(request: Request, email: str = Form(...), password: str = Form(
         value=access_token,
         httponly=True,
         samesite="lax",
-        secure=True,   # requires HTTPS - true on Vercel
+        secure=request.url.scheme == "https",   # HTTPS on Vercel, HTTP supported locally
         max_age=60 * 60 * 24 * 7,  # 7 days
     )
     return response
