@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Sign up - Turf Tracker{% endblock %}
+{% block content %}
+<h1>Sign up</h1>
+
+{% if error %}
+<p class="error">{{ error }}</p>
+{% endif %}
+
+<form method="post" action="/signup" class="form">
+    <label>Name</label>
+    <input type="text" name="name" required>
+
+    <label>Email</label>
+    <input type="email" name="email" required>
+
+    <label>Password</label>
+    <input type="password" name="password" minlength="6" required>
+
+    <button type="submit">Create account</button>
+</form>
+
+<p>Already have an account? <a href="/login">Log in</a></p>
+{% endblock %}

@@ -1,0 +1,20 @@
+<tr id="payment-row-{{ payment.id }}">
+    <td>{{ payment.profiles.name if payment.profiles else payment.user_id }}</td>
+    <td>₹{{ payment.amount }}</td>
+    <td>{{ payment.upi_ref or "—" }}</td>
+    <td>
+        {% if payment.status == 'confirmed' %}
+            <span class="badge badge-confirmed">Confirmed ✓</span>
+        {% elif payment.status == 'rejected' %}
+            <span class="badge badge-rejected">Rejected</span>
+        {% else %}
+            <span class="badge badge-pending">Pending</span>
+        {% endif %}
+    </td>
+    <td>
+        {% if payment.status == 'pending' %}
+        <button hx-post="/admin/confirm/{{ payment.id }}" hx-target="#payment-row-{{ payment.id }}" hx-swap="outerHTML">Confirm</button>
+        <button hx-post="/admin/reject/{{ payment.id }}" hx-target="#payment-row-{{ payment.id }}" hx-swap="outerHTML" class="btn-danger">Reject</button>
+        {% endif %}
+    </td>
+</tr>

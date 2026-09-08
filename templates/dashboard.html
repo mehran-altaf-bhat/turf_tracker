@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - Turf Tracker{% endblock %}
+{% block content %}
+<h1>Your payments</h1>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Friday</th>
+            <th>Amount due</th>
+            <th>Status</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in rows %}
+        <tr>
+            <td>{{ row.session.session_date }}</td>
+            <td>₹{{ row.session.cost_per_person }}</td>
+            <td>
+                {% if row.status == 'confirmed' %}
+                    <span class="badge badge-confirmed">Paid ✓</span>
+                {% elif row.status == 'pending' %}
+                    <span class="badge badge-pending">Awaiting confirmation</span>
+                {% elif row.status == 'rejected' %}
+                    <span class="badge badge-rejected">Rejected — resubmit</span>
+                {% else %}
+                    <span class="badge badge-unpaid">Unpaid</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if row.status != 'confirmed' and row.status != 'pending' %}
+                <form method="post" action="/pay" class="inline-form">
+                    <input type="hidden" name="session_id" value="{{ row.session.id }}">
+                    <input type="number" name="amount" value="{{ row.session.cost_per_person }}" min="1" required>
+                    <input type="text" name="upi_ref" placeholder="UPI ref (optional)">
+                    <button type="submit">Mark as paid</button>
+                </form>
+                {% endif %}
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4">No Friday sessions yet — check back once the admin adds one.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<p class="hint">Pay the turf account via UPI first, then log it here with your transaction reference so the admin can confirm it.</p>
+{% endblock %}
