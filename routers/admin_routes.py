@@ -24,12 +24,13 @@ def _all_payments_view():
         .data
     )
 
-    payments = (
-        db.table("payments")
-        .select("*, profiles(name)")
-        .execute()
-        .data
-    )
+    payments = db.table("payments").select("*").execute().data
+    profiles = db.table("profiles").select("id, name").execute().data
+    profile_names = {p["id"]: p.get("name") for p in profiles}
+
+    for p in payments:
+        p["profiles"] = {"name": profile_names.get(p.get("user_id"), "Player")}
+
     payments_by_session = {}
     for p in payments:
         payments_by_session.setdefault(p["session_id"], []).append(p)
@@ -68,7 +69,10 @@ def confirm_payment(request: Request, payment_id: int, admin: dict = Depends(req
         {"status": "confirmed", "confirmed_by": admin["id"], "confirmed_at": "now()"}
     ).eq("id", payment_id).execute()
 
-    updated = db.table("payments").select("*, profiles(name)").eq("id", payment_id).single().execute().data
+    updated = db.table("payments").select("*").eq("id", payment_id).single().execute().data
+    if updated:
+        prof = db.table("profiles").select("name").eq("id", updated["user_id"]).single().execute().data
+        updated["profiles"] = prof or {"name": "Player"}
     return templates.TemplateResponse(
         "_payment_row.html", {"request": request, "payment": updated}
     )
@@ -81,7 +85,10 @@ def reject_payment(request: Request, payment_id: int, admin: dict = Depends(requ
         {"status": "rejected", "confirmed_by": admin["id"], "confirmed_at": "now()"}
     ).eq("id", payment_id).execute()
 
-    updated = db.table("payments").select("*, profiles(name)").eq("id", payment_id).single().execute().data
+    updated = db.table("payments").select("*").eq("id", payment_id).single().execute().data
+    if updated:
+        prof = db.table("profiles").select("name").eq("id", updated["user_id"]).single().execute().data
+        updated["profiles"] = prof or {"name": "Player"}
     return templates.TemplateResponse(
         "_payment_row.html", {"request": request, "payment": updated}
     )
