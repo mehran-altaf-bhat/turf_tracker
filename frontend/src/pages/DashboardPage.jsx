@@ -101,6 +101,11 @@ export default function DashboardPage({ user }) {
                   <Clock3 size={16} /> Verification Pending
                 </span>
               )}
+              {currentStatus === 'rejected' && (
+                <span className="badge badge-unpaid" style={{ fontSize: '0.9rem', padding: '0.45rem 1rem', background: 'rgba(239, 68, 68, 0.2)', borderColor: 'rgba(239, 68, 68, 0.4)' }}>
+                  <AlertCircle size={16} /> Rejected — Please Pay Again
+                </span>
+              )}
               {currentStatus === 'unpaid' && (
                 <span className="badge badge-unpaid" style={{ fontSize: '0.9rem', padding: '0.45rem 1rem' }}>
                   <AlertCircle size={16} /> Payment Due
@@ -127,13 +132,19 @@ export default function DashboardPage({ user }) {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
             <button
               className="btn btn-primary"
-              style={{ fontSize: '1rem', padding: '0.75rem 1.5rem' }}
+              style={{
+                fontSize: '1rem',
+                padding: '0.75rem 1.5rem',
+                ...(currentStatus === 'rejected' ? { background: 'linear-gradient(135deg, #ef4444, #b91c1c)' } : {})
+              }}
               onClick={() => setModalOpen(true)}
             >
               <CreditCard size={18} />
               <span>
                 {currentStatus === 'confirmed'
                   ? 'Pay for Advance Weeks (₹200/wk)'
+                  : currentStatus === 'rejected'
+                  ? 'Pay Again (₹200)'
                   : 'Pay for Turf (₹200)'}
               </span>
             </button>
@@ -148,6 +159,11 @@ export default function DashboardPage({ user }) {
                 Your payment reference has been submitted. The admin will verify shortly.
               </span>
             )}
+            {currentStatus === 'rejected' && (
+              <span style={{ fontSize: '0.85rem', color: '#fca5a5' }}>
+                ⚠️ Payment was rejected by admin. Click "Pay Again" to submit with a valid UPI reference.
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -160,7 +176,7 @@ export default function DashboardPage({ user }) {
             fontSize: '1.35rem',
             color: currentStatus === 'confirmed' ? 'var(--pitch-green-light)' : currentStatus === 'pending' ? 'var(--amber)' : 'var(--rose)'
           }}>
-            {currentStatus === 'confirmed' ? 'Confirmed ✅' : currentStatus === 'pending' ? 'Pending ⏳' : 'Not Paid ⚠️'}
+            {currentStatus === 'confirmed' ? 'Confirmed ✅' : currentStatus === 'pending' ? 'Pending ⏳' : currentStatus === 'rejected' ? 'Rejected ❌' : 'Not Paid ⚠️'}
           </div>
         </div>
 
@@ -212,18 +228,26 @@ export default function DashboardPage({ user }) {
                     <td>
                       {status === 'confirmed' && <span className="badge badge-paid">Paid ✅</span>}
                       {status === 'pending' && <span className="badge badge-pending">Pending ⏳</span>}
+                      {status === 'rejected' && (
+                        <span className="badge badge-unpaid" style={{ background: 'rgba(239, 68, 68, 0.2)', borderColor: 'rgba(239, 68, 68, 0.4)' }}>
+                          Rejected ❌
+                        </span>
+                      )}
                       {status === 'unpaid' && <span className="badge badge-unpaid">Unpaid</span>}
                     </td>
                     <td>
-                      {status === 'unpaid' ? (
+                      {(status === 'unpaid' || status === 'rejected') ? (
                         <button
                           className="btn btn-sm btn-primary"
+                          style={status === 'rejected' ? { background: 'linear-gradient(135deg, #ef4444, #b91c1c)' } : {}}
                           onClick={() => setModalOpen(true)}
                         >
-                          Pay
+                          {status === 'rejected' ? 'Pay Again' : 'Pay'}
                         </button>
+                      ) : status === 'pending' ? (
+                        <span style={{ color: 'var(--amber)', fontSize: '0.8rem' }}>Pending ⏳</span>
                       ) : (
-                        <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Covered</span>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Covered ✓</span>
                       )}
                     </td>
                   </tr>
