@@ -4,12 +4,13 @@ import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import AdminPage from './pages/AdminPage';
 import { api, getStoredToken } from './services/api';
-import { Shield, CheckCircle2, Clock } from 'lucide-react';
+import { Shield, CheckCircle2, Clock, Menu } from 'lucide-react';
 
 export default function App() {
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loading, setLoading] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -42,6 +43,7 @@ export default function App() {
     await api.logout();
     setUser(null);
     setActiveTab('dashboard');
+    setMobileMenuOpen(false);
   };
 
   const handleLoginSuccess = (userData) => {
@@ -112,21 +114,35 @@ export default function App() {
 
   return (
     <div className="clokin-app-layout">
-      {/* Left Sidebar (Clokin Style) */}
+      {/* Sidebar with Mobile Drawer support */}
       <Sidebar
         user={user}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onLogout={handleLogout}
+        mobileOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
       />
 
       {/* Main Content Area */}
       <div className="main-wrapper">
         {/* Top Header Bar */}
         <header className="top-header">
-          <div>
-            <h1 className="page-title">{title}</h1>
-            <p className="page-subtitle">{subtitle}</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+            {/* 3-Lines Hamburger Menu Button on Mobile */}
+            <button
+              type="button"
+              className="mobile-hamburger-btn"
+              onClick={() => setMobileMenuOpen(true)}
+              aria-label="Open Navigation Menu"
+            >
+              <Menu size={22} />
+            </button>
+
+            <div>
+              <h1 className="page-title">{title}</h1>
+              <p className="page-subtitle">{subtitle}</p>
+            </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
