@@ -447,7 +447,49 @@ dialog.custom-modal {
 
 dialog.custom-modal::backdrop {
   background: rgba(15, 23, 42, 0.45);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(6px);
+}
+
+/* Custom Fixed Modal Backdrop & Blur Overlay */
+.modal-backdrop {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: rgba(15, 23, 42, 0.5) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 1050 !important;
+  padding: 1.25rem !important;
+  animation: modalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.modal-backdrop .modal-content {
+  margin: auto !important;
+  box-shadow: 0 25px 60px -12px rgba(15, 23, 42, 0.3) !important;
+  border: 1px solid #eaecf0 !important;
+  border-radius: 16px !important;
+  background: #ffffff !important;
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+  width: 100% !important;
 }
 
 .modal-content {

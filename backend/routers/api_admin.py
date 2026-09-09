@@ -283,11 +283,8 @@ def confirm_payment(payment_id: int, admin: dict = Depends(require_admin)):
     session_res = db.table("turf_sessions").select("*").eq("id", pay["session_id"]).single().execute()
     session_cost = session_res.data.get("cost_per_person", 200) if session_res.data else 200
 
-    amount = pay.get("amount", session_cost)
-    if amount == 0:
-        amount = session_cost
-
-    status = "confirmed" if amount >= session_cost else "partial"
+    amount = max(pay.get("amount", 0), session_cost)
+    status = "confirmed"
 
     res = (
         db.table("payments")
@@ -300,7 +297,47 @@ def confirm_payment(payment_id: int, admin: dict = Depends(require_admin)):
         .eq("id", payment_id)
         .execute()
     )
-    return {"message": f"Payment marked as {status}! Paid: ₹{amount} (Balance: ₹{max(0, session_cost - amount)})", "payment": res.data[0]}
+    return {"message": f"Payment confirmed! Paid: ₹{amount}", "payment": res.data[0]}
+
+
+@router.post("/payments/{payment_id}/clear-balance")
+def clear_payment_balance(payment_id: int, admin: dict = Depends(require_admin)):
+    db = service_client()
+    now_str = datetime.utcnow().isoformat()
+
+    pay_res = db.table("payments").select("*").eq("id", payment_id).single().execute()
+    if not pay_res.data:
+        raise HTTPException(status_code=404, detail="Payment record not found")
+    pay = pay_res.data
+
+    session_res = db.table("turf_sessions").select("*").eq("id", pay["session_id"]).single().execute()
+    session_cost = session_res.data.get("cost_per_person", 200) if session_res.data else 200
+
+    prev_ref = pay.get("upi_ref") or ""
+    new_ref = prev_ref
+    if "Balance Cleared" not in prev_ref:
+        new_ref = f"{prev_ref} (Balance Cleared)".strip() if prev_ref else "Paid in Full (Balance Cleared)"
+
+    res = (
+        db.table("payments")
+        .update({
+            "amount": session_cost,
+            "status": "confirmed",
+            "upi_ref": new_ref,
+            "confirmed_by": admin["id"],
+            "confirmed_at": now_str,
+        })
+        .eq("id", payment_id)
+        .execute()
+    )
+    return {
+        "message": f"Balance cleared! Player marked as Paid Full (₹{session_cost})",
+        "payment": res.data[0] if res.data else None,
+        "payable": session_cost,
+        "amount_paid": session_cost,
+        "balance": 0,
+        "status": "confirmed",
+    }
 
 
 class UpdatePaymentAmountRequest(BaseModel):

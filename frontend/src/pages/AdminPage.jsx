@@ -134,6 +134,18 @@ export default function AdminPage() {
     }
   };
 
+  const handleClearBalance = async (paymentId, playerName) => {
+    try {
+      await api.clearBalance(paymentId);
+      setToast(`Balance cleared for ${playerName}! Marked as Paid Full ✅`);
+      setTimeout(() => setToast(null), 4000);
+      loadRoster(selectedSessionId);
+      loadOverview();
+    } catch (err) {
+      alert(err.message || 'Failed to clear balance');
+    }
+  };
+
   const handleReject = async (paymentId) => {
     if (!window.confirm('Are you sure you want to reject this payment?')) return;
     try {
@@ -679,12 +691,13 @@ export default function AdminPage() {
 
                           {player.status === 'partial' && (
                             <button
+                              type="button"
                               className="btn btn-sm btn-primary"
-                              onClick={() => {
-                                handleConfirm(player.payment_id);
-                              }}
+                              style={{ background: '#059669', color: '#ffffff', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                              onClick={() => handleClearBalance(player.payment_id, player.name)}
                               title="Clear remaining balance (Mark Paid Full)"
                             >
+                              <Check size={13} />
                               <span>Clear Bal</span>
                             </button>
                           )}

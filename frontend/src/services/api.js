@@ -183,4 +183,10 @@ export const api = {
       body: JSON.stringify({ amount_paid, note, status }),
     });
   },
+
+  clearBalance: async (paymentId) => {
+    return request(`/admin/payments/${paymentId}/clear-balance`, {
+      method: 'POST',
+    });
+  },
 };
