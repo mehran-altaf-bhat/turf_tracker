@@ -1108,6 +1108,8 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
         balanceDue={balanceDue}
         payableAmount={payableAmount}
         amountPaid={amountPaid}
+        currentSession={currentSession}
+        upcomingSessions={upcomingSessions}
       />
     </div>
   );

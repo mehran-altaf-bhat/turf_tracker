@@ -13,6 +13,9 @@ import {
   FileCheck,
   CreditCard,
   Sparkles,
+  Copy,
+  Check,
+  Calendar,
 } from 'lucide-react';
 
 export default function PaymentModal({
@@ -23,6 +26,8 @@ export default function PaymentModal({
   balanceDue = null,
   payableAmount = null,
   amountPaid = 0,
+  currentSession = null,
+  upcomingSessions = [],
 }) {
   const dialogRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -34,9 +39,41 @@ export default function PaymentModal({
   const [submitting, setSubmitting] = useState(false);
   const [uploadStatus, setUploadStatus] = useState('');
   const [error, setError] = useState(null);
+  const [copiedUpi, setCopiedUpi] = useState(false);
 
   const costPerWeek = config?.cost_per_person || 200;
   const standardFee = payableAmount || costPerWeek;
+
+  // Derive match dates for the 4 options
+  const sessionDates = [0, 1, 2, 3].map((idx) => {
+    if (upcomingSessions && upcomingSessions[idx]?.session?.session_date) {
+      return upcomingSessions[idx].session.session_date;
+    }
+    const baseStr = currentSession?.session_date;
+    if (baseStr) {
+      const [y, m, d] = baseStr.split('-').map(Number);
+      const dt = new Date(y, m - 1, d);
+      dt.setDate(dt.getDate() + idx * 7);
+      const yy = dt.getFullYear();
+      const mm = String(dt.getMonth() + 1).padStart(2, '0');
+      const dd = String(dt.getDate()).padStart(2, '0');
+      return `${yy}-${mm}-${dd}`;
+    }
+    return null;
+  });
+
+  const formatDateLabel = (dateStr) => {
+    if (!dateStr) return '';
+    try {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const dt = new Date(y, m - 1, d);
+      return dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }); // e.g. "11 Sep"
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const currentDateLabel = formatDateLabel(sessionDates[0]) || (currentSession?.session_date ? formatDateLabel(currentSession.session_date) : 'Friday Match');
 
   // If user has a balance due for this week, week 1 pays balanceDue, additional weeks pay full fee
   const hasPartialBalance = balanceDue !== null && balanceDue > 0 && balanceDue < standardFee;
@@ -47,11 +84,13 @@ export default function PaymentModal({
   const payeeName = config?.name || 'FAISAL RASHID BHAT';
 
   // Dynamic UPI URI reflecting selected weeks or balance amount
-  const upiUrl = `upi://pay?pa=${encodeURIComponent(vpa)}&pn=${encodeURIComponent(payeeName)}&am=${totalAmount}&cu=INR&tn=${encodeURIComponent(
-    hasPartialBalance && weeks === 1
-      ? `Turf Balance Payment (₹${totalAmount})`
-      : `Turf Fee for ${weeks} week(s)`
-  )}`;
+  const upiNote = hasPartialBalance && weeks === 1
+    ? `Turf Balance Payment (₹${totalAmount})`
+    : weeks === 1
+    ? `Turf Fee - ${currentDateLabel} (Only 1 Week)`
+    : `Turf Fee for ${weeks} Weeks (Thru ${formatDateLabel(sessionDates[weeks - 1])})`;
+
+  const upiUrl = `upi://pay?pa=${encodeURIComponent(vpa)}&pn=${encodeURIComponent(payeeName)}&am=${totalAmount}&cu=INR&tn=${encodeURIComponent(upiNote)}`;
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -59,8 +98,12 @@ export default function PaymentModal({
 
     if (isOpen) {
       if (!dialog.open) dialog.showModal();
+      document.body.style.overflow = 'hidden';
+      const content = dialog.querySelector('.modal-content');
+      if (content) content.scrollTop = 0;
     } else {
       if (dialog.open) dialog.close();
+      document.body.style.overflow = '';
     }
 
     const handleBackdropClick = (event) => {
@@ -76,8 +119,17 @@ export default function PaymentModal({
     };
 
     dialog.addEventListener('click', handleBackdropClick);
-    return () => dialog.removeEventListener('click', handleBackdropClick);
+    return () => {
+      dialog.removeEventListener('click', handleBackdropClick);
+      document.body.style.overflow = '';
+    };
   }, [isOpen, onClose]);
+
+  const handleCopyUpi = () => {
+    navigator.clipboard.writeText(vpa);
+    setCopiedUpi(true);
+    setTimeout(() => setCopiedUpi(false), 2000);
+  };
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
@@ -153,22 +205,22 @@ export default function PaymentModal({
     <dialog
       ref={dialogRef}
       className="custom-modal"
-      style={{ maxWidth: '520px', width: '95%' }}
       closedby="any"
       onClose={onClose}
     >
-      <div className="modal-content" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
-        <div className="modal-header">
+      <div className="modal-content">
+        <div className="modal-header" style={{ marginBottom: '1rem' }}>
           <div>
             <h3 style={{ fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.45rem', color: '#0f172a' }}>
               <span>⚽</span>
-              <span>{hasPartialBalance && weeks === 1 ? 'Pay Match Fee Balance' : 'Pay for Friday Turf'}</span>
+              <span>{hasPartialBalance && weeks === 1 ? 'Pay Match Fee Balance' : `Pay for Turf (${currentDateLabel})`}</span>
             </h3>
-            <p style={{ fontSize: '0.85rem', color: '#64748b' }}>
-              Elite Football Turf (8:00 PM - 10:00 PM)
+            <p style={{ fontSize: '0.85rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.15rem' }}>
+              <Calendar size={13} color="#059669" />
+              <span>Elite Football Turf • Friday 8:00 PM - 10:00 PM</span>
             </p>
           </div>
-          <button className="btn-close" onClick={onClose}>
+          <button className="btn-close" onClick={onClose} aria-label="Close dialog">
             <X size={20} />
           </button>
         </div>
@@ -226,23 +278,92 @@ export default function PaymentModal({
           </div>
         )}
 
-        {/* Advance Weeks Selector */}
-        <div>
-          <label className="form-label" style={{ fontSize: '0.85rem', color: '#334155' }}>
-            Select Number of Weeks / Advance Sessions:
-          </label>
+        {/* Match Date & Advance Weeks Selector */}
+        <div style={{ marginBottom: '1.25rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem', flexWrap: 'wrap', gap: '0.35rem' }}>
+            <label className="form-label" style={{ fontSize: '0.85rem', color: '#1e293b', fontWeight: 700, margin: 0 }}>
+              Match Date & Duration:
+            </label>
+            <span style={{
+              fontSize: '0.72rem',
+              color: '#065f46',
+              background: '#ecfdf5',
+              border: '1px solid #a7f3d0',
+              padding: '0.15rem 0.5rem',
+              borderRadius: '6px',
+              fontWeight: 700
+            }}>
+              {weeks === 1 ? 'For Only 1 Week Payment' : `${weeks} Weeks Advance`}
+            </span>
+          </div>
+
+          <div style={{
+            background: '#f8fafc',
+            border: '1px solid #eaecf0',
+            borderRadius: '8px',
+            padding: '0.5rem 0.75rem',
+            marginBottom: '0.75rem',
+            fontSize: '0.78rem',
+            color: '#475569',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.45rem'
+          }}>
+            <Sparkles size={14} color="#059669" />
+            <span>
+              <strong>Note:</strong> Pre-selected <strong>for only 1 week payment</strong> (Friday, {currentDateLabel}). You can also tap future dates to pre-pay advance weeks.
+            </span>
+          </div>
+
           <div className="weeks-selector">
             {[1, 2, 3, 4].map((w) => {
               const previewAmount = w === 1 ? currentWeekPayable : (currentWeekPayable + (w - 1) * costPerWeek);
+              const dateText = formatDateLabel(sessionDates[w - 1]);
+              const isSelected = weeks === w;
               return (
-                <div
+                <button
+                  type="button"
                   key={w}
-                  className={`week-btn ${weeks === w ? 'active' : ''}`}
+                  className={`week-btn ${isSelected ? 'active' : ''}`}
                   onClick={() => setWeeks(w)}
+                  style={{
+                    position: 'relative',
+                    padding: '0.75rem 0.35rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    width: '100%',
+                  }}
                 >
-                  <div className="week-count">{w} {w === 1 ? 'Week' : 'Weeks'}</div>
-                  <div className="week-amount">₹{previewAmount}</div>
-                </div>
+                  {w === 1 && (
+                    <span style={{
+                      position: 'absolute',
+                      top: '-9px',
+                      fontSize: '0.62rem',
+                      fontWeight: 800,
+                      background: '#059669',
+                      color: '#ffffff',
+                      padding: '0.1rem 0.45rem',
+                      borderRadius: '10px',
+                      letterSpacing: '0.02em',
+                      whiteSpace: 'nowrap',
+                      boxShadow: '0 2px 4px rgba(5,150,105,0.2)',
+                    }}>
+                      Only 1 Week
+                    </span>
+                  )}
+                  <div className="week-count" style={{ fontSize: '0.92rem', fontWeight: 800, color: isSelected ? '#059669' : '#0f172a' }}>
+                    {dateText || `Week ${w}`}
+                  </div>
+                  <div style={{ fontSize: '0.7rem', color: isSelected ? '#047857' : '#64748b', marginTop: '0.1rem' }}>
+                    {w === 1 ? 'Current Match' : `${w} Matches`}
+                  </div>
+                  <div className="week-amount" style={{ marginTop: '0.25rem', fontWeight: 700, fontSize: '0.85rem' }}>
+                    ₹{previewAmount}
+                  </div>
+                </button>
               );
             })}
           </div>
@@ -260,10 +381,14 @@ export default function PaymentModal({
           margin: '1rem 0',
         }}>
           <div>
-            <div style={{ fontSize: '0.78rem', color: '#166534', fontWeight: 600 }}>
-              {hasPartialBalance && weeks === 1 ? 'Net Balance Due' : `Amount Payable (${weeks} ${weeks === 1 ? 'Match' : 'Matches'})`}
+            <div style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 700 }}>
+              {hasPartialBalance && weeks === 1
+                ? 'Net Balance Due'
+                : weeks === 1
+                ? `Only 1 Week Fee (Friday, ${currentDateLabel})`
+                : `Amount Payable (${weeks} Matches through ${formatDateLabel(sessionDates[weeks - 1])})`}
             </div>
-            <div style={{ fontSize: '0.75rem', color: '#15803d' }}>
+            <div style={{ fontSize: '0.75rem', color: '#15803d', marginTop: '0.1rem' }}>
               Receiver: {payeeName}
             </div>
           </div>
@@ -277,15 +402,47 @@ export default function PaymentModal({
           <div className="qr-container" style={{ margin: '0 auto' }}>
             <QRCodeSVG
               value={upiUrl}
-              size={180}
+              size={160}
               level="H"
               includeMargin={true}
             />
           </div>
-          <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.5rem' }}>
-            UPI ID: <strong style={{ color: '#0f172a', fontFamily: 'monospace' }}>{vpa}</strong>
+
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            background: '#f8fafc',
+            border: '1px solid #eaecf0',
+            borderRadius: '8px',
+            padding: '0.35rem 0.75rem',
+            marginTop: '0.5rem',
+          }}>
+            <span style={{ fontSize: '0.8rem', color: '#64748b' }}>UPI ID:</span>
+            <strong style={{ color: '#0f172a', fontFamily: 'monospace', fontSize: '0.88rem' }}>{vpa}</strong>
+            <button
+              type="button"
+              onClick={handleCopyUpi}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: copiedUpi ? '#059669' : '#64748b',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.2rem',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                padding: '0.15rem 0.35rem',
+              }}
+              title="Copy UPI ID"
+            >
+              {copiedUpi ? <Check size={14} /> : <Copy size={14} />}
+              <span>{copiedUpi ? 'Copied' : 'Copy'}</span>
+            </button>
           </div>
-          <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '0.2rem' }}>
+
+          <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '0.35rem' }}>
             Scan with Google Pay, PhonePe, Paytm, or BHIM to pay ₹{totalAmount}
           </div>
 
@@ -324,7 +481,7 @@ export default function PaymentModal({
                 style={{
                   border: '2px dashed #cbd5e1',
                   borderRadius: '10px',
-                  padding: '1.25rem',
+                  padding: '1.15rem',
                   textAlign: 'center',
                   cursor: 'pointer',
                   background: '#f8fafc',
@@ -339,11 +496,11 @@ export default function PaymentModal({
                   e.currentTarget.style.background = '#f8fafc';
                 }}
               >
-                <Upload size={24} color="#64748b" style={{ margin: '0 auto 0.4rem' }} />
+                <Upload size={22} color="#64748b" style={{ margin: '0 auto 0.35rem' }} />
                 <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>
                   Click to upload payment screenshot
                 </div>
-                <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '0.2rem' }}>
+                <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '0.15rem' }}>
                   PNG, JPG or JPEG (Max 10MB)
                 </div>
               </div>
@@ -363,8 +520,8 @@ export default function PaymentModal({
                   src={screenshotPreview}
                   alt="Proof"
                   style={{
-                    width: '60px',
-                    height: '60px',
+                    width: '58px',
+                    height: '58px',
                     objectFit: 'cover',
                     borderRadius: '6px',
                     border: '1px solid #e2e8f0',
@@ -409,7 +566,7 @@ export default function PaymentModal({
             />
           </div>
 
-          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem', flexWrap: 'wrap' }}>
             <button
               type="button"
               className="btn btn-secondary"
@@ -427,7 +584,11 @@ export default function PaymentModal({
               {submitting ? (
                 <span>{uploadStatus || 'Processing...'}</span>
               ) : (
-                <span>Submit ₹{totalAmount} Proof</span>
+                <span>
+                  {weeks === 1
+                    ? `Submit ₹${totalAmount} for ${currentDateLabel}`
+                    : `Submit ₹${totalAmount} (${weeks} Weeks)`}
+                </span>
               )}
             </button>
           </div>
