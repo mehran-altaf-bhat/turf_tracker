@@ -602,3 +602,90 @@ def clear_all_payments_data(admin: dict = Depends(require_admin)):
         raise HTTPException(status_code=500, detail=f"Failed to clear data: {str(e)}")
 
 
+@router.get("/users")
+def get_all_users_detailed(admin: dict = Depends(require_admin)):
+    db = service_client()
+    profiles = db.table("profiles").select("*").order("name").execute().data
+
+    # Map auth metadata (phone, email, is_no_email_user)
+    auth_users_map = {}
+    try:
+        auth_users = db.auth.admin.list_users()
+        for u in auth_users:
+            meta = getattr(u, "user_metadata", {}) or {}
+            auth_users_map[u.id] = {
+                "email": getattr(u, "email", None),
+                "phone": meta.get("phone") or getattr(u, "phone", None),
+                "is_no_email_user": meta.get("is_no_email_user") or (getattr(u, "email", "") and "@turftracker.local" in getattr(u, "email", "")),
+            }
+    except Exception as e:
+        print("Auth list error:", e)
+
+    # Get payments stats per user
+    payments = db.table("payments").select("user_id, amount, status").execute().data
+    user_stats = {}
+    for p in payments:
+        uid = p["user_id"]
+        stats = user_stats.setdefault(uid, {"total_paid": 0, "matches_count": 0})
+        if p.get("status") in ["confirmed", "partial"]:
+            stats["total_paid"] += p.get("amount", 0)
+        stats["matches_count"] += 1
+
+    result = []
+    for p in profiles:
+        uid = p["id"]
+        auth_info = auth_users_map.get(uid, {})
+        stats = user_stats.get(uid, {"total_paid": 0, "matches_count": 0})
+        result.append({
+            "id": uid,
+            "name": p.get("name") or "Player",
+            "role": p.get("role") or "user",
+            "created_at": p.get("created_at"),
+            "email": auth_info.get("email"),
+            "phone": auth_info.get("phone"),
+            "is_no_email_user": auth_info.get("is_no_email_user", False),
+            "total_paid": stats["total_paid"],
+            "matches_count": stats["matches_count"],
+        })
+
+    return {"users": result, "total": len(result)}
+
+
+class UpdateUserRequest(BaseModel):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    role: Optional[str] = None
+
+
+@router.put("/users/{user_id}")
+def update_user(user_id: str, data: UpdateUserRequest, admin: dict = Depends(require_admin)):
+    db = service_client()
+    clean_name = (data.name or "").strip()
+
+    # 1. Update profiles table
+    update_data = {}
+    if clean_name:
+        update_data["name"] = clean_name
+    if data.role and data.role in ["user", "admin"]:
+        update_data["role"] = data.role
+
+    if update_data:
+        db.table("profiles").update(update_data).eq("id", user_id).execute()
+
+    # 2. Update auth user metadata (phone and name)
+    try:
+        user_res = db.auth.admin.get_user_by_id(user_id)
+        if user_res and user_res.user:
+            current_meta = user_res.user.user_metadata or {}
+            if clean_name:
+                current_meta["name"] = clean_name
+            if data.phone is not None:
+                current_meta["phone"] = data.phone.strip()
+            db.auth.admin.update_user_by_id(user_id, {"user_metadata": current_meta})
+    except Exception as e:
+        print("Auth metadata update note:", e)
+
+    return {"message": "Player details updated successfully!"}
+
+
+

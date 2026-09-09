@@ -9,6 +9,7 @@ import {
   User,
   Sparkles,
   X,
+  UserCheck,
 } from 'lucide-react';
 
 export default function Sidebar({
@@ -111,17 +112,30 @@ export default function Sidebar({
             </button>
 
             {isAdmin && (
-              <button
-                type="button"
-                className={`sidebar-nav-item ${activeTab === 'admin' ? 'active' : ''}`}
-                onClick={() => handleNavClick('admin')}
-                style={{ marginTop: '0.5rem' }}
-              >
-                <Shield size={19} color="#d97706" />
-                <span style={{ color: activeTab === 'admin' ? '#047857' : '#b45309', fontWeight: 600 }}>
-                  Admin Command
-                </span>
-              </button>
+              <>
+                <button
+                  type="button"
+                  className={`sidebar-nav-item ${activeTab === 'admin' ? 'active' : ''}`}
+                  onClick={() => handleNavClick('admin')}
+                  style={{ marginTop: '0.5rem' }}
+                >
+                  <Shield size={19} color="#d97706" />
+                  <span style={{ color: activeTab === 'admin' ? '#047857' : '#b45309', fontWeight: 600 }}>
+                    Admin Command
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  className={`sidebar-nav-item ${activeTab === 'users' ? 'active' : ''}`}
+                  onClick={() => handleNavClick('users')}
+                >
+                  <UserCheck size={19} color="#2563eb" />
+                  <span style={{ color: activeTab === 'users' ? '#047857' : '#1d4ed8', fontWeight: 600 }}>
+                    User Management
+                  </span>
+                </button>
+              </>
             )}
           </nav>
         </div>

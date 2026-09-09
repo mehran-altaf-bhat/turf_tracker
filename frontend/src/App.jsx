@@ -3,6 +3,7 @@ import Sidebar from './components/Sidebar';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import AdminPage from './pages/AdminPage';
+import UserManagementPage from './pages/UserManagementPage';
 import { api, getStoredToken } from './services/api';
 import { Shield, CheckCircle2, Clock, Menu } from 'lucide-react';
 
@@ -86,6 +87,11 @@ export default function App() {
           title: 'Admin Command Center',
           subtitle: 'Manage turf sessions, verify player payments, and curate match squads',
         };
+      case 'users':
+        return {
+          title: 'User & Player Management',
+          subtitle: 'Directory of registered players, contact numbers, roles, and match contributions',
+        };
       case 'squad':
         return {
           title: 'Squad & Match Lineup',
@@ -151,7 +157,7 @@ export default function App() {
               <span>Friday 8:00 PM – 10:00 PM</span>
             </div>
 
-            {user.role === 'admin' && activeTab !== 'admin' && (
+            {user.role === 'admin' && activeTab !== 'admin' && activeTab !== 'users' && (
               <button
                 type="button"
                 className="btn btn-sm"
@@ -179,7 +185,9 @@ export default function App() {
         {/* Content Body */}
         <main className="content-body">
           {activeTab === 'admin' && user.role === 'admin' ? (
-            <AdminPage />
+            <AdminPage setActiveTab={setActiveTab} />
+          ) : activeTab === 'users' && user.role === 'admin' ? (
+            <UserManagementPage currentUser={user} />
           ) : (
             <DashboardPage
               user={user}

@@ -197,6 +197,17 @@ export const api = {
     });
   },
 
+  getAllUsers: async () => {
+    return request('/admin/users');
+  },
+
+  updateUser: async (userId, { name, phone, role }) => {
+    return request(`/admin/users/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ name, phone, role }),
+    });
+  },
+
   deleteUser: async (userId) => {
     return request(`/admin/users/${userId}`, {
       method: 'DELETE',

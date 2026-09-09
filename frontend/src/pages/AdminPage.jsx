@@ -24,7 +24,7 @@ import {
   Trash2,
 } from 'lucide-react';
 
-export default function AdminPage() {
+export default function AdminPage({ setActiveTab }) {
   const [overview, setOverview] = useState(null);
   const [selectedSessionId, setSelectedSessionId] = useState(null);
   const [rosterData, setRosterData] = useState(null);
@@ -403,10 +403,14 @@ export default function AdminPage() {
             className="btn btn-secondary"
             style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', fontWeight: 600 }}
             onClick={() => {
-              setPlayerSearchQuery('');
-              setManagePlayersModalOpen(true);
+              if (setActiveTab) {
+                setActiveTab('users');
+              } else {
+                setPlayerSearchQuery('');
+                setManagePlayersModalOpen(true);
+              }
             }}
-            title="View and manage all registered players"
+            title="Open dedicated User Management module"
           >
             <Users size={17} color="#2563eb" />
             <span>Manage Players ({overview?.all_profiles?.length || 0})</span>
