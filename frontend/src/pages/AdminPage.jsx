@@ -62,6 +62,113 @@ export default function AdminPage({ setActiveTab }) {
   const [paymentNoteInput, setPaymentNoteInput] = useState('');
   const [savingPayment, setSavingPayment] = useState(false);
 
+  // Add Match Session / Old Friday state
+  const [addSessionModalOpen, setAddSessionModalOpen] = useState(false);
+  const [sessionDateInput, setSessionDateInput] = useState('');
+  const [sessionCostInput, setSessionCostInput] = useState('200');
+  const [sessionStartTimeInput, setSessionStartTimeInput] = useState('20:00');
+  const [sessionEndTimeInput, setSessionEndTimeInput] = useState('22:00');
+  const [sessionStatusInput, setSessionStatusInput] = useState('completed');
+  const [sessionPopulateSquad, setSessionPopulateSquad] = useState(true);
+  const [savingSession, setSavingSession] = useState(false);
+  const [sessionError, setSessionError] = useState(null);
+  const [batchAddingPast, setBatchAddingPast] = useState(false);
+
+  const getSuggestedPastFridays = () => {
+    const today = new Date();
+    const suggestions = [];
+    const currentDay = today.getDay(); // 0: Sun, 5: Fri
+    let daysBack = (currentDay - 5 + 7) % 7;
+    if (daysBack === 0) daysBack = 7;
+
+    for (let i = 0; i < 6; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - (daysBack + i * 7));
+      const iso = d.toISOString().split('T')[0];
+      const formatted = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      suggestions.push({ iso, label: formatted });
+    }
+    return suggestions;
+  };
+
+  const handleCreateSession = async (e) => {
+    e.preventDefault();
+    if (!sessionDateInput) {
+      setSessionError('Please select a match date');
+      return;
+    }
+    setSavingSession(true);
+    setSessionError(null);
+    try {
+      const res = await api.createSession({
+        session_date: sessionDateInput,
+        start_time: sessionStartTimeInput,
+        end_time: sessionEndTimeInput,
+        cost_per_person: Number(sessionCostInput) || 200,
+        status: sessionStatusInput,
+        populate_all_players: sessionPopulateSquad,
+      });
+      setToast(res.message || 'Friday match record created!');
+      setTimeout(() => setToast(null), 4000);
+      setAddSessionModalOpen(false);
+      setSessionDateInput('');
+
+      const newSid = res.session?.id;
+      const data = await api.getAdminOverview();
+      setOverview(data);
+      if (newSid) {
+        setSelectedSessionId(newSid);
+        loadRoster(newSid);
+      }
+    } catch (err) {
+      setSessionError(err.message || 'Failed to create match session');
+    } finally {
+      setSavingSession(false);
+    }
+  };
+
+  const handleQuickAddPastFridays = async (weeks = 4) => {
+    if (!window.confirm(`Generate the last ${weeks} Friday match records automatically with registered players squad?`)) return;
+    setBatchAddingPast(true);
+    setSessionError(null);
+    try {
+      const res = await api.addPastFridays({
+        weeks_count: weeks,
+        cost_per_person: 200,
+        status: 'completed',
+        populate_all_players: true,
+      });
+      setToast(res.message);
+      setTimeout(() => setToast(null), 5000);
+      setAddSessionModalOpen(false);
+      const data = await api.getAdminOverview();
+      setOverview(data);
+    } catch (err) {
+      alert(err.message || 'Failed to add past Fridays');
+    } finally {
+      setBatchAddingPast(false);
+    }
+  };
+
+  const handleDeleteSession = async (sessionId, sessionDate) => {
+    if (!sessionId) return;
+    if (!window.confirm(`Are you sure you want to permanently delete the match session for Friday ${sessionDate} and all its payment records?`)) return;
+    try {
+      const res = await api.deleteSession(sessionId);
+      setToast(res.message || 'Match session removed');
+      setTimeout(() => setToast(null), 4000);
+      const data = await api.getAdminOverview();
+      setOverview(data);
+      if (data.sessions && data.sessions.length > 0) {
+        const nextId = data.current_session?.session?.id || data.sessions[0].session.id;
+        setSelectedSessionId(nextId);
+        loadRoster(nextId);
+      }
+    } catch (err) {
+      alert(err.message || 'Failed to delete session');
+    }
+  };
+
   const handleDeleteUser = async (userId, playerName) => {
     if (!window.confirm(`Are you sure you want to permanently remove "${playerName}" and their data from the turf tracker?`)) return;
     setDeletingUserId(userId);
@@ -166,9 +273,12 @@ export default function AdminPage({ setActiveTab }) {
       const data = await api.getAdminOverview();
       setOverview(data);
       if (data.sessions && data.sessions.length > 0) {
-        // Pick current or first session
-        const initialId = data.current_session?.session?.id || data.sessions[0].session.id;
-        setSelectedSessionId(initialId);
+        setSelectedSessionId((prev) => {
+          if (prev && data.sessions.some((s) => s.session.id === prev)) {
+            return prev;
+          }
+          return data.current_session?.session?.id || data.sessions[0].session.id;
+        });
       }
     } catch (err) {
       console.error(err);
@@ -379,6 +489,27 @@ export default function AdminPage({ setActiveTab }) {
             type="button"
             className="btn"
             style={{
+              background: '#047857',
+              color: '#ffffff',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              fontWeight: 600,
+            }}
+            onClick={() => {
+              setSessionError(null);
+              setAddSessionModalOpen(true);
+            }}
+            title="Add old Friday match records or schedule custom matches"
+          >
+            <Calendar size={17} />
+            <span>+ Add Friday / Old Record</span>
+          </button>
+
+          <button
+            type="button"
+            className="btn"
+            style={{
               background: '#2563eb',
               color: '#ffffff',
               display: 'inline-flex',
@@ -506,17 +637,23 @@ export default function AdminPage({ setActiveTab }) {
               <select
                 id="session-select"
                 className="form-input"
-                style={{ minWidth: '320px', padding: '0.65rem 1rem' }}
+                style={{ minWidth: '340px', padding: '0.65rem 1rem' }}
                 value={selectedSessionId || ''}
                 onChange={(e) => setSelectedSessionId(Number(e.target.value))}
               >
-                {sessions.map((item) => (
-                  <option key={item.session.id} value={item.session.id}>
-                    Friday, {item.session.session_date} — Fee: ₹{item.session.cost_per_person || 200} ({item.confirmed_count} Paid, ₹{item.collected_amount})
-                  </option>
-                ))}
+                {sessions.map((item) => {
+                  const todayStr = new Date().toISOString().split('T')[0];
+                  const isPast = item.session.session_date < todayStr;
+                  return (
+                    <option key={item.session.id} value={item.session.id}>
+                      {isPast ? '⏪ [Past Match] ' : '⚽ [Upcoming] '}
+                      Friday, {item.session.session_date} — Fee: ₹{item.session.cost_per_person || 200} ({item.confirmed_count} Paid, ₹{item.collected_amount})
+                    </option>
+                  );
+                })}
               </select>
             </div>
+
             <button
               type="button"
               className="btn btn-secondary"
@@ -534,6 +671,42 @@ export default function AdminPage({ setActiveTab }) {
               <DollarSign size={16} color="#fbbf24" />
               <span>Edit Match Fees</span>
             </button>
+
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.65rem 0.95rem' }}
+              onClick={() => {
+                setSessionError(null);
+                setAddSessionModalOpen(true);
+              }}
+              title="Add past Friday match records or schedule new games"
+            >
+              <PlusCircle size={16} color="#059669" />
+              <span>+ Add Match Record</span>
+            </button>
+
+            {sessions.length > 1 && (
+              <button
+                type="button"
+                className="btn btn-sm"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '0.65rem 0.85rem',
+                  background: '#fee2e2',
+                  color: '#dc2626',
+                  border: '1px solid #fecdd3',
+                  fontWeight: 600,
+                }}
+                onClick={() => handleDeleteSession(selectedSessionId, currentSessionObj?.session_date)}
+                title="Delete this match session and its payments"
+              >
+                <Trash2 size={15} />
+                <span>Delete Match</span>
+              </button>
+            )}
           </div>
 
           {currentSessionObj && (
@@ -1531,6 +1704,298 @@ export default function AdminPage({ setActiveTab }) {
                 Close
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= ADD FRIDAY MATCH / OLD RECORD MODAL ================= */}
+      {addSessionModalOpen && (
+        <div className="modal-backdrop" onClick={() => !savingSession && !batchAddingPast && setAddSessionModalOpen(false)}>
+          <div
+            className="modal-content"
+            style={{ maxWidth: '520px', width: '95%' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <div
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '10px',
+                    background: '#ecfdf5',
+                    color: '#059669',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Calendar size={20} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                    Add Friday Match / Old Record
+                  </h3>
+                  <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '0.15rem' }}>
+                    Record past Friday matches or schedule new match dates
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAddSessionModalOpen(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {sessionError && (
+              <div
+                style={{
+                  padding: '0.65rem 0.85rem',
+                  background: '#fef2f2',
+                  border: '1px solid #fecdd3',
+                  borderRadius: '8px',
+                  color: '#991b1b',
+                  fontSize: '0.85rem',
+                  marginBottom: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                }}
+              >
+                <AlertCircle size={16} />
+                <span>{sessionError}</span>
+              </div>
+            )}
+
+            {/* Quick Suggestions for Past Fridays */}
+            <div style={{ marginBottom: '1.25rem' }}>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#475569', marginBottom: '0.4rem' }}>
+                ⚡ Quick Select Recent Past Fridays:
+              </label>
+              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                {getSuggestedPastFridays().map((item) => (
+                  <button
+                    key={item.iso}
+                    type="button"
+                    className="btn btn-sm"
+                    style={{
+                      fontSize: '0.75rem',
+                      padding: '0.3rem 0.65rem',
+                      borderRadius: '6px',
+                      background: sessionDateInput === item.iso ? '#059669' : '#f1f5f9',
+                      color: sessionDateInput === item.iso ? '#ffffff' : '#334155',
+                      border: sessionDateInput === item.iso ? '1px solid #059669' : '1px solid #cbd5e1',
+                      fontWeight: 600,
+                    }}
+                    onClick={() => {
+                      setSessionDateInput(item.iso);
+                      setSessionStatusInput('completed');
+                    }}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <form onSubmit={handleCreateSession}>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                  Match Friday Date *
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={sessionDateInput}
+                  onChange={(e) => setSessionDateInput(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '0.6rem 0.85rem',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.9rem',
+                    outline: 'none',
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                    Match Fee / Person (₹) *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min="1"
+                    value={sessionCostInput}
+                    onChange={(e) => setSessionCostInput(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.6rem 0.85rem',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.9rem',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                    Match Status
+                  </label>
+                  <select
+                    value={sessionStatusInput}
+                    onChange={(e) => setSessionStatusInput(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.6rem 0.85rem',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.9rem',
+                      background: '#ffffff',
+                      outline: 'none',
+                    }}
+                  >
+                    <option value="completed">Completed / Old Match</option>
+                    <option value="open">Open / Upcoming Match</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                    Start Time
+                  </label>
+                  <input
+                    type="text"
+                    value={sessionStartTimeInput}
+                    onChange={(e) => setSessionStartTimeInput(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.6rem 0.85rem',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.9rem',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                    End Time
+                  </label>
+                  <input
+                    type="text"
+                    value={sessionEndTimeInput}
+                    onChange={(e) => setSessionEndTimeInput(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.6rem 0.85rem',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.9rem',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '1.25rem' }}>
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={sessionPopulateSquad}
+                    onChange={(e) => setSessionPopulateSquad(e.target.checked)}
+                    style={{ width: '18px', height: '18px', marginTop: '2px', accentColor: '#059669' }}
+                  />
+                  <div>
+                    <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a' }}>
+                      Populate all registered players into this match squad
+                    </span>
+                    <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '0.15rem' }}>
+                      Recommended for old matches so you can immediately see the players and record payments/attendance.
+                    </div>
+                  </div>
+                </label>
+              </div>
+
+              {/* Batch option */}
+              <div
+                style={{
+                  padding: '0.85rem 1rem',
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '10px',
+                  marginBottom: '1.5rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '0.75rem',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>
+                    Need to add multiple past Fridays?
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                    Auto-creates the last 4 Friday match records with full player rosters.
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-secondary"
+                  disabled={batchAddingPast || savingSession}
+                  onClick={() => handleQuickAddPastFridays(4)}
+                  style={{
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    padding: '0.4rem 0.75rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                  }}
+                >
+                  <PlusCircle size={14} color="#059669" />
+                  <span>{batchAddingPast ? 'Generating...' : 'Batch Add 4 Past Fridays'}</span>
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.65rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setAddSessionModalOpen(false)}
+                  disabled={savingSession || batchAddingPast}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={savingSession || batchAddingPast}
+                  style={{
+                    background: '#059669',
+                    borderColor: '#059669',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    minWidth: '150px',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {savingSession ? <Clock size={16} className="spin" /> : <CheckCircle size={16} />}
+                  <span>{savingSession ? 'Creating...' : 'Save Match Record'}</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

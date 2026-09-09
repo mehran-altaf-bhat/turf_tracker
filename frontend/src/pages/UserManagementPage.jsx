@@ -290,54 +290,6 @@ export default function UserManagementPage({ currentUser }) {
             </button>
           </div>
         </div>
-
-        {/* Stats Strip */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-            gap: '1rem',
-            marginTop: '1.35rem',
-            paddingTop: '1.25rem',
-            borderTop: '1px solid #f1f5f9',
-          }}
-        >
-          <div style={{ padding: '0.75rem', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>
-              Total Players
-            </div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', marginTop: '0.15rem' }}>
-              {totalCount}
-            </div>
-          </div>
-
-          <div style={{ padding: '0.75rem', background: '#ecfdf5', borderRadius: '10px', border: '1px solid #a7f3d0' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#047857', textTransform: 'uppercase' }}>
-              Regular Players
-            </div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#065f46', marginTop: '0.15rem' }}>
-              {regularCount}
-            </div>
-          </div>
-
-          <div style={{ padding: '0.75rem', background: '#fffbeb', borderRadius: '10px', border: '1px solid #fde68a' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#b45309', textTransform: 'uppercase' }}>
-              Administrators
-            </div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#92400e', marginTop: '0.15rem' }}>
-              {adminCount}
-            </div>
-          </div>
-
-          <div style={{ padding: '0.75rem', background: '#eff6ff', borderRadius: '10px', border: '1px solid #bfdbfe' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#1d4ed8', textTransform: 'uppercase' }}>
-              Direct / No-Email
-            </div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e40af', marginTop: '0.15rem' }}>
-              {directNoEmailCount}
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Filter and Search Bar */}
@@ -462,9 +414,6 @@ export default function UserManagementPage({ currentUser }) {
                   </th>
                   <th style={{ padding: '0.85rem 1rem', fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>
                     Role
-                  </th>
-                  <th style={{ padding: '0.85rem 1rem', fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>
-                    Stats
                   </th>
                   <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', textAlign: 'right' }}>
                     Actions
@@ -659,16 +608,6 @@ export default function UserManagementPage({ currentUser }) {
                             <span>Player</span>
                           </span>
                         )}
-                      </td>
-
-                      {/* Stats */}
-                      <td style={{ padding: '1rem 1rem' }}>
-                        <div style={{ fontSize: '0.8rem', color: '#475569' }}>
-                          <span style={{ fontWeight: 700, color: '#0f172a' }}>{u.matches_count || 0}</span> matches
-                        </div>
-                        <div style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 600 }}>
-                          ₹{u.total_paid || 0} paid
-                        </div>
                       </td>
 
                       {/* Actions */}

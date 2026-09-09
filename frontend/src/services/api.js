@@ -136,6 +136,26 @@ export const api = {
     });
   },
 
+  createSession: async ({ session_date, start_time, end_time, cost_per_person, status, populate_all_players }) => {
+    return request('/sessions', {
+      method: 'POST',
+      body: JSON.stringify({ session_date, start_time, end_time, cost_per_person, status, populate_all_players }),
+    });
+  },
+
+  addPastFridays: async ({ weeks_count = 4, cost_per_person = 200, status = 'completed', populate_all_players = true } = {}) => {
+    return request('/sessions/add-past-fridays', {
+      method: 'POST',
+      body: JSON.stringify({ weeks_count, cost_per_person, status, populate_all_players }),
+    });
+  },
+
+  deleteSession: async (sessionId) => {
+    return request(`/sessions/${sessionId}`, {
+      method: 'DELETE',
+    });
+  },
+
   // Admin
   getAdminOverview: async () => {
     return request('/admin/overview');

@@ -77,12 +77,18 @@ class CreateSessionRequest(BaseModel):
     end_time: str = "22:00"
     cost_per_person: int = 200
     status: str = "open"
+    populate_all_players: Optional[bool] = False
 
 
 @router.post("")
 def create_session(data: CreateSessionRequest, admin: dict = Depends(require_admin)):
     db = service_client()
     try:
+        # Check if session date already exists
+        existing = db.table("turf_sessions").select("id").eq("session_date", data.session_date).execute().data
+        if existing:
+            raise HTTPException(status_code=400, detail=f"A match session already exists for {data.session_date}")
+
         res = (
             db.table("turf_sessions")
             .insert({
@@ -94,9 +100,81 @@ def create_session(data: CreateSessionRequest, admin: dict = Depends(require_adm
             })
             .execute()
         )
-        return {"message": "Session created successfully", "session": res.data[0] if res.data else None}
+        new_session = res.data[0] if res.data else None
+
+        # Optionally populate all registered players into this match's squad
+        if new_session and data.populate_all_players:
+            profiles = db.table("profiles").select("id").execute().data
+            for p in profiles:
+                try:
+                    db.table("payments").insert({
+                        "user_id": p["id"],
+                        "session_id": new_session["id"],
+                        "amount": data.cost_per_person,
+                        "status": "unpaid",
+                    }).execute()
+                except Exception:
+                    pass
+
+        return {"message": "Friday match record created successfully!", "session": new_session}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+class AddPastFridaysRequest(BaseModel):
+    weeks_count: int = 4
+    cost_per_person: int = 200
+    status: str = "completed"
+    populate_all_players: bool = True
+
+
+@router.post("/add-past-fridays")
+def add_past_fridays(data: AddPastFridaysRequest, admin: dict = Depends(require_admin)):
+    db = service_client()
+    today = date.today()
+    # Friday is weekday 4 in python
+    days_back = (today.weekday() - 4) % 7
+    if days_back == 0:
+        days_back = 7
+    most_recent_past_friday = today - timedelta(days=days_back)
+
+    past_fridays = [most_recent_past_friday - timedelta(weeks=i) for i in range(data.weeks_count)]
+
+    existing = db.table("turf_sessions").select("session_date").execute().data
+    existing_dates = {s["session_date"] for s in existing}
+    profiles = db.table("profiles").select("id").execute().data if data.populate_all_players else []
+
+    created_count = 0
+    for f_date in past_fridays:
+        f_str = f_date.isoformat()
+        if f_str not in existing_dates:
+            try:
+                res = db.table("turf_sessions").insert({
+                    "session_date": f_str,
+                    "start_time": "20:00",
+                    "end_time": "22:00",
+                    "cost_per_person": data.cost_per_person,
+                    "status": data.status,
+                }).execute()
+                if res.data and profiles:
+                    sid = res.data[0]["id"]
+                    for p in profiles:
+                        try:
+                            db.table("payments").insert({
+                                "user_id": p["id"],
+                                "session_id": sid,
+                                "amount": data.cost_per_person,
+                                "status": "unpaid",
+                            }).execute()
+                        except Exception:
+                            pass
+                created_count += 1
+            except Exception as err:
+                print("Insert past friday error:", err)
+
+    return {"message": f"Added {created_count} past Friday match session(s) successfully!", "created_count": created_count}
 
 
 class UpdateSessionRequest(BaseModel):
@@ -121,3 +199,17 @@ def update_session(session_id: int, data: UpdateSessionRequest, admin: dict = De
             pass
 
     return {"message": "Session updated", "session": res.data[0] if res.data else None}
+
+
+@router.delete("/{session_id}")
+def delete_session(session_id: int, admin: dict = Depends(require_admin)):
+    db = service_client()
+    try:
+        # Delete associated payments
+        db.table("payments").delete().eq("session_id", session_id).execute()
+        # Delete session
+        res = db.table("turf_sessions").delete().eq("id", session_id).execute()
+        return {"message": "Match session removed successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
