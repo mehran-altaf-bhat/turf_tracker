@@ -59,13 +59,13 @@ export default function App() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'var(--bg-primary)',
-        color: '#fff',
+        background: '#ffffff',
+        color: 'var(--text-primary)',
         flexDirection: 'column',
-        gap: '1rem',
+        gap: '0.75rem',
       }}>
-        <div style={{ fontSize: '3rem' }}>⚽</div>
-        <div style={{ fontSize: '1.1rem', color: 'var(--pitch-green-light)', fontWeight: 600 }}>
+        <div style={{ fontSize: '2.5rem' }}>⚽</div>
+        <div style={{ fontSize: '1rem', color: 'var(--pitch-green-dark)', fontWeight: 600 }}>
           Loading Elite Turf Tracker...
         </div>
       </div>
@@ -95,14 +95,15 @@ export default function App() {
 
       <footer style={{
         borderTop: '1px solid var(--border-subtle)',
-        padding: '1.5rem',
+        background: '#ffffff',
+        padding: '1.75rem 1.5rem',
         textAlign: 'center',
         color: 'var(--text-muted)',
-        fontSize: '0.8rem',
+        fontSize: '0.85rem',
       }}>
-        <div>⚽ <strong>Elite Football Turf</strong> — Every Friday, 8:00 PM to 10:00 PM (₹200/player)</div>
-        <div style={{ marginTop: '0.25rem', color: 'rgba(255, 255, 255, 0.2)' }}>
-          Powered by FastAPI + React + Supabase
+        <div>⚽ <strong>Elite Football Turf</strong> — Every Friday, 8:00 PM to 10:00 PM</div>
+        <div style={{ marginTop: '0.35rem', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+          Weekly Football Session Tracker
         </div>
       </footer>
     </div>

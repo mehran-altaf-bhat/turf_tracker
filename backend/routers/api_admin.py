@@ -187,7 +187,7 @@ def get_session_roster(session_id: int, admin: dict = Depends(require_admin)):
 
     wa_lines.extend([
         "",
-        "📲 *Please pay ₹200 via UPI to confirm your spot!*",
+        f"📲 *Please pay ₹{session.get('cost_per_person', 200)} via UPI to confirm your spot!*",
     ])
     whatsapp_text = "\n".join(wa_lines)
 

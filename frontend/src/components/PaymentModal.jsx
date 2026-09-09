@@ -151,11 +151,11 @@ export default function PaymentModal({ isOpen, onClose, config, onPaymentSuccess
 
         {error && (
           <div style={{
-            background: 'rgba(239, 68, 68, 0.15)',
-            border: '1px solid rgba(239, 68, 68, 0.3)',
+            background: '#fff1f2',
+            border: '1px solid #fecdd3',
             borderRadius: 'var(--radius-sm)',
             padding: '0.75rem 1rem',
-            color: '#fca5a5',
+            color: '#be123c',
             fontSize: '0.85rem',
             display: 'flex',
             alignItems: 'center',
@@ -187,12 +187,13 @@ export default function PaymentModal({ isOpen, onClose, config, onPaymentSuccess
         {/* Dynamic UPI QR Card styled like Image 1 */}
         <div style={{
           background: '#ffffff',
-          borderRadius: '18px',
+          borderRadius: '16px',
+          border: '1px solid #e2e8f0',
           padding: '1.5rem 1.25rem 1.25rem',
           textAlign: 'center',
           color: '#0f172a',
           margin: '1.25rem 0',
-          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)',
+          boxShadow: 'var(--shadow-sm)',
         }}>
           {/* Header Payee Name */}
           <h2 style={{
@@ -212,7 +213,8 @@ export default function PaymentModal({ isOpen, onClose, config, onPaymentSuccess
             padding: '10px',
             background: '#fff',
             borderRadius: '14px',
-            boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
+            border: '1px solid #f1f5f9',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.06)',
           }}>
             <QRCodeSVG
               value={upiUrl}
@@ -227,7 +229,7 @@ export default function PaymentModal({ isOpen, onClose, config, onPaymentSuccess
             marginTop: '0.85rem',
             fontSize: '1.4rem',
             fontWeight: 800,
-            color: '#059669',
+            color: 'var(--pitch-green-dark)',
           }}>
             ₹{totalAmount}
           </div>
@@ -307,19 +309,19 @@ export default function PaymentModal({ isOpen, onClose, config, onPaymentSuccess
               <div
                 onClick={() => fileInputRef.current?.click()}
                 style={{
-                  border: '2px dashed var(--border-subtle)',
+                  border: '2px dashed #cbd5e1',
                   borderRadius: 'var(--radius-sm)',
                   padding: '1.25rem',
                   textAlign: 'center',
                   cursor: 'pointer',
-                  background: 'rgba(255, 255, 255, 0.02)',
-                  transition: 'all 0.2s ease',
+                  background: '#f8fafc',
+                  transition: 'all 0.15s ease',
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--pitch-green)'}
-                onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-subtle)'}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = '#cbd5e1'}
               >
-                <Upload size={24} color="var(--pitch-green-light)" style={{ margin: '0 auto 0.5rem' }} />
-                <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#fff' }}>
+                <Upload size={24} color="var(--pitch-green)" style={{ margin: '0 auto 0.5rem' }} />
+                <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
                   Click to Upload Payment Screenshot
                 </div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
@@ -333,8 +335,8 @@ export default function PaymentModal({ isOpen, onClose, config, onPaymentSuccess
                 justifyContent: 'space-between',
                 padding: '0.75rem 1rem',
                 borderRadius: 'var(--radius-sm)',
-                background: 'rgba(16, 185, 129, 0.1)',
-                border: '1px solid var(--border-accent)',
+                background: '#ecfdf5',
+                border: '1px solid #a7f3d0',
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                   <img
@@ -345,15 +347,15 @@ export default function PaymentModal({ isOpen, onClose, config, onPaymentSuccess
                       height: '46px',
                       objectFit: 'cover',
                       borderRadius: '6px',
-                      border: '1px solid var(--border-subtle)',
+                      border: '1px solid #a7f3d0',
                     }}
                   />
                   <div>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#fff', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                      <FileCheck size={15} color="var(--pitch-green-light)" />
+                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <FileCheck size={15} color="var(--pitch-green)" />
                       <span>{screenshotFile?.name || 'Screenshot selected'}</span>
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--pitch-green-light)' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--pitch-green-dark)' }}>
                       Ready to submit with payment
                     </div>
                   </div>

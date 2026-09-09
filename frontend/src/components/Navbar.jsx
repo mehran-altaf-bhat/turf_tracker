@@ -13,7 +13,7 @@ export default function Navbar({ user, onLogout, activeTab, setActiveTab }) {
           <div className="brand-icon">⚽</div>
           <div>
             <span>Turf Tracker</span>
-            <div style={{ fontSize: '0.72rem', color: 'var(--pitch-green-light)', fontWeight: 500, letterSpacing: 'normal' }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--pitch-green-dark)', fontWeight: 600, letterSpacing: 'normal' }}>
               Elite Football Turf (8-10 PM)
             </div>
           </div>
@@ -39,7 +39,7 @@ export default function Navbar({ user, onLogout, activeTab, setActiveTab }) {
           )}
 
           <div className="nav-user">
-            <span style={{ fontWeight: 600, color: '#fff' }}>{user.name}</span>
+            <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{user.name}</span>
             <span className={`role-tag ${user.role}`}>
               {user.role}
             </span>

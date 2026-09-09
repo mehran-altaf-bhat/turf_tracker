@@ -87,6 +87,21 @@ def get_my_payment_status(user: dict = Depends(get_current_user)):
     # Current session is the nearest upcoming
     current_session = upcoming[0] if upcoming else None
     current_payment = payments_by_session.get(current_session["id"]) if current_session else None
+    if current_payment:
+        raw_cur_ref = current_payment.get("upi_ref") or ""
+        if "[screenshot:" in raw_cur_ref:
+            import re
+            m = re.search(r"\[screenshot:(.*?)\]", raw_cur_ref)
+            cur_screenshot = m.group(1) if m else None
+            cur_clean = re.sub(r"\[screenshot:.*?\]", "", raw_cur_ref).strip()
+            cur_display = "Screenshot Sent"
+            if cur_clean and cur_clean != "Screenshot Attached":
+                cur_display = f"{cur_clean} (Screenshot Sent)"
+            current_payment = {
+                **current_payment,
+                "upi_ref": cur_display,
+                "screenshot_url": cur_screenshot,
+            }
 
     # Get match squad for this Friday
     current_squad = []
@@ -124,10 +139,28 @@ def get_my_payment_status(user: dict = Depends(get_current_user)):
     )
 
     # Combined history
+    import re
     history = []
     for s in sessions:
         p = payments_by_session.get(s["id"])
         if p:
+            raw_ref = p.get("upi_ref") or ""
+            screenshot_url = None
+            clean_ref = raw_ref
+            if "[screenshot:" in raw_ref:
+                m = re.search(r"\[screenshot:(.*?)\]", raw_ref)
+                if m:
+                    screenshot_url = m.group(1)
+                    clean_ref = re.sub(r"\[screenshot:.*?\]", "", raw_ref).strip()
+
+            display_ref = "—"
+            if clean_ref and clean_ref != "Screenshot Attached":
+                display_ref = f"{clean_ref} (Screenshot Sent)" if screenshot_url else clean_ref
+            elif screenshot_url or clean_ref == "Screenshot Attached":
+                display_ref = "Screenshot Sent"
+            elif clean_ref:
+                display_ref = clean_ref
+
             history.append({
                 "payment_id": p["id"],
                 "session_id": s["id"],
@@ -135,7 +168,8 @@ def get_my_payment_status(user: dict = Depends(get_current_user)):
                 "start_time": s.get("start_time", "20:00"),
                 "end_time": s.get("end_time", "22:00"),
                 "amount": p["amount"],
-                "upi_ref": p.get("upi_ref"),
+                "upi_ref": display_ref,
+                "screenshot_url": screenshot_url,
                 "status": p.get("status", "pending"),
                 "submitted_at": p.get("submitted_at"),
                 "confirmed_at": p.get("confirmed_at"),

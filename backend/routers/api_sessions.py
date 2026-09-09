@@ -114,4 +114,10 @@ def update_session(session_id: int, data: UpdateSessionRequest, admin: dict = De
         raise HTTPException(status_code=400, detail="No fields to update")
 
     res = db.table("turf_sessions").update(update_data).eq("id", session_id).execute()
+    if "cost_per_person" in update_data:
+        try:
+            db.table("payments").update({"amount": update_data["cost_per_person"]}).eq("session_id", session_id).eq("status", "unpaid").execute()
+        except Exception:
+            pass
+
     return {"message": "Session updated", "session": res.data[0] if res.data else None}

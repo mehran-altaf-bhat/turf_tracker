@@ -55,15 +55,15 @@ export default function LoginPage({ onLoginSuccess }) {
             justifyContent: 'center',
             width: '56px',
             height: '56px',
-            background: 'linear-gradient(135deg, var(--pitch-green), var(--pitch-green-dark))',
+            background: '#ecfdf5',
+            border: '1px solid #a7f3d0',
             borderRadius: '16px',
             fontSize: '1.75rem',
             marginBottom: '1rem',
-            boxShadow: '0 0 25px var(--pitch-glow)',
           }}>
             ⚽
           </div>
-          <h1 style={{ fontSize: '1.65rem', marginBottom: '0.35rem' }}>Elite Turf Tracker</h1>
+          <h1 style={{ fontSize: '1.65rem', marginBottom: '0.35rem', color: 'var(--text-primary)' }}>Elite Turf Tracker</h1>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
             Weekly Friday Football (8:00 PM - 10:00 PM)
           </p>
@@ -73,9 +73,9 @@ export default function LoginPage({ onLoginSuccess }) {
         <div style={{
           display: 'grid',
           gridTemplateColumns: '1fr 1fr',
-          background: 'rgba(255, 255, 255, 0.04)',
+          background: '#f1f5f9',
           borderRadius: 'var(--radius-sm)',
-          padding: '0.3rem',
+          padding: '0.25rem',
           marginBottom: '1.5rem',
           border: '1px solid var(--border-subtle)',
         }}>
@@ -83,9 +83,11 @@ export default function LoginPage({ onLoginSuccess }) {
             type="button"
             className="btn btn-sm"
             style={{
-              background: isLogin ? 'rgba(16, 185, 129, 0.2)' : 'transparent',
-              color: isLogin ? '#fff' : 'var(--text-muted)',
-              border: isLogin ? '1px solid var(--border-accent)' : 'none',
+              background: isLogin ? '#ffffff' : 'transparent',
+              color: isLogin ? 'var(--text-primary)' : 'var(--text-muted)',
+              border: isLogin ? '1px solid #e2e8f0' : 'none',
+              boxShadow: isLogin ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+              fontWeight: 600,
             }}
             onClick={() => { setIsLogin(true); setError(null); }}
           >
@@ -95,9 +97,11 @@ export default function LoginPage({ onLoginSuccess }) {
             type="button"
             className="btn btn-sm"
             style={{
-              background: !isLogin ? 'rgba(16, 185, 129, 0.2)' : 'transparent',
-              color: !isLogin ? '#fff' : 'var(--text-muted)',
-              border: !isLogin ? '1px solid var(--border-accent)' : 'none',
+              background: !isLogin ? '#ffffff' : 'transparent',
+              color: !isLogin ? 'var(--text-primary)' : 'var(--text-muted)',
+              border: !isLogin ? '1px solid #e2e8f0' : 'none',
+              boxShadow: !isLogin ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+              fontWeight: 600,
             }}
             onClick={() => { setIsLogin(false); setError(null); }}
           >
@@ -108,11 +112,11 @@ export default function LoginPage({ onLoginSuccess }) {
         {/* Success Alert */}
         {successMsg && (
           <div style={{
-            background: 'rgba(16, 185, 129, 0.15)',
-            border: '1px solid rgba(16, 185, 129, 0.3)',
+            background: '#ecfdf5',
+            border: '1px solid #a7f3d0',
             borderRadius: 'var(--radius-sm)',
             padding: '0.75rem 1rem',
-            color: '#34d399',
+            color: '#065f46',
             fontSize: '0.85rem',
             marginBottom: '1.25rem',
           }}>
@@ -123,11 +127,11 @@ export default function LoginPage({ onLoginSuccess }) {
         {/* Error Alert */}
         {error && (
           <div style={{
-            background: 'rgba(239, 68, 68, 0.15)',
-            border: '1px solid rgba(239, 68, 68, 0.3)',
+            background: '#fff1f2',
+            border: '1px solid #fecdd3',
             borderRadius: 'var(--radius-sm)',
             padding: '0.75rem 1rem',
-            color: '#fca5a5',
+            color: '#be123c',
             fontSize: '0.85rem',
             display: 'flex',
             alignItems: 'center',

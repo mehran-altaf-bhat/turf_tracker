@@ -88,8 +88,8 @@ export default function SquadModal({ isOpen, onClose, sessionDate, allPlayers = 
         {/* Header */}
         <div className="modal-header" style={{ marginBottom: '1rem' }}>
           <div>
-            <h3 style={{ fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Users size={20} color="var(--pitch-green-light)" />
+            <h3 style={{ fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)' }}>
+              <Users size={20} color="var(--pitch-green)" />
               Select Match Squad
             </h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
@@ -103,11 +103,11 @@ export default function SquadModal({ isOpen, onClose, sessionDate, allPlayers = 
 
         {error && (
           <div style={{
-            background: 'rgba(239, 68, 68, 0.15)',
-            border: '1px solid rgba(239, 68, 68, 0.3)',
+            background: '#fff1f2',
+            border: '1px solid #fecdd3',
             borderRadius: 'var(--radius-sm)',
             padding: '0.75rem',
-            color: '#fca5a5',
+            color: '#be123c',
             fontSize: '0.85rem',
             marginBottom: '1rem',
           }}>
@@ -122,7 +122,7 @@ export default function SquadModal({ isOpen, onClose, sessionDate, allPlayers = 
           alignItems: 'center',
           flexWrap: 'wrap',
           gap: '0.75rem',
-          background: 'rgba(255, 255, 255, 0.03)',
+          background: '#f8fafc',
           padding: '0.75rem 1rem',
           borderRadius: 'var(--radius-sm)',
           marginBottom: '1rem',
@@ -130,7 +130,7 @@ export default function SquadModal({ isOpen, onClose, sessionDate, allPlayers = 
         }}>
           <div>
             <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Selected Squad: </span>
-            <strong style={{ fontSize: '1.1rem', color: 'var(--pitch-green-light)' }}>
+            <strong style={{ fontSize: '1.1rem', color: 'var(--pitch-green-dark)' }}>
               {selectedIds.size}
             </strong>
             <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}> / {allPlayers.length} registered players</span>
@@ -174,7 +174,7 @@ export default function SquadModal({ isOpen, onClose, sessionDate, allPlayers = 
           border: '1px solid var(--border-subtle)',
           borderRadius: 'var(--radius-sm)',
           padding: '0.5rem',
-          background: 'rgba(8, 12, 20, 0.6)',
+          background: '#ffffff',
           marginBottom: '1.5rem',
         }}>
           {filteredPlayers.length === 0 ? (
@@ -194,8 +194,8 @@ export default function SquadModal({ isOpen, onClose, sessionDate, allPlayers = 
                     justifyContent: 'space-between',
                     padding: '0.65rem 0.85rem',
                     borderRadius: 'var(--radius-sm)',
-                    background: isChecked ? 'rgba(16, 185, 129, 0.12)' : 'transparent',
-                    border: isChecked ? '1px solid var(--border-accent)' : '1px solid transparent',
+                    background: isChecked ? '#ecfdf5' : 'transparent',
+                    border: isChecked ? '1px solid #a7f3d0' : '1px solid transparent',
                     cursor: 'pointer',
                     marginBottom: '0.35rem',
                     transition: 'all 0.15s ease',
@@ -205,7 +205,7 @@ export default function SquadModal({ isOpen, onClose, sessionDate, allPlayers = 
                     <input
                       type="checkbox"
                       checked={isChecked}
-                      onChange={() => {}} // handled by parent div click
+                      onChange={() => {}}
                       style={{
                         width: '18px',
                         height: '18px',
@@ -214,7 +214,7 @@ export default function SquadModal({ isOpen, onClose, sessionDate, allPlayers = 
                       }}
                     />
                     <div>
-                      <strong style={{ color: isChecked ? '#fff' : 'var(--text-secondary)', fontSize: '0.925rem' }}>
+                      <strong style={{ color: isChecked ? '#065f46' : 'var(--text-primary)', fontSize: '0.925rem' }}>
                         {player.name}
                       </strong>
                       <span className={`role-tag ${player.role}`} style={{ marginLeft: '0.5rem', fontSize: '0.65rem' }}>
@@ -224,7 +224,7 @@ export default function SquadModal({ isOpen, onClose, sessionDate, allPlayers = 
                   </div>
 
                   {isChecked && (
-                    <span style={{ fontSize: '0.75rem', color: 'var(--pitch-green-light)', fontWeight: 600 }}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--pitch-green-dark)', fontWeight: 600 }}>
                       ✓ In Squad
                     </span>
                   )}

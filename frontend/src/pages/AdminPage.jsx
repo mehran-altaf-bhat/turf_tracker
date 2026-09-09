@@ -32,6 +32,9 @@ export default function AdminPage() {
   const [editingFee, setEditingFee] = useState(false);
   const [feeInput, setFeeInput] = useState('');
   const [savingFee, setSavingFee] = useState(false);
+  const [feesModalOpen, setFeesModalOpen] = useState(false);
+  const [rowFeeInputs, setRowFeeInputs] = useState({});
+  const [savingMatchId, setSavingMatchId] = useState(null);
   const [previewScreenshot, setPreviewScreenshot] = useState(null);
 
   const loadOverview = async () => {
@@ -144,6 +147,28 @@ export default function AdminPage() {
     }
   };
 
+  const handleUpdateMatchFee = async (sessionId) => {
+    const feeVal = parseInt(rowFeeInputs[sessionId], 10);
+    if (isNaN(feeVal) || feeVal <= 0) {
+      alert('Please enter a valid match fee (greater than 0)');
+      return;
+    }
+    try {
+      setSavingMatchId(sessionId);
+      await api.updateSessionFee(sessionId, feeVal);
+      setToast(`Match fee updated to ₹${feeVal}!`);
+      setTimeout(() => setToast(null), 4000);
+      await loadOverview();
+      if (selectedSessionId === sessionId) {
+        loadRoster(sessionId);
+      }
+    } catch (err) {
+      alert(err.message || 'Failed to update fee');
+    } finally {
+      setSavingMatchId(null);
+    }
+  };
+
   const handleSaveSquad = async (playerIds) => {
     try {
       await api.updateSessionSquad(selectedSessionId, playerIds);
@@ -207,10 +232,10 @@ export default function AdminPage() {
       {/* Admin Title Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
         <div>
-          <span className="badge" style={{ background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.3)', marginBottom: '0.4rem' }}>
+          <span className="badge" style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', marginBottom: '0.4rem' }}>
             <ShieldCheck size={14} /> Admin Command Center
           </span>
-          <h2 style={{ fontSize: '1.75rem' }}>Turf Squad & Payment Management</h2>
+          <h2 style={{ fontSize: '1.75rem', color: 'var(--text-primary)' }}>Turf Squad & Payment Management</h2>
         </div>
 
         {/* Squad & WhatsApp Action Buttons */}
@@ -238,28 +263,28 @@ export default function AdminPage() {
       <div className="stats-grid">
         <div className="stat-box">
           <div className="stat-label">Total Revenue Collected</div>
-          <div className="stat-val" style={{ color: 'var(--pitch-green-light)' }}>
+          <div className="stat-val" style={{ color: 'var(--pitch-green-dark)' }}>
             ₹{stats.total_revenue_collected?.toLocaleString() || 0}
           </div>
         </div>
 
         <div className="stat-box">
           <div className="stat-label">Pending Approvals</div>
-          <div className="stat-val" style={{ color: stats.total_pending_approvals > 0 ? 'var(--amber)' : '#fff' }}>
+          <div className="stat-val" style={{ color: stats.total_pending_approvals > 0 ? 'var(--amber)' : 'var(--text-primary)' }}>
             {stats.total_pending_approvals || 0}
           </div>
         </div>
 
         <div className="stat-box">
           <div className="stat-label">Registered Players in Group</div>
-          <div className="stat-val" style={{ color: '#60a5fa' }}>
+          <div className="stat-val" style={{ color: '#2563eb' }}>
             {stats.total_players_registered || 0}
           </div>
         </div>
 
         <div className="stat-box">
           <div className="stat-label">Total Sessions</div>
-          <div className="stat-val">
+          <div className="stat-val" style={{ color: 'var(--text-primary)' }}>
             {stats.total_sessions_count || 0}
           </div>
         </div>
@@ -268,36 +293,55 @@ export default function AdminPage() {
       {/* Match Session Selector Bar */}
       <div className="card" style={{ marginBottom: '2rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.25rem' }}>
-          <div>
-            <label className="form-label" htmlFor="session-select">Select Friday Match Session:</label>
-            <select
-              id="session-select"
-              className="form-input"
-              style={{ minWidth: '280px', padding: '0.65rem 1rem' }}
-              value={selectedSessionId || ''}
-              onChange={(e) => setSelectedSessionId(Number(e.target.value))}
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <div>
+              <label className="form-label" htmlFor="session-select">Select Friday Match Session:</label>
+              <select
+                id="session-select"
+                className="form-input"
+                style={{ minWidth: '320px', padding: '0.65rem 1rem' }}
+                value={selectedSessionId || ''}
+                onChange={(e) => setSelectedSessionId(Number(e.target.value))}
+              >
+                {sessions.map((item) => (
+                  <option key={item.session.id} value={item.session.id}>
+                    Friday, {item.session.session_date} — Fee: ₹{item.session.cost_per_person || 200} ({item.confirmed_count} Paid, ₹{item.collected_amount})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.65rem 1rem' }}
+              onClick={() => {
+                const initialMap = {};
+                sessions.forEach((s) => {
+                  initialMap[s.session.id] = s.session.cost_per_person || 200;
+                });
+                setRowFeeInputs(initialMap);
+                setFeesModalOpen(true);
+              }}
+              title="View and edit fee for every match session"
             >
-              {sessions.map((item) => (
-                <option key={item.session.id} value={item.session.id}>
-                  Friday, {item.session.session_date} — ({item.confirmed_count} Paid, ₹{item.collected_amount})
-                </option>
-              ))}
-            </select>
+              <DollarSign size={16} color="#fbbf24" />
+              <span>Edit Match Fees</span>
+            </button>
           </div>
 
           {currentSessionObj && (
             <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center', flexWrap: 'wrap', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
               <div>
-                Slot: <strong style={{ color: '#fff' }}>{currentSessionObj.start_time || '20:00'} - {currentSessionObj.end_time || '22:00'}</strong>
+                Slot: <strong style={{ color: 'var(--text-primary)' }}>{currentSessionObj.start_time || '20:00'} - {currentSessionObj.end_time || '22:00'}</strong>
               </div>
               <div>
-                Squad Size: <strong style={{ color: '#60a5fa' }}>{currentSquadCount} Players</strong>
+                Squad Size: <strong style={{ color: '#2563eb' }}>{currentSquadCount} Players</strong>
               </div>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
                 Fee:
                 {editingFee ? (
                   <form onSubmit={handleSaveFee} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', margin: 0 }}>
-                    <span style={{ color: '#fff', fontWeight: 600 }}>₹</span>
+                    <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>₹</span>
                     <input
                       type="number"
                       value={feeInput}
@@ -306,9 +350,9 @@ export default function AdminPage() {
                         width: '75px',
                         padding: '0.25rem 0.4rem',
                         fontSize: '0.85rem',
-                        background: '#0d1117',
-                        border: '1px solid var(--pitch-green)',
-                        color: '#fff',
+                        background: '#ffffff',
+                        border: '1px solid var(--border-focus)',
+                        color: 'var(--text-primary)',
                         borderRadius: '4px',
                       }}
                       autoFocus
@@ -335,7 +379,7 @@ export default function AdminPage() {
                   </form>
                 ) : (
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <strong style={{ color: '#fbbf24', fontSize: '1rem' }}>₹{currentSessionObj.cost_per_person || 200}</strong>
+                    <strong style={{ color: '#b45309', fontSize: '1rem' }}>₹{currentSessionObj.cost_per_person || 200}</strong>
                     <button
                       onClick={startEditFee}
                       type="button"
@@ -343,14 +387,14 @@ export default function AdminPage() {
                       style={{
                         padding: '0.2rem 0.45rem',
                         fontSize: '0.75rem',
-                        color: '#94a3b8',
+                        color: 'var(--text-secondary)',
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: '0.25rem',
-                        border: '1px solid rgba(255,255,255,0.15)',
+                        border: '1px solid var(--border-subtle)',
                         borderRadius: '4px',
                         cursor: 'pointer',
-                        background: 'rgba(255,255,255,0.04)',
+                        background: '#f8fafc',
                       }}
                       title="Admin: Change Match Fee"
                     >
@@ -361,10 +405,10 @@ export default function AdminPage() {
                 )}
               </div>
               <div>
-                Target: <strong style={{ color: '#fff' }}>₹{rosterData?.summary?.expected_total || 0}</strong>
+                Target: <strong style={{ color: 'var(--text-primary)' }}>₹{rosterData?.summary?.expected_total || 0}</strong>
               </div>
               <div>
-                Collected: <strong style={{ color: '#34d399' }}>₹{rosterData?.summary?.total_collected || 0}</strong>
+                Collected: <strong style={{ color: 'var(--pitch-green-dark)' }}>₹{rosterData?.summary?.total_collected || 0}</strong>
               </div>
             </div>
           )}
@@ -375,16 +419,16 @@ export default function AdminPage() {
       <div className="card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
           <div>
-            <h3 style={{ fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Users size={20} color="var(--pitch-green-light)" />
+            <h3 style={{ fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)' }}>
+              <Users size={20} color="var(--pitch-green)" />
               Match Squad ({currentSquadCount} Players)
             </h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
               {rosterData ? (
                 <>
-                  <strong style={{ color: '#34d399' }}>{rosterData.summary.confirmed_count} Paid</strong> •{' '}
-                  <strong style={{ color: '#fbbf24' }}>{rosterData.summary.pending_count} Pending</strong> •{' '}
-                  <strong style={{ color: '#f87171' }}>{rosterData.summary.unpaid_count} Unpaid</strong>
+                  <strong style={{ color: 'var(--pitch-green-dark)' }}>{rosterData.summary.confirmed_count} Paid</strong> •{' '}
+                  <strong style={{ color: '#b45309' }}>{rosterData.summary.pending_count} Pending</strong> •{' '}
+                  <strong style={{ color: '#be123c' }}>{rosterData.summary.unpaid_count} Unpaid</strong>
                 </>
               ) : 'Loading squad...'}
             </p>
@@ -416,12 +460,12 @@ export default function AdminPage() {
           <div style={{
             textAlign: 'center',
             padding: '3rem 1.5rem',
-            background: 'rgba(255, 255, 255, 0.02)',
+            background: '#f8fafc',
             borderRadius: 'var(--radius-sm)',
-            border: '1px dashed var(--border-subtle)',
+            border: '1px dashed #cbd5e1',
           }}>
             <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>⚽</div>
-            <h4 style={{ fontSize: '1.2rem', marginBottom: '0.4rem' }}>No Players Selected for This Friday Yet</h4>
+            <h4 style={{ fontSize: '1.2rem', marginBottom: '0.4rem', color: 'var(--text-primary)' }}>No Players Selected for This Friday Yet</h4>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '1.25rem', maxWidth: '460px', margin: '0 auto 1.25rem' }}>
               Select which players from your group will be playing in this match (e.g. 20 players out of 25).
             </p>
@@ -453,7 +497,7 @@ export default function AdminPage() {
                   <tr key={player.user_id}>
                     <td style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{idx + 1}</td>
                     <td>
-                      <strong style={{ color: '#fff' }}>{player.name}</strong>
+                      <strong style={{ color: 'var(--text-primary)' }}>{player.name}</strong>
                     </td>
                     <td>
                       <span className={`role-tag ${player.role}`}>{player.role}</span>
@@ -466,7 +510,7 @@ export default function AdminPage() {
                         <span className="badge badge-pending">Pending ⏳</span>
                       )}
                       {player.status === 'rejected' && (
-                        <span className="badge badge-unpaid" style={{ background: 'rgba(239, 68, 68, 0.2)', borderColor: 'rgba(239, 68, 68, 0.4)' }}>
+                        <span className="badge badge-unpaid">
                           Rejected ❌
                         </span>
                       )}
@@ -478,7 +522,7 @@ export default function AdminPage() {
                     <td>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', alignItems: 'flex-start' }}>
                         {player.upi_ref && (
-                          <span style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>
+                          <span style={{ fontFamily: player.upi_ref?.includes('Screenshot') ? 'inherit' : 'monospace', fontSize: '0.85rem' }}>
                             {player.upi_ref}
                           </span>
                         )}
@@ -492,9 +536,9 @@ export default function AdminPage() {
                               gap: '0.35rem',
                               padding: '0.2rem 0.5rem',
                               fontSize: '0.75rem',
-                              background: 'rgba(59, 130, 246, 0.15)',
-                              color: '#60a5fa',
-                              border: '1px solid rgba(59, 130, 246, 0.3)',
+                              background: '#eff6ff',
+                              color: '#1d4ed8',
+                              border: '1px solid #bfdbfe',
                               borderRadius: '4px',
                               cursor: 'pointer',
                             }}
@@ -558,7 +602,7 @@ export default function AdminPage() {
                         )}
 
                         {player.status === 'confirmed' && (
-                          <span style={{ fontSize: '0.8rem', color: 'var(--pitch-green-light)', fontWeight: 600 }}>
+                          <span style={{ fontSize: '0.8rem', color: 'var(--pitch-green-dark)', fontWeight: 600 }}>
                             Verified ✓
                           </span>
                         )}
@@ -585,13 +629,14 @@ export default function AdminPage() {
             </button>
           </div>
           <pre style={{
-            background: 'rgba(0, 0, 0, 0.4)',
+            background: '#f8fafc',
+            border: '1px solid var(--border-subtle)',
             padding: '1rem',
             borderRadius: 'var(--radius-sm)',
             fontSize: '0.85rem',
             whiteSpace: 'pre-wrap',
             fontFamily: 'monospace',
-            color: '#e2e8f0',
+            color: '#1e293b',
             lineHeight: 1.6,
           }}>
             {rosterData.whatsapp_text}
@@ -617,7 +662,8 @@ export default function AdminPage() {
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(0, 0, 0, 0.85)',
+            background: 'rgba(15, 23, 42, 0.55)',
+            backdropFilter: 'blur(4px)',
             zIndex: 1000,
             display: 'flex',
             alignItems: 'center',
@@ -630,17 +676,18 @@ export default function AdminPage() {
             style={{
               maxWidth: '480px',
               width: '100%',
-              padding: '1.25rem',
+              padding: '1.5rem',
               textAlign: 'center',
-              background: '#0d1520',
+              background: '#ffffff',
               border: '1px solid var(--border-subtle)',
               borderRadius: 'var(--radius)',
+              boxShadow: 'var(--shadow-lg)',
             }}
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h4 style={{ margin: 0, fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Eye size={18} color="var(--pitch-green-light)" /> Payment Screenshot Proof
+              <h4 style={{ margin: 0, fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)' }}>
+                <Eye size={18} color="var(--pitch-green)" /> Payment Screenshot Proof
               </h4>
               <button
                 type="button"
@@ -663,16 +710,17 @@ export default function AdminPage() {
                 overflowY: 'auto',
                 borderRadius: 'var(--radius-sm)',
                 border: '1px solid var(--border-subtle)',
-                background: '#000',
+                background: '#f8fafc',
+                padding: '0.5rem',
               }}
             >
               <img
                 src={previewScreenshot}
                 alt="Payment Screenshot Proof"
-                style={{ width: '100%', height: 'auto', display: 'block' }}
+                style={{ width: '100%', height: 'auto', display: 'block', borderRadius: '4px' }}
               />
             </div>
-            <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+            <div style={{ marginTop: '1.25rem', display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
               <a
                 href={previewScreenshot}
                 target="_blank"
@@ -687,6 +735,147 @@ export default function AdminPage() {
                 onClick={() => setPreviewScreenshot(null)}
               >
                 Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Match Fees Management Modal */}
+      {feesModalOpen && (
+        <div
+          className="modal-backdrop"
+          onClick={() => setFeesModalOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.55)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+          }}
+        >
+          <div
+            className="card"
+            style={{
+              maxWidth: '650px',
+              width: '100%',
+              padding: '1.75rem',
+              background: '#ffffff',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius)',
+              boxShadow: 'var(--shadow-lg)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)' }}>
+                  <DollarSign size={20} color="#b45309" /> Manage Match Fees (Per Match)
+                </h3>
+                <p style={{ margin: '0.25rem 0 0', fontSize: '0.825rem', color: 'var(--text-secondary)' }}>
+                  Set the match fee for each Friday session. Changes immediately update player dashboards, QR codes, and roster targets.
+                </p>
+              </div>
+              <button
+                type="button"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  fontSize: '1.25rem',
+                  cursor: 'pointer',
+                  padding: '0.2rem 0.5rem',
+                }}
+                onClick={() => setFeesModalOpen(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="table-wrap" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Match Date</th>
+                    <th>Slot</th>
+                    <th>Current Fee</th>
+                    <th>Update Fee</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sessions.map((item) => {
+                    const s = item.session;
+                    const isSelected = s.id === selectedSessionId;
+                    return (
+                      <tr key={s.id} style={{ background: isSelected ? '#ecfdf5' : undefined }}>
+                        <td>
+                          <strong style={{ color: 'var(--text-primary)' }}>Friday, {s.session_date}</strong>
+                          {isSelected && (
+                            <span style={{ marginLeft: '0.5rem', fontSize: '0.75rem', color: 'var(--pitch-green-dark)', fontWeight: 600 }}>
+                              (Selected)
+                            </span>
+                          )}
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            {item.confirmed_count} Paid • ₹{item.collected_amount}
+                          </div>
+                        </td>
+                        <td style={{ fontSize: '0.85rem' }}>
+                          {s.start_time || '20:00'} - {s.end_time || '22:00'}
+                        </td>
+                        <td>
+                          <strong style={{ color: '#b45309', fontSize: '1rem' }}>
+                            ₹{s.cost_per_person || 200}
+                          </strong>
+                        </td>
+                        <td>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <span style={{ color: 'var(--text-muted)' }}>₹</span>
+                            <input
+                              type="number"
+                              value={rowFeeInputs[s.id] ?? (s.cost_per_person || 200)}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setRowFeeInputs((prev) => ({ ...prev, [s.id]: val }));
+                              }}
+                              style={{
+                                width: '75px',
+                                padding: '0.25rem 0.4rem',
+                                fontSize: '0.85rem',
+                                background: '#ffffff',
+                                border: '1px solid #cbd5e1',
+                                color: 'var(--text-primary)',
+                                borderRadius: '4px',
+                              }}
+                            />
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-primary"
+                              style={{ padding: '0.25rem 0.55rem', fontSize: '0.75rem' }}
+                              disabled={savingMatchId === s.id}
+                              onClick={() => handleUpdateMatchFee(s.id)}
+                            >
+                              {savingMatchId === s.id ? '...' : 'Save'}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={{ marginTop: '1.25rem', display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setFeesModalOpen(false)}
+              >
+                Close
               </button>
             </div>
           </div>

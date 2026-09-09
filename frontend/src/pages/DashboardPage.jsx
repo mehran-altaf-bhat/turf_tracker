@@ -79,14 +79,13 @@ export default function DashboardPage({ user }) {
 
       {/* Hero Match Banner */}
       <div className="hero-card">
-        <div className="hero-glow" />
         <div style={{ position: 'relative', zIndex: 2 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
             <div>
-              <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.2)', color: 'var(--pitch-green-light)', border: '1px solid var(--border-accent)', marginBottom: '0.6rem' }}>
+              <span className="badge" style={{ background: '#ecfdf5', color: '#065f46', border: '1px solid #a7f3d0', marginBottom: '0.6rem' }}>
                 ⚽ Next Match Scheduled
               </span>
-              <h2 style={{ fontSize: '1.85rem', fontWeight: 800 }}>
+              <h2 style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                 {currentSession ? `Friday, ${currentSession.session_date}` : 'Upcoming Friday Match'}
               </h2>
             </div>
@@ -94,23 +93,23 @@ export default function DashboardPage({ user }) {
             {/* Status Badge */}
             <div>
               {currentStatus === 'confirmed' && (
-                <span className="badge badge-paid" style={{ fontSize: '0.9rem', padding: '0.45rem 1rem' }}>
-                  <CheckCircle2 size={16} /> Paid & Confirmed
+                <span className="badge badge-paid" style={{ fontSize: '0.85rem', padding: '0.45rem 0.95rem' }}>
+                  <CheckCircle2 size={15} /> Paid & Confirmed
                 </span>
               )}
               {currentStatus === 'pending' && (
-                <span className="badge badge-pending" style={{ fontSize: '0.9rem', padding: '0.45rem 1rem' }}>
-                  <Clock3 size={16} /> Verification Pending
+                <span className="badge badge-pending" style={{ fontSize: '0.85rem', padding: '0.45rem 0.95rem' }}>
+                  <Clock3 size={15} /> Verification Pending
                 </span>
               )}
               {currentStatus === 'rejected' && (
-                <span className="badge badge-unpaid" style={{ fontSize: '0.9rem', padding: '0.45rem 1rem', background: 'rgba(239, 68, 68, 0.2)', borderColor: 'rgba(239, 68, 68, 0.4)' }}>
-                  <AlertCircle size={16} /> Rejected — Please Pay Again
+                <span className="badge badge-unpaid" style={{ fontSize: '0.85rem', padding: '0.45rem 0.95rem' }}>
+                  <AlertCircle size={15} /> Rejected — Please Pay Again
                 </span>
               )}
               {currentStatus === 'unpaid' && (
-                <span className="badge badge-unpaid" style={{ fontSize: '0.9rem', padding: '0.45rem 1rem' }}>
-                  <AlertCircle size={16} /> Payment Due
+                <span className="badge badge-unpaid" style={{ fontSize: '0.85rem', padding: '0.45rem 0.95rem' }}>
+                  <AlertCircle size={15} /> Payment Due
                 </span>
               )}
             </div>
@@ -118,16 +117,16 @@ export default function DashboardPage({ user }) {
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', marginBottom: '1.75rem', color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Clock size={17} color="var(--pitch-green-light)" />
-              <strong style={{ color: '#fff' }}>8:00 PM – 10:00 PM</strong> (2 Hours)
+              <Clock size={17} color="var(--pitch-green)" />
+              <strong style={{ color: 'var(--text-primary)' }}>8:00 PM – 10:00 PM</strong> (2 Hours)
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <MapPin size={17} color="var(--pitch-green-light)" />
+              <MapPin size={17} color="var(--pitch-green)" />
               <span>Elite Football Turf</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <CreditCard size={17} color="var(--pitch-green-light)" />
-              <span>Fee: <strong style={{ color: '#fff' }}>₹{currentSession?.cost_per_person || 200}</strong> / player</span>
+              <CreditCard size={17} color="var(--pitch-green)" />
+              <span>Fee: <strong style={{ color: 'var(--text-primary)' }}>₹{currentSession?.cost_per_person || 200}</strong> / player</span>
             </div>
           </div>
 
@@ -135,9 +134,9 @@ export default function DashboardPage({ user }) {
             <button
               className="btn btn-primary"
               style={{
-                fontSize: '1rem',
+                fontSize: '0.95rem',
                 padding: '0.75rem 1.5rem',
-                ...(currentStatus === 'rejected' ? { background: 'linear-gradient(135deg, #ef4444, #b91c1c)' } : {})
+                ...(currentStatus === 'rejected' ? { background: '#dc2626' } : {})
               }}
               onClick={() => setModalOpen(true)}
             >
@@ -154,17 +153,17 @@ export default function DashboardPage({ user }) {
             </button>
 
             {currentStatus === 'confirmed' && (
-              <span style={{ fontSize: '0.85rem', color: 'var(--pitch-green-light)' }}>
+              <span style={{ fontSize: '0.85rem', color: 'var(--pitch-green-dark)', fontWeight: 600 }}>
                 ✓ You're all set for this Friday! Click above to pay in advance for future weeks.
               </span>
             )}
             {currentStatus === 'pending' && (
-              <span style={{ fontSize: '0.85rem', color: 'var(--amber)' }}>
+              <span style={{ fontSize: '0.85rem', color: '#b45309', fontWeight: 600 }}>
                 Your payment reference has been submitted. The admin will verify shortly.
               </span>
             )}
             {currentStatus === 'rejected' && (
-              <span style={{ fontSize: '0.85rem', color: '#fca5a5' }}>
+              <span style={{ fontSize: '0.85rem', color: '#be123c', fontWeight: 600 }}>
                 ⚠️ Payment was rejected by admin. Click "Pay Again" to submit with a valid UPI reference or screenshot.
               </span>
             )}
@@ -178,7 +177,7 @@ export default function DashboardPage({ user }) {
           <div className="stat-label">This Friday's Status</div>
           <div className="stat-val" style={{
             fontSize: '1.35rem',
-            color: currentStatus === 'confirmed' ? 'var(--pitch-green-light)' : currentStatus === 'pending' ? 'var(--amber)' : 'var(--rose)'
+            color: currentStatus === 'confirmed' ? 'var(--pitch-green)' : currentStatus === 'pending' ? 'var(--amber)' : 'var(--rose)'
           }}>
             {currentStatus === 'confirmed' ? 'Confirmed ✅' : currentStatus === 'pending' ? 'Pending ⏳' : currentStatus === 'rejected' ? 'Rejected ❌' : 'Not Paid ⚠️'}
           </div>
@@ -186,14 +185,14 @@ export default function DashboardPage({ user }) {
 
         <div className="stat-box">
           <div className="stat-label">Advance Prepaid Credits</div>
-          <div className="stat-val" style={{ color: '#c084fc' }}>
+          <div className="stat-val" style={{ color: '#7c3aed' }}>
             {advanceCredits} <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Week(s)</span>
           </div>
         </div>
 
         <div className="stat-box">
           <div className="stat-label">Total Amount Paid</div>
-          <div className="stat-val" style={{ color: 'var(--pitch-green-light)' }}>
+          <div className="stat-val" style={{ color: 'var(--pitch-green)' }}>
             ₹{totalPaid.toLocaleString()}
           </div>
         </div>
@@ -204,7 +203,7 @@ export default function DashboardPage({ user }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
           <div>
             <h3 style={{ fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Users size={20} color="var(--pitch-green-light)" />
+              <Users size={20} color="var(--pitch-green)" />
               Match Squad ({currentSquad.length} Players Attending)
             </h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
@@ -231,8 +230,8 @@ export default function DashboardPage({ user }) {
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   padding: '0.75rem 1rem',
-                  background: 'rgba(255, 255, 255, 0.03)',
-                  border: player.user_id === user.id ? '1px solid var(--border-accent)' : '1px solid var(--border-subtle)',
+                  background: player.user_id === user.id ? '#ecfdf5' : '#f8fafc',
+                  border: player.user_id === user.id ? '1px solid #a7f3d0' : '1px solid var(--border-subtle)',
                   borderRadius: 'var(--radius-sm)',
                 }}
               >
@@ -240,7 +239,7 @@ export default function DashboardPage({ user }) {
                   <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', width: '18px' }}>
                     {idx + 1}.
                   </span>
-                  <strong style={{ color: player.user_id === user.id ? 'var(--pitch-green-light)' : '#fff', fontSize: '0.9rem' }}>
+                  <strong style={{ color: player.user_id === user.id ? '#065f46' : 'var(--text-primary)', fontSize: '0.9rem' }}>
                     {player.name} {player.user_id === user.id && '(You)'}
                   </strong>
                 </div>
@@ -268,7 +267,7 @@ export default function DashboardPage({ user }) {
       {/* Upcoming Sessions List */}
       <div className="card" style={{ marginBottom: '2rem' }}>
         <h3 style={{ fontSize: '1.2rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Calendar size={18} color="var(--pitch-green-light)" />
+          <Calendar size={18} color="var(--pitch-green)" />
           Upcoming Friday Schedule & Your Status
         </h3>
 
@@ -290,8 +289,8 @@ export default function DashboardPage({ user }) {
                 return (
                   <tr key={s.id}>
                     <td>
-                      <strong style={{ color: '#fff' }}>Friday, {s.session_date}</strong>
-                      {idx === 0 && <span style={{ marginLeft: '0.5rem', fontSize: '0.7rem', color: 'var(--pitch-green-light)' }}>(This Friday)</span>}
+                      <strong style={{ color: 'var(--text-primary)' }}>Friday, {s.session_date}</strong>
+                      {idx === 0 && <span style={{ marginLeft: '0.5rem', fontSize: '0.75rem', color: 'var(--pitch-green-dark)', fontWeight: 600 }}>(This Friday)</span>}
                     </td>
                     <td>{s.start_time || '20:00'} - {s.end_time || '22:00'}</td>
                     <td>₹{s.cost_per_person || 200}</td>
@@ -299,7 +298,7 @@ export default function DashboardPage({ user }) {
                       {status === 'confirmed' && <span className="badge badge-paid">Paid ✅</span>}
                       {status === 'pending' && <span className="badge badge-pending">Pending ⏳</span>}
                       {status === 'rejected' && (
-                        <span className="badge badge-unpaid" style={{ background: 'rgba(239, 68, 68, 0.2)', borderColor: 'rgba(239, 68, 68, 0.4)' }}>
+                        <span className="badge badge-unpaid">
                           Rejected ❌
                         </span>
                       )}
@@ -309,13 +308,13 @@ export default function DashboardPage({ user }) {
                       {(status === 'unpaid' || status === 'rejected') ? (
                         <button
                           className="btn btn-sm btn-primary"
-                          style={status === 'rejected' ? { background: 'linear-gradient(135deg, #ef4444, #b91c1c)' } : {}}
+                          style={status === 'rejected' ? { background: '#dc2626' } : {}}
                           onClick={() => setModalOpen(true)}
                         >
                           {status === 'rejected' ? 'Pay Again' : 'Pay'}
                         </button>
                       ) : status === 'pending' ? (
-                        <span style={{ color: 'var(--amber)', fontSize: '0.8rem' }}>Pending ⏳</span>
+                        <span style={{ color: 'var(--amber)', fontSize: '0.8rem', fontWeight: 600 }}>Pending ⏳</span>
                       ) : (
                         <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Covered ✓</span>
                       )}
@@ -331,13 +330,13 @@ export default function DashboardPage({ user }) {
       {/* Payment History */}
       <div className="card">
         <h3 style={{ fontSize: '1.2rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <History size={18} color="var(--pitch-green-light)" />
+          <History size={18} color="var(--pitch-green)" />
           Payment History
         </h3>
 
         {history.length === 0 ? (
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-            No past payment submissions found. Click "Make Payment" to record your first Friday payment.
+            No past payment submissions found. Click "Pay for Turf" to record your first Friday payment.
           </p>
         ) : (
           <div className="table-wrap">
@@ -355,8 +354,36 @@ export default function DashboardPage({ user }) {
                 {history.map((h) => (
                   <tr key={h.payment_id}>
                     <td>Friday, {h.session_date}</td>
-                    <td><strong style={{ color: 'var(--pitch-green-light)' }}>₹{h.amount}</strong></td>
-                    <td style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{h.upi_ref || '—'}</td>
+                    <td><strong style={{ color: 'var(--pitch-green-dark)' }}>₹{h.amount}</strong></td>
+                    <td style={{ fontSize: '0.85rem' }}>
+                      <span style={{ fontFamily: (h.upi_ref?.includes('Screenshot') || h.upi_ref?.includes('screenshot:')) ? 'inherit' : 'monospace' }}>
+                        {(() => {
+                          const ref = h.upi_ref || '';
+                          if (ref.includes('[screenshot:')) {
+                            const clean = ref.replace(/\[screenshot:.*?\]/g, '').replace(/Screenshot Attached/g, '').trim();
+                            return clean ? `${clean} (Screenshot Sent)` : 'Screenshot Sent';
+                          }
+                          return ref || '—';
+                        })()}
+                      </span>
+                      {h.screenshot_url && (
+                        <a
+                          href={h.screenshot_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            marginLeft: '0.5rem',
+                            fontSize: '0.75rem',
+                            color: '#2563eb',
+                            textDecoration: 'underline'
+                          }}
+                        >
+                          View Proof
+                        </a>
+                      )}
+                    </td>
                     <td style={{ color: 'var(--text-muted)', fontSize: '0.825rem' }}>
                       {h.submitted_at ? new Date(h.submitted_at).toLocaleDateString() : '—'}
                     </td>
