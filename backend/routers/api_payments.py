@@ -87,8 +87,20 @@ def get_my_payment_status(user: dict = Depends(get_current_user)):
     # Current session is the nearest upcoming
     current_session = upcoming[0] if upcoming else None
     current_payment = payments_by_session.get(current_session["id"]) if current_session else None
+    
+    current_cost = current_session.get("cost_per_person", 200) if current_session else 200
+    cur_status = current_payment.get("status", "unpaid") if current_payment else "unpaid"
+    cur_amount_paid = current_payment.get("amount", 0) if (current_payment and cur_status in ["confirmed", "partial", "pending"]) else 0
+    cur_balance = max(0, current_cost - cur_amount_paid) if cur_status in ["partial", "confirmed"] else current_cost
+
+    # If confirmed but amount is less than session cost, mark as partial
+    if cur_status == "confirmed" and cur_balance > 0:
+        cur_status = "partial"
+
     if current_payment:
         raw_cur_ref = current_payment.get("upi_ref") or ""
+        cur_screenshot = None
+        cur_display = raw_cur_ref
         if "[screenshot:" in raw_cur_ref:
             import re
             m = re.search(r"\[screenshot:(.*?)\]", raw_cur_ref)
@@ -97,11 +109,15 @@ def get_my_payment_status(user: dict = Depends(get_current_user)):
             cur_display = "Screenshot Sent"
             if cur_clean and cur_clean != "Screenshot Attached":
                 cur_display = f"{cur_clean} (Screenshot Sent)"
-            current_payment = {
-                **current_payment,
-                "upi_ref": cur_display,
-                "screenshot_url": cur_screenshot,
-            }
+        current_payment = {
+            **current_payment,
+            "upi_ref": cur_display,
+            "screenshot_url": cur_screenshot,
+            "amount_paid": cur_amount_paid,
+            "payable": current_cost,
+            "balance": cur_balance,
+            "status": cur_status,
+        }
 
     # Get match squad for this Friday (Playing vs Not Playing)
     playing_squad = []
@@ -123,11 +139,20 @@ def get_my_payment_status(user: dict = Depends(get_current_user)):
             name_map = {p["id"]: p.get("name", "Player") for p in all_profiles}
             for sp in session_payments:
                 squad_user_ids.add(sp["user_id"])
+                sp_status = sp.get("status", "unpaid")
+                sp_amount = sp.get("amount", 0) if sp_status in ["confirmed", "partial", "pending"] else 0
+                sp_balance = max(0, current_cost - sp_amount)
+                display_sp_status = sp_status
+                if sp_status == "confirmed" and sp_balance > 0:
+                    display_sp_status = "partial"
+
                 playing_squad.append({
                     "user_id": sp["user_id"],
                     "name": name_map.get(sp["user_id"], "Player"),
-                    "status": sp.get("status", "unpaid"),
-                    "amount": sp.get("amount", current_session.get("cost_per_person", 200)),
+                    "status": display_sp_status,
+                    "amount": sp_amount,
+                    "payable": current_cost,
+                    "balance": sp_balance,
                 })
             playing_squad.sort(key=lambda x: x["name"].lower())
 
@@ -152,15 +177,15 @@ def get_my_payment_status(user: dict = Depends(get_current_user)):
 
     # Total amount confirmed lifetime
     total_paid_confirmed = sum(
-        p["amount"] for p in payments if p.get("status") == "confirmed"
+        p["amount"] for p in payments if p.get("status") in ["confirmed", "partial"]
     )
 
-    # Combined history: ONLY payments that are confirmed (done) or rejected
+    # Combined history: ONLY payments that are confirmed (done), partial, or rejected
     import re
     history = []
     for s in sessions:
         p = payments_by_session.get(s["id"])
-        if p and p.get("status") in ["confirmed", "rejected"]:
+        if p and p.get("status") in ["confirmed", "partial", "rejected"]:
             raw_ref = p.get("upi_ref") or ""
             screenshot_url = None
             clean_ref = raw_ref
@@ -185,6 +210,8 @@ def get_my_payment_status(user: dict = Depends(get_current_user)):
                 "start_time": s.get("start_time", "20:00"),
                 "end_time": s.get("end_time", "22:00"),
                 "amount": p["amount"],
+                "payable": s.get("cost_per_person", 200),
+                "balance": max(0, s.get("cost_per_person", 200) - p["amount"]) if p.get("status") in ["confirmed", "partial"] else s.get("cost_per_person", 200),
                 "upi_ref": display_ref,
                 "screenshot_url": screenshot_url,
                 "status": p.get("status"),
@@ -196,8 +223,11 @@ def get_my_payment_status(user: dict = Depends(get_current_user)):
 
     return {
         "current_session": current_session,
-        "current_status": current_payment["status"] if current_payment else "unpaid",
+        "current_status": cur_status,
         "current_payment": current_payment,
+        "payable_amount": current_cost,
+        "amount_paid": cur_amount_paid,
+        "balance_due": cur_balance if is_in_squad else 0,
         "current_squad": playing_squad,
         "playing_squad": playing_squad,
         "not_playing_squad": not_playing_squad,
@@ -210,6 +240,8 @@ def get_my_payment_status(user: dict = Depends(get_current_user)):
                 "session": s,
                 "payment": payments_by_session.get(s["id"]),
                 "status": payments_by_session.get(s["id"], {}).get("status", "unpaid"),
+                "amount_paid": payments_by_session.get(s["id"], {}).get("amount", 0) if payments_by_session.get(s["id"], {}).get("status") in ["confirmed", "partial"] else 0,
+                "balance": max(0, s.get("cost_per_person", 200) - (payments_by_session.get(s["id"], {}).get("amount", 0) if payments_by_session.get(s["id"], {}).get("status") in ["confirmed", "partial"] else 0)),
             }
             for s in upcoming
         ],
@@ -266,10 +298,10 @@ def submit_payment(data: SubmitPaymentRequest, user: dict = Depends(get_current_
         .data
     )
     paid_session_ids = {
-        p["session_id"] for p in existing_payments if p.get("status") in ["confirmed", "pending"]
+        p["session_id"] for p in existing_payments if p.get("status") == "confirmed" and p.get("amount", 0) >= 200
     }
 
-    # Find the next `data.weeks_count` sessions that this user hasn't paid for yet
+    # Find the next sessions to allocate payment to
     sessions_to_pay = []
     for s in upcoming:
         if s["id"] not in paid_session_ids:
@@ -278,7 +310,6 @@ def submit_payment(data: SubmitPaymentRequest, user: dict = Depends(get_current_
                 break
 
     if not sessions_to_pay:
-        # If user has already paid for all upcoming sessions, create more sessions
         ensure_upcoming_sessions(len(upcoming) + data.weeks_count)
         refreshed = (
             db.table("turf_sessions")
@@ -299,19 +330,27 @@ def submit_payment(data: SubmitPaymentRequest, user: dict = Depends(get_current_
 
     processed = []
     total_amount = 0
+
     for s in sessions_to_pay:
         cost = s.get("cost_per_person", 200)
-        total_amount += cost
+        # If user explicitly supplied custom amount (e.g. paying partial balance), use that
+        existing_row = [p for p in existing_payments if p["session_id"] == s["id"]]
+        existing_paid = 0
+        if existing_row and existing_row[0].get("status") in ["confirmed", "partial"]:
+            existing_paid = existing_row[0].get("amount", 0)
+
+        this_session_amount = data.amount if (data.amount and data.weeks_count == 1) else cost
+        total_session_amount = existing_paid + this_session_amount
+        total_amount += this_session_amount
+
         payload = {
             "user_id": user_id,
             "session_id": s["id"],
-            "amount": cost,
+            "amount": total_session_amount,
             "upi_ref": combined_ref,
             "status": "pending",
         }
 
-        # Check if row exists (e.g. previously rejected)
-        existing_row = [p for p in existing_payments if p["session_id"] == s["id"]]
         if existing_row:
             res = db.table("payments").update(payload).eq("id", existing_row[0]["id"]).execute()
         else:
@@ -320,11 +359,11 @@ def submit_payment(data: SubmitPaymentRequest, user: dict = Depends(get_current_
         processed.append({
             "session_id": s["id"],
             "session_date": s["session_date"],
-            "amount": cost,
+            "amount": this_session_amount,
         })
 
     return {
-        "message": f"Payment submitted for {len(processed)} Friday session(s)! Total: ₹{total_amount}. Waiting for admin confirmation.",
+        "message": f"Payment submitted for {len(processed)} Friday session(s)! Amount: ₹{total_amount}. Waiting for admin confirmation.",
         "sessions_covered": processed,
         "total_amount": total_amount,
         "upi_ref": ref,
@@ -352,13 +391,63 @@ def rsvp_session(session_id: int, data: RsvpRequest, user: dict = Depends(get_cu
         # User is opting out / not playing
         if existing:
             pay = existing[0]
-            if pay.get("status") == "confirmed":
-                raise HTTPException(
-                    status_code=400,
-                    detail="Your payment for this match is already confirmed. Contact admin if you cannot attend."
+            pay_status = pay.get("status")
+            pay_amount = pay.get("amount", 0)
+
+            # If user has already paid (confirmed, partial, or pending with funds), shift payment to NEXT match!
+            if pay_status in ["confirmed", "partial"] or (pay_status == "pending" and pay_amount > 0):
+                ensure_upcoming_sessions(4)
+                next_sessions = (
+                    db.table("turf_sessions")
+                    .select("*")
+                    .gt("session_date", session["session_date"])
+                    .order("session_date", desc=False)
+                    .limit(1)
+                    .execute()
+                    .data
                 )
-            # Delete pending or unpaid record, automatically removing player from squad
+                if next_sessions:
+                    next_session = next_sessions[0]
+                    next_cost = next_session.get("cost_per_person", 200)
+
+                    # Check if payment record exists for next session
+                    next_existing = db.table("payments").select("*").eq("session_id", next_session["id"]).eq("user_id", user_id).execute().data
+                    if next_existing:
+                        existing_next_pay = next_existing[0]
+                        prev_next_paid = existing_next_pay.get("amount", 0) if existing_next_pay.get("status") in ["confirmed", "partial"] else 0
+                        combined_amount = prev_next_paid + pay_amount
+                        new_status = "confirmed" if combined_amount >= next_cost else "partial"
+                        db.table("payments").update({
+                            "amount": combined_amount,
+                            "status": new_status,
+                            "upi_ref": f"Shifted ₹{pay_amount} from {session['session_date']}. Total credit: ₹{combined_amount}",
+                        }).eq("id", existing_next_pay["id"]).execute()
+                    else:
+                        new_status = "confirmed" if pay_amount >= next_cost else "partial"
+                        db.table("payments").insert({
+                            "user_id": user_id,
+                            "session_id": next_session["id"],
+                            "amount": pay_amount,
+                            "status": new_status,
+                            "upi_ref": f"Shifted ₹{pay_amount} from {session['session_date']}",
+                        }).execute()
+
+                    # Remove user from current session squad
+                    db.table("payments").delete().eq("id", pay["id"]).execute()
+
+                    balance_due = max(0, next_cost - pay_amount)
+                    return {
+                        "message": f"You opted out of {session['session_date']}. Your payment of ₹{pay_amount} has been shifted to the next match on {next_session['session_date']}! Next match fee: ₹{next_cost}, Balance due: ₹{balance_due}.",
+                        "attending": False,
+                        "shifted_credit": pay_amount,
+                        "next_session_date": next_session["session_date"],
+                        "next_session_fee": next_cost,
+                        "balance_due": balance_due,
+                    }
+
+            # If user was unpaid or rejected, simply remove from match squad
             db.table("payments").delete().eq("id", pay["id"]).execute()
+
         return {
             "message": "You have marked yourself as NOT PLAYING. You have been removed from the match squad.",
             "attending": False,

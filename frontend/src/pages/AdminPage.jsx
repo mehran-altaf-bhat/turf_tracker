@@ -37,6 +37,51 @@ export default function AdminPage() {
   const [savingMatchId, setSavingMatchId] = useState(null);
   const [previewScreenshot, setPreviewScreenshot] = useState(null);
 
+  // Edit player paid amount & balance
+  const [editPaymentModalOpen, setEditPaymentModalOpen] = useState(false);
+  const [targetPlayer, setTargetPlayer] = useState(null);
+  const [amountPaidInput, setAmountPaidInput] = useState('');
+  const [paymentNoteInput, setPaymentNoteInput] = useState('');
+  const [savingPayment, setSavingPayment] = useState(false);
+
+  const openEditPaymentModal = (player) => {
+    setTargetPlayer(player);
+    setAmountPaidInput(player.amount_paid !== undefined ? String(player.amount_paid) : String(player.amount || 0));
+    setPaymentNoteInput(player.upi_ref || '');
+    setEditPaymentModalOpen(true);
+  };
+
+  const handleSavePaymentAmount = async (e) => {
+    e.preventDefault();
+    if (!targetPlayer) return;
+    setSavingPayment(true);
+    try {
+      const amt = Number(amountPaidInput) || 0;
+      if (targetPlayer.payment_id) {
+        await api.updatePaymentAmount(targetPlayer.payment_id, {
+          amount_paid: amt,
+          note: paymentNoteInput || undefined,
+        });
+      } else {
+        await api.manualPay({
+          user_id: targetPlayer.user_id,
+          session_id: selectedSessionId,
+          amount: amt,
+          payment_method: paymentNoteInput || 'Cash / Direct',
+        });
+      }
+      setToast(`Updated payment for ${targetPlayer.name}: Paid ₹${amt}!`);
+      setTimeout(() => setToast(null), 4000);
+      setEditPaymentModalOpen(false);
+      loadRoster(selectedSessionId);
+      loadOverview();
+    } catch (err) {
+      alert(err.message || 'Failed to update payment');
+    } finally {
+      setSavingPayment(false);
+    }
+  };
+
   const loadOverview = async () => {
     try {
       setLoading(true);
@@ -484,132 +529,170 @@ export default function AdminPage() {
                 <tr>
                   <th>#</th>
                   <th>Player Name</th>
-                  <th>Role</th>
+                  <th>Match Fee</th>
+                  <th>Paid</th>
+                  <th>Balance Due</th>
                   <th>Status</th>
-                  <th>Amount</th>
-                  <th>UPI Ref / UTR</th>
-                  <th>Submitted</th>
+                  <th>UPI Ref / Proof</th>
                   <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {rosterData?.roster?.map((player, idx) => (
-                  <tr key={player.user_id}>
-                    <td style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{idx + 1}</td>
-                    <td>
-                      <strong style={{ color: 'var(--text-primary)' }}>{player.name}</strong>
-                    </td>
-                    <td>
-                      <span className={`role-tag ${player.role}`}>{player.role}</span>
-                    </td>
-                    <td>
-                      {player.status === 'confirmed' && (
-                        <span className="badge badge-paid">Paid ✅</span>
-                      )}
-                      {player.status === 'pending' && (
-                        <span className="badge badge-pending">Pending ⏳</span>
-                      )}
-                      {player.status === 'rejected' && (
-                        <span className="badge badge-unpaid">
-                          Rejected ❌
-                        </span>
-                      )}
-                      {player.status === 'unpaid' && (
-                        <span className="badge badge-unpaid">Unpaid ⚠️</span>
-                      )}
-                    </td>
-                    <td>₹{player.amount || currentSessionObj?.cost_per_person || 200}</td>
-                    <td>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', alignItems: 'flex-start' }}>
-                        {player.upi_ref && (
-                          <span style={{ fontFamily: player.upi_ref?.includes('Screenshot') ? 'inherit' : 'monospace', fontSize: '0.85rem' }}>
-                            {player.upi_ref}
+                {rosterData?.roster?.map((player, idx) => {
+                  const fee = player.payable || currentSessionObj?.cost_per_person || 200;
+                  const paid = player.amount_paid || 0;
+                  const balance = player.balance !== undefined ? player.balance : Math.max(0, fee - paid);
+                  return (
+                    <tr key={player.user_id}>
+                      <td style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{idx + 1}</td>
+                      <td>
+                        <strong style={{ color: 'var(--text-primary)' }}>{player.name}</strong>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'capitalize' }}>
+                          {player.role}
+                        </div>
+                      </td>
+                      <td>
+                        <span style={{ color: '#475569', fontWeight: 600 }}>₹{fee}</span>
+                      </td>
+                      <td>
+                        <strong style={{ color: paid > 0 ? '#059669' : '#64748b' }}>
+                          ₹{paid}
+                        </strong>
+                      </td>
+                      <td>
+                        {balance > 0 ? (
+                          <span style={{ color: '#dc2626', fontWeight: 700, background: '#fef2f2', padding: '0.2rem 0.5rem', borderRadius: '4px', border: '1px solid #fecdd3' }}>
+                            ₹{balance} due
+                          </span>
+                        ) : (
+                          <span style={{ color: '#059669', fontWeight: 600, background: '#ecfdf5', padding: '0.2rem 0.5rem', borderRadius: '4px', border: '1px solid #a7f3d0' }}>
+                            ₹0 (Clear)
                           </span>
                         )}
-                        {player.screenshot_url && (
+                      </td>
+                      <td>
+                        {player.status === 'confirmed' && (
+                          <span className="badge badge-paid">Paid Full ✅</span>
+                        )}
+                        {player.status === 'partial' && (
+                          <span className="badge badge-pending">Partial ⚠️</span>
+                        )}
+                        {player.status === 'pending' && (
+                          <span className="badge badge-pending">Pending ⏳</span>
+                        )}
+                        {player.status === 'rejected' && (
+                          <span className="badge badge-unpaid">
+                            Rejected ❌
+                          </span>
+                        )}
+                        {player.status === 'unpaid' && (
+                          <span className="badge badge-unpaid">Unpaid ⚠️</span>
+                        )}
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', alignItems: 'flex-start' }}>
+                          {player.upi_ref && (
+                            <span style={{ fontFamily: player.upi_ref?.includes('Screenshot') ? 'inherit' : 'monospace', fontSize: '0.8rem' }}>
+                              {player.upi_ref}
+                            </span>
+                          )}
+                          {player.screenshot_url && (
+                            <button
+                              type="button"
+                              className="btn btn-sm"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.35rem',
+                                padding: '0.2rem 0.5rem',
+                                fontSize: '0.75rem',
+                                background: '#eff6ff',
+                                color: '#1d4ed8',
+                                border: '1px solid #bfdbfe',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                              }}
+                              onClick={() => setPreviewScreenshot(player.screenshot_url)}
+                              title="View Payment Screenshot Proof"
+                            >
+                              <Eye size={12} />
+                              <span>Proof Image</span>
+                            </button>
+                          )}
+                          {!player.upi_ref && !player.screenshot_url && (
+                            <span style={{ color: 'var(--text-muted)' }}>—</span>
+                          )}
+                        </div>
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'inline-flex', gap: '0.4rem', justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap' }}>
+                          {/* Edit / Update Paid Button (Allows setting e.g. 200 of 230) */}
                           <button
                             type="button"
-                            className="btn btn-sm"
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '0.35rem',
-                              padding: '0.2rem 0.5rem',
-                              fontSize: '0.75rem',
-                              background: '#eff6ff',
-                              color: '#1d4ed8',
-                              border: '1px solid #bfdbfe',
-                              borderRadius: '4px',
-                              cursor: 'pointer',
-                            }}
-                            onClick={() => setPreviewScreenshot(player.screenshot_url)}
-                            title="View Payment Screenshot Proof"
+                            className="btn btn-sm btn-secondary"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.35rem 0.65rem' }}
+                            onClick={() => openEditPaymentModal(player)}
+                            title="Edit Paid Amount & Balance"
                           >
-                            <Eye size={12} />
-                            <span>Proof Image</span>
+                            <Pencil size={12} />
+                            <span>Edit Paid</span>
                           </button>
-                        )}
-                        {!player.upi_ref && !player.screenshot_url && (
-                          <span style={{ color: 'var(--text-muted)' }}>—</span>
-                        )}
-                      </div>
-                    </td>
-                    <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                      {player.submitted_at
-                        ? new Date(player.submitted_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                        : '—'}
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'inline-flex', gap: '0.5rem', justifyContent: 'flex-end', alignItems: 'center' }}>
-                        {player.status === 'pending' && player.payment && (
-                          <>
+
+                          {player.status === 'pending' && player.payment && (
+                            <>
+                              <button
+                                className="btn btn-sm btn-primary"
+                                onClick={() => handleConfirm(player.payment.id)}
+                                title="Approve / Confirm Payment"
+                              >
+                                <CheckCircle size={14} />
+                                <span>Approve</span>
+                              </button>
+                              <button
+                                className="btn btn-sm btn-danger"
+                                onClick={() => handleReject(player.payment.id)}
+                                title="Reject Payment"
+                              >
+                                <XCircle size={14} />
+                              </button>
+                            </>
+                          )}
+
+                          {player.status === 'unpaid' && (
+                            <>
+                              <button
+                                className="btn btn-sm btn-secondary"
+                                onClick={() => handleManualPay(player.user_id)}
+                                title="Mark full payment via Cash"
+                              >
+                                <span>Cash</span>
+                              </button>
+                              <button
+                                className="btn btn-sm btn-danger"
+                                onClick={() => handleRemoveFromSquad(player.user_id)}
+                                title="Remove from this match squad"
+                              >
+                                <UserX size={14} />
+                              </button>
+                            </>
+                          )}
+
+                          {player.status === 'partial' && (
                             <button
                               className="btn btn-sm btn-primary"
-                              onClick={() => handleConfirm(player.payment.id)}
-                              title="Approve / Confirm Payment"
+                              onClick={() => {
+                                handleConfirm(player.payment_id);
+                              }}
+                              title="Clear remaining balance (Mark Paid Full)"
                             >
-                              <CheckCircle size={15} />
-                              <span>Approve</span>
+                              <span>Clear Bal</span>
                             </button>
-                            <button
-                              className="btn btn-sm btn-danger"
-                              onClick={() => handleReject(player.payment.id)}
-                              title="Reject Payment"
-                            >
-                              <XCircle size={15} />
-                              <span>Reject</span>
-                            </button>
-                          </>
-                        )}
-
-                        {player.status === 'unpaid' && (
-                          <>
-                            <button
-                              className="btn btn-sm btn-secondary"
-                              onClick={() => handleManualPay(player.user_id)}
-                              title="Player paid cash at turf"
-                            >
-                              <span>Cash</span>
-                            </button>
-                            <button
-                              className="btn btn-sm btn-danger"
-                              onClick={() => handleRemoveFromSquad(player.user_id)}
-                              title="Remove from this match squad"
-                            >
-                              <UserX size={14} />
-                            </button>
-                          </>
-                        )}
-
-                        {player.status === 'confirmed' && (
-                          <span style={{ fontSize: '0.8rem', color: 'var(--pitch-green-dark)', fontWeight: 600 }}>
-                            Verified ✓
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -878,6 +961,118 @@ export default function AdminPage() {
                 Close
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Payment Amount & Balance Modal */}
+      {editPaymentModalOpen && targetPlayer && (
+        <div className="modal-backdrop" onClick={() => setEditPaymentModalOpen(false)}>
+          <div
+            className="modal-content"
+            style={{ maxWidth: '460px', width: '95%' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <div>
+                <h3 style={{ fontSize: '1.25rem', color: '#0f172a' }}>Update Player Payment</h3>
+                <p style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                  {targetPlayer.name} • Match #{selectedSessionId}
+                </p>
+              </div>
+              <button className="btn-close" onClick={() => setEditPaymentModalOpen(false)}>
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSavePaymentAmount} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* Fee & Balance Live Summary */}
+              {(() => {
+                const matchFee = targetPlayer.payable || currentSessionObj?.cost_per_person || 200;
+                const enteredAmt = Number(amountPaidInput) || 0;
+                const balance = Math.max(0, matchFee - enteredAmt);
+                return (
+                  <div style={{
+                    background: '#f8fafc',
+                    border: '1px solid #eaecf0',
+                    borderRadius: '10px',
+                    padding: '0.85rem 1rem',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.35rem' }}>
+                      <span style={{ color: '#64748b' }}>Match Fee (Payable):</span>
+                      <strong style={{ color: '#0f172a' }}>₹{matchFee}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.35rem' }}>
+                      <span style={{ color: '#64748b' }}>Amount Paid:</span>
+                      <strong style={{ color: '#059669' }}>₹{enteredAmt}</strong>
+                    </div>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      fontSize: '0.95rem',
+                      fontWeight: 800,
+                      borderTop: '1px dashed #cbd5e1',
+                      paddingTop: '0.4rem',
+                      color: balance > 0 ? '#dc2626' : '#059669',
+                    }}>
+                      <span>Balance Due:</span>
+                      <span>{balance > 0 ? `₹${balance} due` : '₹0 (Fully Paid)'}</span>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <div>
+                <label className="form-label" style={{ fontSize: '0.85rem' }}>
+                  Enter Amount Paid by Player (₹):
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#64748b' }}>₹</span>
+                  <input
+                    type="number"
+                    className="form-input"
+                    value={amountPaidInput}
+                    onChange={(e) => setAmountPaidInput(e.target.value)}
+                    placeholder="e.g. 200"
+                    min="0"
+                    style={{ fontSize: '1.05rem', fontWeight: 700 }}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="form-label" style={{ fontSize: '0.85rem' }}>
+                  Payment Method / UTR Note:
+                </label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={paymentNoteInput}
+                  onChange={(e) => setPaymentNoteInput(e.target.value)}
+                  placeholder="e.g. Cash / GPay / Partial payment"
+                  maxLength={60}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setEditPaymentModalOpen(false)}
+                  disabled={savingPayment}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={savingPayment}
+                >
+                  {savingPayment ? 'Saving...' : 'Save Payment & Balance'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -111,6 +111,8 @@ def get_session_roster(session_id: int, admin: dict = Depends(require_admin)):
     # The roster contains players who are in the squad for this session
     import re
     roster = []
+    session_cost = session.get("cost_per_person", 200)
+
     for pay in payments:
         user = profile_map.get(pay["user_id"])
         if not user:
@@ -124,13 +126,25 @@ def get_session_roster(session_id: int, admin: dict = Depends(require_admin)):
                 screenshot_url = m.group(1)
                 clean_ref = re.sub(r"\[screenshot:.*?\]", "", raw_ref).strip()
 
+        p_status = pay.get("status", "unpaid")
+        amount_paid = pay.get("amount", 0) if p_status in ["confirmed", "partial", "pending"] else 0
+        balance = max(0, session_cost - amount_paid)
+
+        display_status = p_status
+        if p_status == "confirmed" and balance > 0:
+            display_status = "partial"
+
         roster.append({
             "user_id": user["id"],
             "name": user.get("name", "Unknown"),
             "role": user.get("role", "user"),
             "payment": pay,
-            "status": pay.get("status", "unpaid"),
-            "amount": pay.get("amount", session.get("cost_per_person", 200)),
+            "payment_id": pay.get("id"),
+            "status": display_status,
+            "payable": session_cost,
+            "amount_paid": amount_paid,
+            "balance": balance,
+            "amount": amount_paid,
             "upi_ref": clean_ref or ("Screenshot Uploaded" if screenshot_url else None),
             "screenshot_url": screenshot_url,
             "submitted_at": pay.get("submitted_at"),
@@ -153,27 +167,33 @@ def get_session_roster(session_id: int, admin: dict = Depends(require_admin)):
 
     # Generate WhatsApp share message for the selected squad
     confirmed_players = [r["name"] for r in roster if r["status"] == "confirmed"]
+    partial_players = [r for r in roster if r["status"] == "partial"]
     pending_players = [r["name"] for r in roster if r["status"] == "pending"]
     unpaid_players = [r["name"] for r in roster if r["status"] in ["unpaid", "rejected"]]
 
-    collected = sum(r["payment"]["amount"] for r in roster if r["status"] == "confirmed" and r["payment"])
-    expected_total = len(roster) * session.get("cost_per_person", 200)
+    collected = sum(r["amount_paid"] for r in roster if r["status"] in ["confirmed", "partial"])
+    expected_total = len(roster) * session_cost
 
     wa_lines = [
         f"⚽ *Elite Football Turf — Match Squad*",
         f"📅 *Date:* {session['session_date']} (Friday)",
         f"⏰ *Slot:* {session.get('start_time', '20:00')} - {session.get('end_time', '22:00')}",
         f"👥 *Squad:* {len(roster)} Players Selected",
-        f"💰 *Fee:* ₹{session.get('cost_per_person', 200)} / player",
+        f"💰 *Fee:* ₹{session_cost} / player",
         f"📊 *Collected:* ₹{collected:,} / ₹{expected_total:,}",
         "",
-        f"✅ *PAID / CONFIRMED ({len(confirmed_players)}):*",
+        f"✅ *PAID IN FULL ({len(confirmed_players)}):*",
     ]
     if confirmed_players:
         for idx, name in enumerate(confirmed_players, 1):
             wa_lines.append(f"{idx}. {name}")
     else:
         wa_lines.append("  (None yet)")
+
+    if partial_players:
+        wa_lines.extend(["", f"⚠️ *PARTIAL PAYMENTS ({len(partial_players)}):*"])
+        for idx, p in enumerate(partial_players, 1):
+            wa_lines.append(f"{idx}. {p['name']} — Paid: ₹{p['amount_paid']} | Balance: ₹{p['balance']}")
 
     if pending_players:
         wa_lines.extend(["", f"⏳ *PENDING VERIFICATION ({len(pending_players)}):*"])
@@ -187,7 +207,7 @@ def get_session_roster(session_id: int, admin: dict = Depends(require_admin)):
 
     wa_lines.extend([
         "",
-        f"📲 *Please pay ₹{session.get('cost_per_person', 200)} via UPI to confirm your spot!*",
+        f"📲 *Please pay ₹{session_cost} via UPI to confirm your spot!*",
     ])
     whatsapp_text = "\n".join(wa_lines)
 
@@ -254,19 +274,86 @@ def remove_player_from_squad(session_id: int, user_id: str, admin: dict = Depend
 def confirm_payment(payment_id: int, admin: dict = Depends(require_admin)):
     db = service_client()
     now_str = datetime.utcnow().isoformat()
+
+    pay_res = db.table("payments").select("*").eq("id", payment_id).single().execute()
+    if not pay_res.data:
+        raise HTTPException(status_code=404, detail="Payment record not found")
+    pay = pay_res.data
+
+    session_res = db.table("turf_sessions").select("*").eq("id", pay["session_id"]).single().execute()
+    session_cost = session_res.data.get("cost_per_person", 200) if session_res.data else 200
+
+    amount = pay.get("amount", session_cost)
+    if amount == 0:
+        amount = session_cost
+
+    status = "confirmed" if amount >= session_cost else "partial"
+
     res = (
         db.table("payments")
         .update({
-            "status": "confirmed",
+            "amount": amount,
+            "status": status,
             "confirmed_by": admin["id"],
             "confirmed_at": now_str,
         })
         .eq("id", payment_id)
         .execute()
     )
-    if not res.data:
+    return {"message": f"Payment marked as {status}! Paid: ₹{amount} (Balance: ₹{max(0, session_cost - amount)})", "payment": res.data[0]}
+
+
+class UpdatePaymentAmountRequest(BaseModel):
+    amount_paid: int
+    note: Optional[str] = None
+    status: Optional[str] = None
+
+
+@router.post("/payments/{payment_id}/update-amount")
+def update_payment_amount(payment_id: int, data: UpdatePaymentAmountRequest, admin: dict = Depends(require_admin)):
+    db = service_client()
+    now_str = datetime.utcnow().isoformat()
+
+    pay_res = db.table("payments").select("*").eq("id", payment_id).single().execute()
+    if not pay_res.data:
         raise HTTPException(status_code=404, detail="Payment record not found")
-    return {"message": "Payment confirmed successfully", "payment": res.data[0]}
+    pay = pay_res.data
+
+    session_res = db.table("turf_sessions").select("*").eq("id", pay["session_id"]).single().execute()
+    session_cost = session_res.data.get("cost_per_person", 200) if session_res.data else 200
+
+    amount = max(0, data.amount_paid)
+    balance = max(0, session_cost - amount)
+
+    if data.status:
+        target_status = data.status
+    else:
+        if amount >= session_cost:
+            target_status = "confirmed"
+        elif amount > 0:
+            target_status = "partial"
+        else:
+            target_status = "unpaid"
+
+    ref = data.note or (f"Paid ₹{amount} / ₹{session_cost} (Balance: ₹{balance})" if amount > 0 else None)
+
+    update_payload = {
+        "amount": amount,
+        "status": target_status,
+        "upi_ref": ref or pay.get("upi_ref"),
+        "confirmed_by": admin["id"],
+        "confirmed_at": now_str,
+    }
+
+    res = db.table("payments").update(update_payload).eq("id", payment_id).execute()
+    return {
+        "message": f"Payment updated! Payable: ₹{session_cost}, Paid: ₹{amount}, Balance: ₹{balance}",
+        "payment": res.data[0] if res.data else None,
+        "payable": session_cost,
+        "amount_paid": amount,
+        "balance": balance,
+        "status": target_status,
+    }
 
 
 @router.post("/payments/{payment_id}/reject")
@@ -300,6 +387,10 @@ def manual_pay_entry(data: ManualPayRequest, admin: dict = Depends(require_admin
     db = service_client()
     now_str = datetime.utcnow().isoformat()
 
+    session_res = db.table("turf_sessions").select("*").eq("id", data.session_id).single().execute()
+    session_cost = session_res.data.get("cost_per_person", 200) if session_res.data else 200
+    target_status = "confirmed" if data.amount >= session_cost else ("partial" if data.amount > 0 else "unpaid")
+
     # Check if payment already exists
     existing = (
         db.table("payments")
@@ -315,7 +406,7 @@ def manual_pay_entry(data: ManualPayRequest, admin: dict = Depends(require_admin
         "session_id": data.session_id,
         "amount": data.amount,
         "upi_ref": data.payment_method,
-        "status": "confirmed",
+        "status": target_status,
         "confirmed_by": admin["id"],
         "confirmed_at": now_str,
     }
@@ -325,4 +416,11 @@ def manual_pay_entry(data: ManualPayRequest, admin: dict = Depends(require_admin
     else:
         res = db.table("payments").insert(payload).execute()
 
-    return {"message": "Player marked as paid successfully", "payment": res.data[0] if res.data else None}
+    balance = max(0, session_cost - data.amount)
+    return {
+        "message": f"Recorded payment! Payable: ₹{session_cost}, Paid: ₹{data.amount}, Balance: ₹{balance}",
+        "payment": res.data[0] if res.data else None,
+        "payable": session_cost,
+        "amount_paid": data.amount,
+        "balance": balance,
+    }

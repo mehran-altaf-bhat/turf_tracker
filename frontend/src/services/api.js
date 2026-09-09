@@ -176,4 +176,11 @@ export const api = {
       method: 'POST',
     });
   },
+
+  updatePaymentAmount: async (paymentId, { amount_paid, note, status }) => {
+    return request(`/admin/payments/${paymentId}/update-amount`, {
+      method: 'POST',
+      body: JSON.stringify({ amount_paid, note, status }),
+    });
+  },
 };

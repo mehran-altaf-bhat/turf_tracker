@@ -13,7 +13,6 @@ import {
   Users,
   UserCheck,
   UserX,
-  Camera,
   ShieldAlert,
   ArrowRight,
   Sparkles,
@@ -21,6 +20,9 @@ import {
   ChevronRight,
   ShieldCheck,
   RefreshCw,
+  Trophy,
+  Activity,
+  Award,
 } from 'lucide-react';
 
 export default function DashboardPage({ user, activeTab = 'dashboard', setActiveTab }) {
@@ -65,7 +67,7 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
       setRsvpLoading(true);
       const res = await api.rsvpSession(currentSession.id, attending);
       setToast(res.message);
-      setTimeout(() => setToast(null), 5000);
+      setTimeout(() => setToast(null), 6000);
       await loadData();
     } catch (err) {
       alert(err.message || 'Failed to update RSVP');
@@ -78,7 +80,7 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
     return (
       <div style={{ textAlign: 'center', padding: '5rem 1rem' }}>
         <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>⚽</div>
-        <p style={{ color: '#64748b', fontWeight: 500 }}>Loading Elite Turf Tracker & Squad Lineup...</p>
+        <p style={{ color: '#64748b', fontWeight: 500 }}>Loading Elite Turf Tracker & Match Hub...</p>
       </div>
     );
   }
@@ -90,9 +92,15 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
   const isInSquad = data?.is_in_squad ?? false;
   const advanceCredits = data?.advance_credits || 0;
   const totalPaid = data?.total_paid_confirmed || 0;
-  // Strictly filter payment history to ONLY confirmed (done) or rejected
+
+  const payableAmount = data?.payable_amount || currentSession?.cost_per_person || 200;
+  const amountPaid = data?.amount_paid || 0;
+  const balanceDue = isInSquad ? (data?.balance_due ?? Math.max(0, payableAmount - amountPaid)) : 0;
+  const hasShiftedCredit = amountPaid > 0 && balanceDue > 0;
+
+  // Strictly filter payment history to confirmed (done), partial, or rejected
   const history = (data?.history || []).filter(
-    (h) => h.status === 'confirmed' || h.status === 'rejected'
+    (h) => h.status === 'confirmed' || h.status === 'partial' || h.status === 'rejected'
   );
   const upcomingSessions = data?.upcoming_sessions || [];
 
@@ -106,7 +114,44 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
         </div>
       )}
 
-      {/* Top Banner Alert (Matching Clokin alert banner style) */}
+      {/* Credit Shifted Banner */}
+      {hasShiftedCredit && isInSquad && (
+        <div style={{
+          background: '#eff6ff',
+          border: '1px solid #bfdbfe',
+          borderRadius: '12px',
+          padding: '0.85rem 1.25rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '1.5rem',
+          gap: '1rem',
+          flexWrap: 'wrap',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <Sparkles size={20} color="#2563eb" />
+            <div>
+              <div style={{ fontWeight: 700, color: '#1e40af', fontSize: '0.9rem' }}>
+                Previous Payment Shifted to this Match!
+              </div>
+              <div style={{ color: '#3b82f6', fontSize: '0.8rem' }}>
+                ₹{amountPaid} credit from your previous match was compensated. Remaining balance for this Friday: <strong>₹{balanceDue}</strong>.
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn btn-sm btn-primary"
+            style={{ padding: '0.45rem 1rem', fontSize: '0.82rem' }}
+            onClick={() => setModalOpen(true)}
+          >
+            <CreditCard size={15} />
+            <span>Pay ₹{balanceDue} Balance</span>
+          </button>
+        </div>
+      )}
+
+      {/* Opted-Out Alert Banner */}
       {!isInSquad ? (
         <div style={{
           background: '#fffbeb',
@@ -127,7 +172,7 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                 You are currently marked as NOT PLAYING for this Friday match
               </div>
               <div style={{ color: '#b45309', fontSize: '0.78rem' }}>
-                You have been removed from the match squad and will not be asked to pay.
+                You have been removed from the match squad. Any prior payment has been transferred to your next match as credit!
               </div>
             </div>
           </div>
@@ -159,10 +204,10 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
             <AlertCircle size={20} color="#dc2626" />
             <div>
               <div style={{ fontWeight: 700, color: '#991b1b', fontSize: '0.9rem' }}>
-                Payment Rejected by Admin
+                Payment Proof Rejected by Admin
               </div>
               <div style={{ color: '#b91c1c', fontSize: '0.78rem' }}>
-                Please click "Pay Again" to submit a valid UPI Reference number or screenshot.
+                Please submit a valid UPI reference number or screenshot proof.
               </div>
             </div>
           </div>
@@ -178,20 +223,20 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
         </div>
       ) : null}
 
-      {/* Primary Dashboard Grid (Matching Clokin screenshot) */}
+      {/* Primary Dashboard Grid */}
       {(activeTab === 'dashboard' || activeTab === 'all') && (
         <div className="clokin-grid">
           {/* Left Column Cards */}
           <div className="clokin-left-col">
-            {/* Card 1: Welcome Banner */}
+            {/* Card 1: Player Welcome & Attendance Status */}
             <div className="clokin-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', flexWrap: 'wrap' }}>
                 <div>
-                  <h2 style={{ fontSize: '1.65rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.35rem' }}>
+                  <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.35rem' }}>
                     Welcome, {user.name}!
                   </h2>
                   <p style={{ color: '#64748b', fontSize: '0.88rem' }}>
-                    Ready for Friday football? Ensure your attendance and payment are recorded.
+                    Ready for Friday turf football? Verify your squad attendance and balance.
                   </p>
                 </div>
                 <div>
@@ -244,9 +289,9 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
               }}>
                 <div style={{ fontSize: '0.82rem', color: '#475569' }}>
                   {isInSquad ? (
-                    <span>Cannot make it this Friday? Let the squad know:</span>
+                    <span>Cannot play this match? Your payment will shift to the next match:</span>
                   ) : (
-                    <span>Plans changed? You can re-join the match squad anytime:</span>
+                    <span>Ready to play? You can re-join the match squad anytime:</span>
                   )}
                 </div>
 
@@ -255,7 +300,7 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                     type="button"
                     disabled={rsvpLoading}
                     onClick={() => {
-                      if (window.confirm('Are you sure you cannot play this Friday? You will be removed from the squad.')) {
+                      if (window.confirm('Cannot play this Friday? Your payment (if paid) will automatically shift to the next match as carryover credit.')) {
                         handleRsvp(false);
                       }
                     }}
@@ -294,7 +339,7 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
               </div>
             </div>
 
-            {/* Card 2: Match Duration & Slot (Clokin "Today's Working Hours" style) */}
+            {/* Card 2: Friday Turf Slot & Duration */}
             <div className="clokin-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -302,9 +347,9 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                     width: '38px',
                     height: '38px',
                     borderRadius: '10px',
-                    background: '#eff6ff',
-                    border: '1px solid #bfdbfe',
-                    color: '#2563eb',
+                    background: '#ecfdf5',
+                    border: '1px solid #a7f3d0',
+                    color: '#059669',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -313,10 +358,10 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                   </div>
                   <div>
                     <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.95rem' }}>
-                      Friday Match Duration
+                      Friday Turf Match Slot
                     </div>
                     <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                      Elite Football Turf (Break Time: 8:55 – 9:00 PM)
+                      Elite Football Turf • 8:00 PM – 10:00 PM
                     </div>
                   </div>
                 </div>
@@ -334,8 +379,8 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                 <div style={{ fontSize: '2.25rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.03em' }}>
                   2h 00m
                 </div>
-                <div style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>
-                  8:00 PM – 10:00 PM
+                <div style={{ fontSize: '0.82rem', color: '#059669', fontWeight: 700, background: '#f0fdf4', padding: '0.2rem 0.6rem', borderRadius: '9999px', border: '1px solid #bbf7d0' }}>
+                  Match Scheduled
                 </div>
               </div>
 
@@ -344,11 +389,11 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
               </div>
 
               <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '0.35rem' }}>
-                Scheduled weekly turf slot: <strong>Friday, {currentSession?.session_date || 'Upcoming'}</strong>
+                Match date: <strong>Friday, {currentSession?.session_date || 'Upcoming'}</strong>
               </div>
             </div>
 
-            {/* Card 3: Turf Venue (Clokin "GPS Location" style) */}
+            {/* Card 3: Turf Venue Location */}
             <div className="clokin-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -356,9 +401,9 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                     width: '38px',
                     height: '38px',
                     borderRadius: '10px',
-                    background: '#ecfdf5',
-                    border: '1px solid #a7f3d0',
-                    color: '#059669',
+                    background: '#eff6ff',
+                    border: '1px solid #bfdbfe',
+                    color: '#2563eb',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -367,10 +412,10 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                   </div>
                   <div>
                     <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.95rem' }}>
-                      Elite Football Turf
+                      Elite Football Turf Ground
                     </div>
                     <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                      Turf session fee: ₹{currentSession?.cost_per_person || 200} / player
+                      Official match fee: ₹{payableAmount} / player
                     </div>
                   </div>
                 </div>
@@ -390,20 +435,37 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
             </div>
           </div>
 
-          {/* Right Column: Match Viewfinder & Payment Hub */}
+          {/* Right Column: Match Terminal & Pitch Pass (Custom Sports Identity) */}
           <div className="clokin-right-col">
             <div className="clokin-viewfinder">
               <div className="clokin-card-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Camera size={18} color="#059669" />
-                  <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#0f172a' }}>
-                    Match Attendance & Payment Hub
-                  </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+                  <div style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '8px',
+                    background: '#ecfdf5',
+                    color: '#059669',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1rem',
+                  }}>
+                    🏟️
+                  </div>
+                  <div>
+                    <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#0f172a' }}>
+                      Pitch Pass & Match Terminal
+                    </span>
+                    <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                      Friday Match #{currentSession?.id || 1} • Elite Turf
+                    </div>
+                  </div>
                 </div>
 
                 <div>
                   {isInSquad ? (
-                    currentStatus === 'confirmed' ? (
+                    currentStatus === 'confirmed' && balanceDue === 0 ? (
                       <span style={{
                         background: '#ecfdf5',
                         border: '1px solid #a7f3d0',
@@ -416,7 +478,22 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                         alignItems: 'center',
                         gap: '0.35rem',
                       }}>
-                        <CheckCircle2 size={13} /> Paid & Confirmed
+                        <CheckCircle2 size={13} /> Paid Full ✅
+                      </span>
+                    ) : (currentStatus === 'partial' || balanceDue > 0) ? (
+                      <span style={{
+                        background: '#fffbeb',
+                        border: '1px solid #fde68a',
+                        color: '#b45309',
+                        padding: '0.25rem 0.75rem',
+                        borderRadius: '9999px',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                      }}>
+                        <Clock3 size={13} /> Partial (₹{balanceDue} due)
                       </span>
                     ) : currentStatus === 'pending' ? (
                       <span style={{
@@ -474,25 +551,25 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                       fontSize: '0.78rem',
                       fontWeight: 700,
                     }}>
-                      Not Playing
+                      Benched (Not Playing)
                     </span>
                   )}
                 </div>
               </div>
 
-              {/* Viewfinder Center Content */}
+              {/* Terminal Center Graphic */}
               <div className="viewfinder-inner">
                 {!isInSquad ? (
-                  /* User is NOT playing: Do NOT show payment process */
+                  /* User is NOT playing: Show Bench card */
                   <>
-                    <div className="viewfinder-camera-icon">
-                      <UserX size={28} color="#94a3b8" />
+                    <div className="viewfinder-camera-icon" style={{ background: '#f8fafc', borderColor: '#cbd5e1' }}>
+                      <UserX size={30} color="#64748b" />
                     </div>
-                    <div style={{ fontWeight: 800, color: '#1e293b', fontSize: '1.15rem', marginBottom: '0.35rem' }}>
-                      Squad Status: Not Playing
+                    <div style={{ fontWeight: 800, color: '#1e293b', fontSize: '1.2rem', marginBottom: '0.35rem' }}>
+                      Player Bench / Out of Squad
                     </div>
                     <p style={{ color: '#64748b', fontSize: '0.85rem', maxWidth: '340px', marginBottom: '1.25rem' }}>
-                      You opted out of this match. You are not listed in the squad and no payment is needed.
+                      You marked yourself as not playing for Friday {currentSession?.session_date}. If you had already paid, your funds are shifted to the next match!
                     </p>
                     <button
                       type="button"
@@ -501,20 +578,23 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                       onClick={() => handleRsvp(true)}
                     >
                       <UserCheck size={16} />
-                      <span>Change Status: Join Playing Squad</span>
+                      <span>Ready to Play? Join Squad</span>
                     </button>
                   </>
-                ) : currentStatus === 'confirmed' ? (
-                  /* User is in squad and payment confirmed */
+                ) : currentStatus === 'confirmed' && balanceDue === 0 ? (
+                  /* User is paid in full */
                   <>
                     <div className="viewfinder-camera-icon" style={{ background: '#ecfdf5', borderColor: '#a7f3d0' }}>
-                      <CheckCircle2 size={32} color="#059669" />
+                      <CheckCircle2 size={34} color="#059669" />
                     </div>
                     <div style={{ fontWeight: 800, color: '#065f46', fontSize: '1.2rem', marginBottom: '0.35rem' }}>
-                      Match Attendance Confirmed!
+                      Pitch Pass Confirmed!
+                    </div>
+                    <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#059669', marginBottom: '0.25rem' }}>
+                      ₹{payableAmount} Paid in Full
                     </div>
                     <p style={{ color: '#64748b', fontSize: '0.85rem', maxWidth: '340px', marginBottom: '1.25rem' }}>
-                      Your payment for Friday {currentSession?.session_date} is fully verified. We look forward to seeing you at 8:00 PM!
+                      Your match fee for Friday {currentSession?.session_date} is fully settled. See you on the pitch at 8:00 PM!
                     </p>
                     <button
                       type="button"
@@ -522,23 +602,41 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                       onClick={() => setModalOpen(true)}
                     >
                       <CreditCard size={15} />
-                      <span>Pay for Future Advance Weeks</span>
+                      <span>Pre-pay for Future Weeks</span>
                     </button>
                   </>
                 ) : (
-                  /* User is in playing squad and payment is UNPAID, PENDING, or REJECTED */
+                  /* User has payment due (partial, unpaid, or rejected) */
                   <>
-                    <div className="viewfinder-camera-icon" style={{
-                      background: currentStatus === 'rejected' ? '#fef2f2' : currentStatus === 'pending' ? '#fffbeb' : '#ffffff',
-                      borderColor: currentStatus === 'rejected' ? '#fecdd3' : currentStatus === 'pending' ? '#fde68a' : '#e2e8f0',
+                    {/* Financial Breakdown Chips */}
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(3, 1fr)',
+                      gap: '0.65rem',
+                      width: '100%',
+                      maxWidth: '380px',
+                      margin: '0 auto 1.25rem',
                     }}>
-                      {currentStatus === 'rejected' ? (
-                        <AlertCircle size={30} color="#dc2626" />
-                      ) : currentStatus === 'pending' ? (
-                        <Clock3 size={30} color="#d97706" />
-                      ) : (
-                        <CreditCard size={30} color="#059669" />
-                      )}
+                      <div style={{ background: '#ffffff', border: '1px solid #eaecf0', borderRadius: '10px', padding: '0.65rem 0.5rem', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Match Fee</div>
+                        <div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#0f172a' }}>₹{payableAmount}</div>
+                      </div>
+                      <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '10px', padding: '0.65rem 0.5rem', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.72rem', color: '#047857' }}>Credit / Paid</div>
+                        <div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#059669' }}>-₹{amountPaid}</div>
+                      </div>
+                      <div style={{
+                        background: balanceDue > 0 ? '#fffbeb' : '#f8fafc',
+                        border: balanceDue > 0 ? '1px solid #fde68a' : '1px solid #eaecf0',
+                        borderRadius: '10px',
+                        padding: '0.65rem 0.5rem',
+                        textAlign: 'center',
+                      }}>
+                        <div style={{ fontSize: '0.72rem', color: balanceDue > 0 ? '#92400e' : '#64748b' }}>Balance Due</div>
+                        <div style={{ fontWeight: 800, fontSize: '1.05rem', color: balanceDue > 0 ? '#d97706' : '#059669' }}>
+                          ₹{balanceDue}
+                        </div>
+                      </div>
                     </div>
 
                     <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '1.15rem', marginBottom: '0.25rem' }}>
@@ -546,20 +644,15 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                         ? 'Payment Needs Attention'
                         : currentStatus === 'pending'
                         ? 'Payment Under Verification'
+                        : hasShiftedCredit
+                        ? 'Pay Remaining Match Balance'
                         : 'Match Fee Payment Process'}
                     </div>
 
-                    <div style={{
-                      fontSize: '1.65rem',
-                      fontWeight: 800,
-                      color: '#059669',
-                      margin: '0.35rem 0 0.5rem',
-                    }}>
-                      ₹{currentSession?.cost_per_person || 200}
-                    </div>
-
                     <p style={{ color: '#64748b', fontSize: '0.85rem', maxWidth: '340px', marginBottom: '1.25rem' }}>
-                      {currentStatus === 'rejected'
+                      {hasShiftedCredit
+                        ? `You have ₹${amountPaid} credit applied. Pay the remaining ₹${balanceDue} to lock your pitch pass!`
+                        : currentStatus === 'rejected'
                         ? 'Admin rejected previous reference. Click below to submit with correct UPI ID or screenshot proof.'
                         : currentStatus === 'pending'
                         ? 'Your payment proof has been submitted. The admin will confirm your slot shortly.'
@@ -582,14 +675,14 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                           ? 'Pay Again'
                           : currentStatus === 'pending'
                           ? 'Update / Re-submit Payment'
-                          : 'Pay for Turf'}
+                          : `Pay ₹${balanceDue} for Turf`}
                       </span>
                     </button>
                   </>
                 )}
               </div>
 
-              {/* Bottom footer text inside viewfinder card */}
+              {/* Bottom footer text inside terminal card */}
               <div style={{
                 background: '#f8fafc',
                 border: '1px solid #eaecf0',
@@ -602,7 +695,7 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                 justifyContent: 'space-between',
               }}>
                 <span>Total Lifetime Paid: <strong style={{ color: '#0f172a' }}>₹{totalPaid}</strong></span>
-                <span>Advance Weeks: <strong style={{ color: '#7c3aed' }}>{advanceCredits} week(s)</strong></span>
+                <span>Advance Credits: <strong style={{ color: '#7c3aed' }}>{advanceCredits} week(s)</strong></span>
               </div>
             </div>
           </div>
@@ -708,12 +801,20 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                           }}>
                             {player.name} {isMe && <span style={{ color: '#059669', fontSize: '0.75rem' }}>(You)</span>}
                           </div>
+                          {player.status === 'partial' && player.balance > 0 && (
+                            <div style={{ fontSize: '0.72rem', color: '#b45309' }}>
+                              Paid ₹{player.amount} • ₹{player.balance} due
+                            </div>
+                          )}
                         </div>
                       </div>
 
                       <div>
                         {player.status === 'confirmed' && (
-                          <span className="badge badge-paid" style={{ fontSize: '0.72rem' }}>Paid ✅</span>
+                          <span className="badge badge-paid" style={{ fontSize: '0.72rem' }}>Paid Full ✅</span>
+                        )}
+                        {player.status === 'partial' && (
+                          <span className="badge badge-pending" style={{ fontSize: '0.72rem' }}>Partial ⚠️</span>
                         )}
                         {player.status === 'pending' && (
                           <span className="badge badge-pending" style={{ fontSize: '0.72rem' }}>Pending ⏳</span>
@@ -805,7 +906,7 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
         </div>
       )}
 
-      {/* PAYMENT HISTORY: ONLY confirmed (done) or rejected */}
+      {/* PAYMENT HISTORY: ONLY confirmed (done), partial, or rejected */}
       {(activeTab === 'dashboard' || activeTab === 'history' || activeTab === 'all') && (
         <div className="clokin-card" style={{ marginBottom: '2rem' }}>
           <div style={{
@@ -822,11 +923,11 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                 Payment History
               </h3>
               <p style={{ fontSize: '0.82rem', color: '#64748b' }}>
-                Showing completed (done) and rejected transaction records only.
+                Showing completed (done), partial, and rejected transaction logs only.
               </p>
             </div>
             <span style={{ fontSize: '0.75rem', color: '#64748b', background: '#f8fafc', padding: '0.35rem 0.75rem', borderRadius: '8px', border: '1px solid #eaecf0' }}>
-              Filtered: Confirmed / Rejected only
+              Filtered: Confirmed / Partial / Rejected only
             </span>
           </div>
 
@@ -835,7 +936,7 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
               <History size={32} color="#cbd5e1" style={{ margin: '0 auto 0.5rem' }} />
               <p style={{ fontSize: '0.9rem', fontWeight: 500 }}>No completed or rejected payments recorded yet.</p>
               <p style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
-                Payments that are verified or rejected by the admin will automatically appear here.
+                Payments that are verified, partially compensated, or rejected by the admin will appear here.
               </p>
             </div>
           ) : (
@@ -844,7 +945,9 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                 <thead>
                   <tr>
                     <th>Match Date</th>
-                    <th>Fee Amount</th>
+                    <th>Fee Payable</th>
+                    <th>Amount Paid</th>
+                    <th>Balance</th>
                     <th>Reference / Proof</th>
                     <th>Date</th>
                     <th>Status</th>
@@ -857,7 +960,17 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                         <strong style={{ color: '#0f172a' }}>Friday, {h.session_date}</strong>
                       </td>
                       <td>
+                        <span style={{ color: '#64748b' }}>₹{h.payable || payableAmount}</span>
+                      </td>
+                      <td>
                         <strong style={{ color: '#059669' }}>₹{h.amount}</strong>
+                      </td>
+                      <td>
+                        {h.balance > 0 ? (
+                          <span style={{ color: '#dc2626', fontWeight: 700 }}>₹{h.balance}</span>
+                        ) : (
+                          <span style={{ color: '#059669', fontWeight: 600 }}>₹0</span>
+                        )}
                       </td>
                       <td style={{ fontSize: '0.85rem' }}>
                         <span>
@@ -895,6 +1008,11 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                         {h.status === 'confirmed' && (
                           <span className="badge badge-paid">
                             Done / Confirmed ✅
+                          </span>
+                        )}
+                        {h.status === 'partial' && (
+                          <span className="badge badge-pending">
+                            Partial (₹{h.balance} due) ⚠️
                           </span>
                         )}
                         {h.status === 'rejected' && (
@@ -952,18 +1070,19 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                       <td>₹{s.cost_per_person || 200}</td>
                       <td>
                         {status === 'confirmed' && <span className="badge badge-paid">Paid ✅</span>}
+                        {status === 'partial' && <span className="badge badge-pending">Partial ⚠️</span>}
                         {status === 'pending' && <span className="badge badge-pending">Pending ⏳</span>}
                         {status === 'rejected' && <span className="badge badge-unpaid">Rejected ❌</span>}
                         {status === 'unpaid' && <span className="badge badge-unpaid">Unpaid</span>}
                       </td>
                       <td>
-                        {(status === 'unpaid' || status === 'rejected') ? (
+                        {(status === 'unpaid' || status === 'rejected' || status === 'partial') ? (
                           <button
                             className="btn btn-sm btn-primary"
                             style={status === 'rejected' ? { background: '#dc2626' } : {}}
                             onClick={() => setModalOpen(true)}
                           >
-                            {status === 'rejected' ? 'Pay Again' : 'Pay'}
+                            {status === 'rejected' ? 'Pay Again' : status === 'partial' ? 'Pay Balance' : 'Pay'}
                           </button>
                         ) : status === 'pending' ? (
                           <span style={{ color: '#d97706', fontSize: '0.8rem', fontWeight: 600 }}>Pending ⏳</span>
@@ -986,6 +1105,9 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
         onClose={() => setModalOpen(false)}
         config={config}
         onPaymentSuccess={handlePaymentSuccess}
+        balanceDue={balanceDue}
+        payableAmount={payableAmount}
+        amountPaid={amountPaid}
       />
     </div>
   );
