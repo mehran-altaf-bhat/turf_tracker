@@ -109,11 +109,21 @@ def get_session_roster(session_id: int, admin: dict = Depends(require_admin)):
     payments_by_user = {p["user_id"]: p for p in payments}
 
     # The roster contains players who are in the squad for this session
+    import re
     roster = []
     for pay in payments:
         user = profile_map.get(pay["user_id"])
         if not user:
             continue
+        raw_ref = pay.get("upi_ref") or ""
+        screenshot_url = None
+        clean_ref = raw_ref
+        if "[screenshot:" in raw_ref:
+            m = re.search(r"\[screenshot:(.*?)\]", raw_ref)
+            if m:
+                screenshot_url = m.group(1)
+                clean_ref = re.sub(r"\[screenshot:.*?\]", "", raw_ref).strip()
+
         roster.append({
             "user_id": user["id"],
             "name": user.get("name", "Unknown"),
@@ -121,7 +131,8 @@ def get_session_roster(session_id: int, admin: dict = Depends(require_admin)):
             "payment": pay,
             "status": pay.get("status", "unpaid"),
             "amount": pay.get("amount", session.get("cost_per_person", 200)),
-            "upi_ref": pay.get("upi_ref"),
+            "upi_ref": clean_ref or ("Screenshot Uploaded" if screenshot_url else None),
+            "screenshot_url": screenshot_url,
             "submitted_at": pay.get("submitted_at"),
         })
 

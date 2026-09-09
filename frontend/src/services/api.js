@@ -92,10 +92,40 @@ export const api = {
     return request('/payments/my-status');
   },
 
-  submitPayment: async ({ weeks_count, upi_ref }) => {
+  uploadScreenshot: async (file) => {
+    const token = getStoredToken();
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const headers = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const res = await fetch('/api/payments/upload-screenshot', {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.detail || 'Failed to upload screenshot');
+    }
+    return data;
+  },
+
+  submitPayment: async ({ weeks_count, upi_ref, screenshot_url }) => {
     return request('/payments/submit', {
       method: 'POST',
-      body: JSON.stringify({ weeks_count, upi_ref }),
+      body: JSON.stringify({ weeks_count, upi_ref, screenshot_url }),
+    });
+  },
+
+  updateSessionFee: async (sessionId, costPerPerson) => {
+    return request(`/sessions/${sessionId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ cost_per_person: Number(costPerPerson) }),
     });
   },
 

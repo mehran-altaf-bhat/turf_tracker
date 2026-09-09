@@ -15,9 +15,9 @@ SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY", "")
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 
-# Default UPI settings (can be overridden in .env)
-UPI_VPA = os.environ.get("UPI_VPA", "turftracker@upi")
-UPI_NAME = os.environ.get("UPI_NAME", "Elite Football Turf")
+# Default UPI settings (from provided QR)
+UPI_VPA = os.environ.get("UPI_VPA", "7006869014@hdfc")
+UPI_NAME = os.environ.get("UPI_NAME", "FAISAL RASHID BHAT")
 
 
 @lru_cache

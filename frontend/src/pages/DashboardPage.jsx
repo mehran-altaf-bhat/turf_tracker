@@ -12,7 +12,8 @@ import {
   History,
   TrendingUp,
   Sparkles,
-  ArrowUpRight
+  ArrowUpRight,
+  Users
 } from 'lucide-react';
 
 export default function DashboardPage({ user }) {
@@ -60,6 +61,7 @@ export default function DashboardPage({ user }) {
 
   const currentSession = data?.current_session;
   const currentStatus = data?.current_status || 'unpaid';
+  const currentSquad = data?.current_squad || [];
   const advanceCredits = data?.advance_credits || 0;
   const totalPaid = data?.total_paid_confirmed || 0;
   const history = data?.history || [];
@@ -125,7 +127,7 @@ export default function DashboardPage({ user }) {
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <CreditCard size={17} color="var(--pitch-green-light)" />
-              <span>Fee: <strong style={{ color: '#fff' }}>₹200</strong> / player</span>
+              <span>Fee: <strong style={{ color: '#fff' }}>₹{currentSession?.cost_per_person || 200}</strong> / player</span>
             </div>
           </div>
 
@@ -142,10 +144,12 @@ export default function DashboardPage({ user }) {
               <CreditCard size={18} />
               <span>
                 {currentStatus === 'confirmed'
-                  ? 'Pay for Advance Weeks (₹200/wk)'
+                  ? 'Pay for Advance Weeks'
                   : currentStatus === 'rejected'
-                  ? 'Pay Again (₹200)'
-                  : 'Pay for Turf (₹200)'}
+                  ? 'Pay Again'
+                  : currentStatus === 'pending'
+                  ? 'Update / Re-submit Payment'
+                  : 'Pay for Turf'}
               </span>
             </button>
 
@@ -161,7 +165,7 @@ export default function DashboardPage({ user }) {
             )}
             {currentStatus === 'rejected' && (
               <span style={{ fontSize: '0.85rem', color: '#fca5a5' }}>
-                ⚠️ Payment was rejected by admin. Click "Pay Again" to submit with a valid UPI reference.
+                ⚠️ Payment was rejected by admin. Click "Pay Again" to submit with a valid UPI reference or screenshot.
               </span>
             )}
           </div>
@@ -193,6 +197,72 @@ export default function DashboardPage({ user }) {
             ₹{totalPaid.toLocaleString()}
           </div>
         </div>
+      </div>
+
+      {/* Friday Match Squad Section */}
+      <div className="card" style={{ marginBottom: '2rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <div>
+            <h3 style={{ fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Users size={20} color="var(--pitch-green-light)" />
+              Match Squad ({currentSquad.length} Players Attending)
+            </h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+              Players playing this Friday, {currentSession?.session_date || 'upcoming match'} (8:00 PM – 10:00 PM)
+            </p>
+          </div>
+        </div>
+
+        {currentSquad.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+            The match squad hasn't been finalized by the admin yet. Check back soon!
+          </div>
+        ) : (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+            gap: '0.75rem',
+          }}>
+            {currentSquad.map((player, idx) => (
+              <div
+                key={player.user_id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.75rem 1rem',
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: player.user_id === user.id ? '1px solid var(--border-accent)' : '1px solid var(--border-subtle)',
+                  borderRadius: 'var(--radius-sm)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', width: '18px' }}>
+                    {idx + 1}.
+                  </span>
+                  <strong style={{ color: player.user_id === user.id ? 'var(--pitch-green-light)' : '#fff', fontSize: '0.9rem' }}>
+                    {player.name} {player.user_id === user.id && '(You)'}
+                  </strong>
+                </div>
+
+                <div>
+                  {player.status === 'confirmed' && (
+                    <span className="badge badge-paid" style={{ fontSize: '0.7rem' }}>Paid ✅</span>
+                  )}
+                  {player.status === 'pending' && (
+                    <span className="badge badge-pending" style={{ fontSize: '0.7rem' }}>Pending ⏳</span>
+                  )}
+                  {player.status === 'rejected' && (
+                    <span className="badge badge-unpaid" style={{ fontSize: '0.7rem' }}>Rejected ❌</span>
+                  )}
+                  {player.status === 'unpaid' && (
+                    <span className="badge badge-unpaid" style={{ fontSize: '0.7rem' }}>Unpaid ⚠️</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Upcoming Sessions List */}

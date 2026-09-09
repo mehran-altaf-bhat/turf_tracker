@@ -15,7 +15,9 @@ import {
   AlertCircle,
   Check,
   ArrowRight,
-  UserX
+  UserX,
+  Pencil,
+  Eye
 } from 'lucide-react';
 
 export default function AdminPage() {
@@ -27,6 +29,10 @@ export default function AdminPage() {
   const [copied, setCopied] = useState(false);
   const [toast, setToast] = useState(null);
   const [squadModalOpen, setSquadModalOpen] = useState(false);
+  const [editingFee, setEditingFee] = useState(false);
+  const [feeInput, setFeeInput] = useState('');
+  const [savingFee, setSavingFee] = useState(false);
+  const [previewScreenshot, setPreviewScreenshot] = useState(null);
 
   const loadOverview = async () => {
     try {
@@ -95,18 +101,46 @@ export default function AdminPage() {
 
   const handleManualPay = async (userId) => {
     try {
+      const matchFee = currentSessionObj?.cost_per_person || 200;
       await api.manualPay({
         user_id: userId,
         session_id: selectedSessionId,
-        amount: 200,
+        amount: matchFee,
         payment_method: 'Cash / Ground Payment',
       });
-      setToast('Player marked as paid (Cash/Direct)!');
+      setToast(`Player marked as paid (₹${matchFee} Cash/Direct)!`);
       setTimeout(() => setToast(null), 4000);
       loadRoster(selectedSessionId);
       loadOverview();
     } catch (err) {
       alert(err.message);
+    }
+  };
+
+  const startEditFee = () => {
+    setFeeInput(String(currentSessionObj?.cost_per_person || 200));
+    setEditingFee(true);
+  };
+
+  const handleSaveFee = async (e) => {
+    if (e) e.preventDefault();
+    const feeNum = parseInt(feeInput, 10);
+    if (isNaN(feeNum) || feeNum <= 0) {
+      alert('Please enter a valid match fee (greater than 0)');
+      return;
+    }
+    try {
+      setSavingFee(true);
+      await api.updateSessionFee(selectedSessionId, feeNum);
+      setToast(`Match fee updated to ₹${feeNum} per player!`);
+      setTimeout(() => setToast(null), 4000);
+      setEditingFee(false);
+      loadOverview();
+      loadRoster(selectedSessionId);
+    } catch (err) {
+      alert(err.message || 'Failed to update match fee');
+    } finally {
+      setSavingFee(false);
     }
   };
 
@@ -252,12 +286,79 @@ export default function AdminPage() {
           </div>
 
           {currentSessionObj && (
-            <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+            <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center', flexWrap: 'wrap', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
               <div>
                 Slot: <strong style={{ color: '#fff' }}>{currentSessionObj.start_time || '20:00'} - {currentSessionObj.end_time || '22:00'}</strong>
               </div>
               <div>
                 Squad Size: <strong style={{ color: '#60a5fa' }}>{currentSquadCount} Players</strong>
+              </div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                Fee:
+                {editingFee ? (
+                  <form onSubmit={handleSaveFee} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', margin: 0 }}>
+                    <span style={{ color: '#fff', fontWeight: 600 }}>₹</span>
+                    <input
+                      type="number"
+                      value={feeInput}
+                      onChange={(e) => setFeeInput(e.target.value)}
+                      style={{
+                        width: '75px',
+                        padding: '0.25rem 0.4rem',
+                        fontSize: '0.85rem',
+                        background: '#0d1117',
+                        border: '1px solid var(--pitch-green)',
+                        color: '#fff',
+                        borderRadius: '4px',
+                      }}
+                      autoFocus
+                    />
+                    <button
+                      type="submit"
+                      disabled={savingFee}
+                      className="btn btn-sm btn-primary"
+                      style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
+                      title="Save new fee"
+                    >
+                      <Check size={13} />
+                      <span>{savingFee ? '...' : 'Save'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditingFee(false)}
+                      className="btn btn-sm btn-secondary"
+                      style={{ padding: '0.25rem 0.45rem', fontSize: '0.75rem' }}
+                      title="Cancel"
+                    >
+                      <XCircle size={13} />
+                    </button>
+                  </form>
+                ) : (
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <strong style={{ color: '#fbbf24', fontSize: '1rem' }}>₹{currentSessionObj.cost_per_person || 200}</strong>
+                    <button
+                      onClick={startEditFee}
+                      type="button"
+                      className="btn-ghost"
+                      style={{
+                        padding: '0.2rem 0.45rem',
+                        fontSize: '0.75rem',
+                        color: '#94a3b8',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                        border: '1px solid rgba(255,255,255,0.15)',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        background: 'rgba(255,255,255,0.04)',
+                      }}
+                      title="Admin: Change Match Fee"
+                    >
+                      <Pencil size={11} />
+                      <span>Edit</span>
+                    </button>
+                  </div>
+                )}
               </div>
               <div>
                 Target: <strong style={{ color: '#fff' }}>₹{rosterData?.summary?.expected_total || 0}</strong>
@@ -373,9 +474,41 @@ export default function AdminPage() {
                         <span className="badge badge-unpaid">Unpaid ⚠️</span>
                       )}
                     </td>
-                    <td>₹{player.amount || 200}</td>
-                    <td style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>
-                      {player.upi_ref || '—'}
+                    <td>₹{player.amount || currentSessionObj?.cost_per_person || 200}</td>
+                    <td>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', alignItems: 'flex-start' }}>
+                        {player.upi_ref && (
+                          <span style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>
+                            {player.upi_ref}
+                          </span>
+                        )}
+                        {player.screenshot_url && (
+                          <button
+                            type="button"
+                            className="btn btn-sm"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.35rem',
+                              padding: '0.2rem 0.5rem',
+                              fontSize: '0.75rem',
+                              background: 'rgba(59, 130, 246, 0.15)',
+                              color: '#60a5fa',
+                              border: '1px solid rgba(59, 130, 246, 0.3)',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                            }}
+                            onClick={() => setPreviewScreenshot(player.screenshot_url)}
+                            title="View Payment Screenshot Proof"
+                          >
+                            <Eye size={12} />
+                            <span>Proof Image</span>
+                          </button>
+                        )}
+                        {!player.upi_ref && !player.screenshot_url && (
+                          <span style={{ color: 'var(--text-muted)' }}>—</span>
+                        )}
+                      </div>
                     </td>
                     <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                       {player.submitted_at
@@ -475,6 +608,90 @@ export default function AdminPage() {
         currentSquadIds={rosterData?.roster?.map((r) => r.user_id) || []}
         onSaveSquad={handleSaveSquad}
       />
+
+      {/* Screenshot Lightbox Modal */}
+      {previewScreenshot && (
+        <div
+          className="modal-backdrop"
+          onClick={() => setPreviewScreenshot(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.85)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+          }}
+        >
+          <div
+            className="card"
+            style={{
+              maxWidth: '480px',
+              width: '100%',
+              padding: '1.25rem',
+              textAlign: 'center',
+              background: '#0d1520',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h4 style={{ margin: 0, fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Eye size={18} color="var(--pitch-green-light)" /> Payment Screenshot Proof
+              </h4>
+              <button
+                type="button"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  fontSize: '1.25rem',
+                  cursor: 'pointer',
+                  padding: '0.2rem 0.5rem',
+                }}
+                onClick={() => setPreviewScreenshot(null)}
+              >
+                ✕
+              </button>
+            </div>
+            <div
+              style={{
+                maxHeight: '65vh',
+                overflowY: 'auto',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border-subtle)',
+                background: '#000',
+              }}
+            >
+              <img
+                src={previewScreenshot}
+                alt="Payment Screenshot Proof"
+                style={{ width: '100%', height: 'auto', display: 'block' }}
+              />
+            </div>
+            <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+              <a
+                href={previewScreenshot}
+                target="_blank"
+                rel="noreferrer"
+                className="btn btn-sm btn-secondary"
+              >
+                Open Full Size
+              </a>
+              <button
+                type="button"
+                className="btn btn-sm btn-primary"
+                onClick={() => setPreviewScreenshot(null)}
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

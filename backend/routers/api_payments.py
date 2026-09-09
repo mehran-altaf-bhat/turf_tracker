@@ -1,6 +1,7 @@
+import uuid
 from datetime import date
 from typing import Optional
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
 from pydantic import BaseModel
 
 from backend.auth import get_current_user
@@ -12,13 +13,45 @@ router = APIRouter(prefix="/api/payments", tags=["payments"])
 
 @router.get("/config")
 def get_payment_config():
+    ensure_upcoming_sessions(1)
+    db = service_client()
+    today_str = date.today().isoformat()
+    session = (
+        db.table("turf_sessions")
+        .select("cost_per_person")
+        .gte("session_date", today_str)
+        .order("session_date", desc=False)
+        .limit(1)
+        .execute()
+        .data
+    )
+    cost = session[0]["cost_per_person"] if session else 200
     return {
         "vpa": UPI_VPA,
         "name": UPI_NAME,
-        "cost_per_person": 200,
+        "cost_per_person": cost,
         "turf_name": "Elite Football Turf",
         "turf_slot": "Friday 8:00 PM - 10:00 PM",
     }
+
+
+@router.post("/upload-screenshot")
+async def upload_screenshot(file: UploadFile = File(...), user: dict = Depends(get_current_user)):
+    content = await file.read()
+    if len(content) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File size too large (max 10MB)")
+
+    ext = file.filename.split(".")[-1] if "." in (file.filename or "") else "jpg"
+    filename = f"screenshot_{user['id'][:8]}_{uuid.uuid4().hex[:8]}.{ext}"
+
+    db = service_client()
+    try:
+        content_type = file.content_type or "image/jpeg"
+        db.storage.from_("turf_screenshots").upload(filename, content, {"content-type": content_type})
+        public_url = db.storage.from_("turf_screenshots").get_public_url(filename)
+        return {"screenshot_url": public_url}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to upload screenshot: {str(e)}")
 
 
 @router.get("/my-status")
@@ -54,6 +87,28 @@ def get_my_payment_status(user: dict = Depends(get_current_user)):
     # Current session is the nearest upcoming
     current_session = upcoming[0] if upcoming else None
     current_payment = payments_by_session.get(current_session["id"]) if current_session else None
+
+    # Get match squad for this Friday
+    current_squad = []
+    if current_session:
+        session_payments = (
+            db.table("payments")
+            .select("*")
+            .eq("session_id", current_session["id"])
+            .execute()
+            .data
+        )
+        if session_payments:
+            all_profiles = db.table("profiles").select("id, name").execute().data
+            name_map = {p["id"]: p.get("name", "Player") for p in all_profiles}
+            for sp in session_payments:
+                current_squad.append({
+                    "user_id": sp["user_id"],
+                    "name": name_map.get(sp["user_id"], "Player"),
+                    "status": sp.get("status", "unpaid"),
+                    "amount": sp.get("amount", current_session.get("cost_per_person", 200)),
+                })
+            current_squad.sort(key=lambda x: x["name"].lower())
 
     # Advance payments are payments made for upcoming sessions after the current one
     advance_sessions = upcoming[1:] if len(upcoming) > 1 else []
@@ -92,6 +147,7 @@ def get_my_payment_status(user: dict = Depends(get_current_user)):
         "current_session": current_session,
         "current_status": current_payment["status"] if current_payment else "unpaid",
         "current_payment": current_payment,
+        "current_squad": current_squad,
         "advance_credits": advance_paid_count,
         "total_paid_confirmed": total_paid_confirmed,
         "history": history,
@@ -108,7 +164,8 @@ def get_my_payment_status(user: dict = Depends(get_current_user)):
 
 class SubmitPaymentRequest(BaseModel):
     weeks_count: int = 1
-    upi_ref: str
+    upi_ref: Optional[str] = None
+    screenshot_url: Optional[str] = None
     amount: Optional[int] = None
 
 
@@ -117,9 +174,18 @@ def submit_payment(data: SubmitPaymentRequest, user: dict = Depends(get_current_
     if data.weeks_count < 1 or data.weeks_count > 12:
         raise HTTPException(status_code=400, detail="Weeks count must be between 1 and 12")
 
-    ref = data.upi_ref.strip()
-    if not ref:
-        raise HTTPException(status_code=400, detail="Please provide a valid UPI Transaction / Reference ID")
+    ref = (data.upi_ref or "").strip()
+    screenshot_url = (data.screenshot_url or "").strip()
+
+    if not ref and not screenshot_url:
+        raise HTTPException(status_code=400, detail="Please provide a UPI reference ID or upload a payment screenshot")
+
+    combined_ref = ref
+    if screenshot_url:
+        if ref:
+            combined_ref = f"{ref} [screenshot:{screenshot_url}]"
+        else:
+            combined_ref = f"Screenshot Attached [screenshot:{screenshot_url}]"
 
     # Make sure we have at least weeks_count sessions ahead
     ensure_upcoming_sessions(max(4, data.weeks_count + 1))
@@ -186,7 +252,7 @@ def submit_payment(data: SubmitPaymentRequest, user: dict = Depends(get_current_
             "user_id": user_id,
             "session_id": s["id"],
             "amount": cost,
-            "upi_ref": ref,
+            "upi_ref": combined_ref,
             "status": "pending",
         }
 
