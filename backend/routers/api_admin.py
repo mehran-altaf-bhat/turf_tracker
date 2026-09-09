@@ -461,3 +461,99 @@ def manual_pay_entry(data: ManualPayRequest, admin: dict = Depends(require_admin
         "amount_paid": data.amount,
         "balance": balance,
     }
+
+
+class CreateUserWithoutEmailRequest(BaseModel):
+    name: str
+    phone: Optional[str] = None
+    role: Optional[str] = "user"
+    add_to_current_squad: Optional[bool] = False
+    session_id: Optional[int] = None
+
+
+@router.post("/users/create")
+def create_user_without_email(data: CreateUserWithoutEmailRequest, admin: dict = Depends(require_admin)):
+    clean_name = (data.name or "").strip()
+    if not clean_name:
+        raise HTTPException(status_code=400, detail="Player name is required")
+
+    db = service_client()
+    import re, uuid
+
+    # Generate an internal safe email handle for auth
+    slug = re.sub(r"[^a-zA-Z0-9]", "_", clean_name.lower())[:15].strip("_") or "player"
+    random_hex = uuid.uuid4().hex[:6]
+    synthetic_email = f"{slug}_{random_hex}@turftracker.local"
+    temp_password = f"Turf@{uuid.uuid4().hex[:8]}"
+
+    user_meta = {
+        "name": clean_name,
+        "created_by_admin": True,
+        "is_no_email_user": True,
+    }
+    if data.phone and data.phone.strip():
+        user_meta["phone"] = data.phone.strip()
+
+    try:
+        auth_res = db.auth.admin.create_user({
+            "email": synthetic_email,
+            "password": temp_password,
+            "email_confirm": True,
+            "user_metadata": user_meta,
+        })
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to create user in auth system: {str(e)}")
+
+    user_id = auth_res.user.id
+
+    # Upsert profile to ensure correct name and role
+    try:
+        db.table("profiles").upsert({
+            "id": user_id,
+            "name": clean_name,
+            "role": data.role or "user",
+        }).execute()
+    except Exception as e:
+        db.auth.admin.delete_user(user_id)
+        raise HTTPException(status_code=500, detail=f"Failed to create profile: {str(e)}")
+
+    # Optionally add to current match session squad
+    squad_added = False
+    if data.add_to_current_squad and data.session_id:
+        try:
+            session_res = db.table("turf_sessions").select("cost_per_person").eq("id", data.session_id).single().execute()
+            cost = session_res.data.get("cost_per_person", 200) if session_res.data else 200
+            db.table("payments").insert({
+                "user_id": user_id,
+                "session_id": data.session_id,
+                "amount": cost,
+                "status": "unpaid",
+            }).execute()
+            squad_added = True
+        except Exception as e:
+            print("Failed to auto-add to squad:", e)
+
+    return {
+        "message": f"Player '{clean_name}' added successfully without email!" + (" Added to match squad!" if squad_added else ""),
+        "user": {
+            "id": user_id,
+            "name": clean_name,
+            "role": data.role or "user",
+            "email": synthetic_email,
+            "phone": data.phone.strip() if data.phone else None,
+            "squad_added": squad_added,
+        }
+    }
+
+
+@router.delete("/users/{user_id}")
+def delete_user(user_id: str, admin: dict = Depends(require_admin)):
+    if user_id == admin["id"]:
+        raise HTTPException(status_code=400, detail="Cannot delete your own admin account")
+    db = service_client()
+    try:
+        db.auth.admin.delete_user(user_id)
+        return {"message": "Player removed successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+

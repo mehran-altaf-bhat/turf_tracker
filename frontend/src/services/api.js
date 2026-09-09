@@ -189,4 +189,18 @@ export const api = {
       method: 'POST',
     });
   },
+
+  createPlayerWithoutEmail: async ({ name, phone, role, add_to_current_squad, session_id }) => {
+    return request('/admin/users/create', {
+      method: 'POST',
+      body: JSON.stringify({ name, phone, role, add_to_current_squad, session_id }),
+    });
+  },
+
+  deleteUser: async (userId) => {
+    return request(`/admin/users/${userId}`, {
+      method: 'DELETE',
+    });
+  },
 };
+

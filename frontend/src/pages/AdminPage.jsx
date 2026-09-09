@@ -17,7 +17,10 @@ import {
   ArrowRight,
   UserX,
   Pencil,
-  Eye
+  Eye,
+  UserPlus,
+  Phone,
+  X,
 } from 'lucide-react';
 
 export default function AdminPage() {
@@ -37,12 +40,51 @@ export default function AdminPage() {
   const [savingMatchId, setSavingMatchId] = useState(null);
   const [previewScreenshot, setPreviewScreenshot] = useState(null);
 
+  // Add player without email modal
+  const [addUserModalOpen, setAddUserModalOpen] = useState(false);
+  const [newPlayerName, setNewPlayerName] = useState('');
+  const [newPlayerPhone, setNewPlayerPhone] = useState('');
+  const [newPlayerRole, setNewPlayerRole] = useState('user');
+  const [addToSquadImmediately, setAddToSquadImmediately] = useState(true);
+  const [creatingUser, setCreatingUser] = useState(false);
+  const [addUserError, setAddUserError] = useState(null);
+
   // Edit player paid amount & balance
   const [editPaymentModalOpen, setEditPaymentModalOpen] = useState(false);
   const [targetPlayer, setTargetPlayer] = useState(null);
   const [amountPaidInput, setAmountPaidInput] = useState('');
   const [paymentNoteInput, setPaymentNoteInput] = useState('');
   const [savingPayment, setSavingPayment] = useState(false);
+
+  const handleCreateUser = async (e) => {
+    e.preventDefault();
+    const cleanName = newPlayerName.trim();
+    if (!cleanName) {
+      setAddUserError('Please enter player name');
+      return;
+    }
+    setCreatingUser(true);
+    setAddUserError(null);
+    try {
+      const res = await api.createPlayerWithoutEmail({
+        name: cleanName,
+        phone: newPlayerPhone.trim() || undefined,
+        role: newPlayerRole,
+        add_to_current_squad: addToSquadImmediately,
+        session_id: selectedSessionId,
+      });
+      setToast(res.message);
+      setTimeout(() => setToast(null), 4000);
+      setNewPlayerName('');
+      setNewPlayerPhone('');
+      setAddUserModalOpen(false);
+      await Promise.all([loadOverview(), loadRoster(selectedSessionId)]);
+    } catch (err) {
+      setAddUserError(err.message || 'Failed to add player');
+    } finally {
+      setCreatingUser(false);
+    }
+  };
 
   const openEditPaymentModal = (player) => {
     setTargetPlayer(player);
@@ -295,8 +337,31 @@ export default function AdminPage() {
           <h2 style={{ fontSize: '1.75rem', color: 'var(--text-primary)' }}>Turf Squad & Payment Management</h2>
         </div>
 
-        {/* Squad & WhatsApp Action Buttons */}
+        {/* Action Buttons */}
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className="btn"
+            style={{
+              background: '#2563eb',
+              color: '#ffffff',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              fontWeight: 600,
+            }}
+            onClick={() => {
+              setAddUserError(null);
+              setNewPlayerName('');
+              setNewPlayerPhone('');
+              setAddToSquadImmediately(true);
+              setAddUserModalOpen(true);
+            }}
+          >
+            <UserPlus size={18} />
+            <span>+ Add Player (No Email)</span>
+          </button>
+
           <button
             className="btn btn-primary"
             onClick={() => setSquadModalOpen(true)}
@@ -332,8 +397,22 @@ export default function AdminPage() {
           </div>
         </div>
 
-        <div className="stat-box">
-          <div className="stat-label">Registered Players in Group</div>
+        <div
+          className="stat-box"
+          style={{ cursor: 'pointer', transition: 'all 0.15s ease' }}
+          onClick={() => {
+            setAddUserError(null);
+            setNewPlayerName('');
+            setNewPlayerPhone('');
+            setAddToSquadImmediately(true);
+            setAddUserModalOpen(true);
+          }}
+          title="Click to add a player without email"
+        >
+          <div className="stat-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>Registered Players</span>
+            <span style={{ fontSize: '0.72rem', color: '#2563eb', fontWeight: 700 }}>+ Add New</span>
+          </div>
           <div className="stat-val" style={{ color: '#2563eb' }}>
             {stats.total_players_registered || 0}
           </div>
@@ -748,6 +827,10 @@ export default function AdminPage() {
         allPlayers={rosterData?.all_registered_players || []}
         currentSquadIds={rosterData?.roster?.map((r) => r.user_id) || []}
         onSaveSquad={handleSaveSquad}
+        onPlayerCreated={() => {
+          loadOverview();
+          loadRoster(selectedSessionId);
+        }}
       />
 
       {/* Screenshot Lightbox Modal */}
@@ -1083,6 +1166,140 @@ export default function AdminPage() {
                   disabled={savingPayment}
                 >
                   {savingPayment ? 'Saving...' : 'Save Payment & Balance'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Player Without Email Modal */}
+      {addUserModalOpen && (
+        <div className="modal-backdrop" onClick={() => setAddUserModalOpen(false)}>
+          <div
+            className="modal-content"
+            style={{ maxWidth: '480px', width: '95%' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header" style={{ marginBottom: '1rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.45rem', color: '#0f172a' }}>
+                  <UserPlus size={20} color="#2563eb" />
+                  <span>Add Player (Without Email)</span>
+                </h3>
+                <p style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '0.2rem' }}>
+                  Quickly add players directly to your turf group without requiring an email address.
+                </p>
+              </div>
+              <button className="btn-close" onClick={() => setAddUserModalOpen(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            {addUserError && (
+              <div style={{
+                background: '#fff1f2',
+                border: '1px solid #fecdd3',
+                borderRadius: '8px',
+                padding: '0.75rem',
+                color: '#be123c',
+                fontSize: '0.85rem',
+                marginBottom: '1rem',
+              }}>
+                {addUserError}
+              </div>
+            )}
+
+            <form onSubmit={handleCreateUser}>
+              <div style={{ marginBottom: '1rem' }}>
+                <label className="form-label" style={{ fontSize: '0.85rem', fontWeight: 700, color: '#334155' }}>
+                  Player Full Name *
+                </label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g. Tariq Ahmad, Zahid Khan"
+                  value={newPlayerName}
+                  onChange={(e) => setNewPlayerName(e.target.value)}
+                  required
+                  autoFocus
+                />
+              </div>
+
+              <div style={{ marginBottom: '1rem' }}>
+                <label className="form-label" style={{ fontSize: '0.85rem', fontWeight: 700, color: '#334155' }}>
+                  Phone / WhatsApp Number (Optional)
+                </label>
+                <input
+                  type="tel"
+                  className="form-input"
+                  placeholder="e.g. 9876543210"
+                  value={newPlayerPhone}
+                  onChange={(e) => setNewPlayerPhone(e.target.value)}
+                />
+              </div>
+
+              <div style={{ marginBottom: '1.25rem' }}>
+                <label className="form-label" style={{ fontSize: '0.85rem', fontWeight: 700, color: '#334155' }}>
+                  Role
+                </label>
+                <select
+                  className="form-input"
+                  value={newPlayerRole}
+                  onChange={(e) => setNewPlayerRole(e.target.value)}
+                >
+                  <option value="user">Regular Player</option>
+                  <option value="admin">Turf Admin</option>
+                </select>
+              </div>
+
+              <div
+                style={{
+                  background: '#f8fafc',
+                  border: '1px solid #eaecf0',
+                  borderRadius: '8px',
+                  padding: '0.75rem',
+                  marginBottom: '1.5rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.65rem',
+                  cursor: 'pointer',
+                }}
+                onClick={() => setAddToSquadImmediately(!addToSquadImmediately)}
+              >
+                <input
+                  type="checkbox"
+                  id="add-squad-check"
+                  checked={addToSquadImmediately}
+                  onChange={(e) => setAddToSquadImmediately(e.target.checked)}
+                  style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#2563eb' }}
+                />
+                <label htmlFor="add-squad-check" style={{ fontSize: '0.84rem', color: '#1e293b', fontWeight: 600, cursor: 'pointer', margin: 0 }}>
+                  Add to current match squad ({currentSessionObj?.session_date ? `Friday, ${currentSessionObj.session_date}` : 'Selected Session'})
+                </label>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setAddUserModalOpen(false)}
+                  disabled={creatingUser}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn"
+                  disabled={creatingUser}
+                  style={{
+                    background: '#2563eb',
+                    color: '#ffffff',
+                    fontWeight: 600,
+                    minWidth: '130px',
+                  }}
+                >
+                  {creatingUser ? 'Adding...' : '+ Add Player'}
                 </button>
               </div>
             </form>

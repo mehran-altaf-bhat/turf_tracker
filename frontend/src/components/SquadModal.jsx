@@ -1,18 +1,30 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Check, Search, Users, Shield, UserCheck, AlertCircle } from 'lucide-react';
+import { api } from '../services/api';
+import { X, Check, Search, Users, Shield, UserCheck, AlertCircle, UserPlus } from 'lucide-react';
 
-export default function SquadModal({ isOpen, onClose, sessionDate, allPlayers = [], currentSquadIds = [], onSaveSquad }) {
+export default function SquadModal({
+  isOpen,
+  onClose,
+  sessionDate,
+  allPlayers = [],
+  currentSquadIds = [],
+  onSaveSquad,
+  onPlayerCreated,
+}) {
   const dialogRef = useRef(null);
   const [selectedIds, setSelectedIds] = useState(new Set());
+  const [localPlayers, setLocalPlayers] = useState([]);
   const [search, setSearch] = useState('');
   const [saving, setSaving] = useState(false);
+  const [quickAdding, setQuickAdding] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     setSelectedIds(new Set(currentSquadIds));
+    setLocalPlayers(allPlayers);
     setSearch('');
     setError(null);
-  }, [currentSquadIds, isOpen]);
+  }, [currentSquadIds, allPlayers, isOpen]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -72,8 +84,35 @@ export default function SquadModal({ isOpen, onClose, sessionDate, allPlayers = 
     }
   };
 
-  const filteredPlayers = allPlayers.filter((p) =>
-    p.name.toLowerCase().includes(search.toLowerCase())
+  const handleQuickAddPlayer = async (nameToAdd) => {
+    const clean = (nameToAdd || search).trim();
+    if (!clean) return;
+    setQuickAdding(true);
+    setError(null);
+    try {
+      const res = await api.createPlayerWithoutEmail({ name: clean });
+      if (res.user) {
+        const newP = {
+          id: res.user.id,
+          name: res.user.name,
+          role: res.user.role || 'user',
+        };
+        setLocalPlayers((prev) => [...prev, newP]);
+        setSelectedIds((prev) => new Set([...prev, res.user.id]));
+        setSearch('');
+        if (onPlayerCreated) {
+          onPlayerCreated(newP);
+        }
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to add player');
+    } finally {
+      setQuickAdding(false);
+    }
+  };
+
+  const filteredPlayers = localPlayers.filter((p) =>
+    (p.name || '').toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -133,7 +172,7 @@ export default function SquadModal({ isOpen, onClose, sessionDate, allPlayers = 
             <strong style={{ fontSize: '1.1rem', color: 'var(--pitch-green-dark)' }}>
               {selectedIds.size}
             </strong>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}> / {allPlayers.length} registered players</span>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}> / {localPlayers.length} registered players</span>
           </div>
 
           <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -154,17 +193,32 @@ export default function SquadModal({ isOpen, onClose, sessionDate, allPlayers = 
           </div>
         </div>
 
-        {/* Search Bar */}
-        <div style={{ position: 'relative', marginBottom: '1rem' }}>
-          <Search size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
-          <input
-            type="text"
-            className="form-input"
-            style={{ paddingLeft: '2.5rem', fontSize: '0.9rem' }}
-            placeholder="Search players by name..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+        {/* Search Bar & Quick Add Player */}
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+          <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
+            <Search size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
+            <input
+              type="text"
+              className="form-input"
+              style={{ paddingLeft: '2.5rem', fontSize: '0.9rem' }}
+              placeholder="Search or type player name..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          {search.trim() && !localPlayers.some((p) => (p.name || '').toLowerCase() === search.trim().toLowerCase()) && (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', whiteSpace: 'nowrap', fontSize: '0.82rem', borderColor: '#93c5fd', color: '#1d4ed8', background: '#eff6ff' }}
+              onClick={() => handleQuickAddPlayer(search.trim())}
+              disabled={quickAdding}
+              title={`Register ${search.trim()} without email`}
+            >
+              <UserPlus size={15} color="#2563eb" />
+              <span>{quickAdding ? 'Adding...' : `+ Add "${search.trim()}"`}</span>
+            </button>
+          )}
         </div>
 
         {/* Player Checkbox List */}
@@ -178,8 +232,20 @@ export default function SquadModal({ isOpen, onClose, sessionDate, allPlayers = 
           marginBottom: '1.5rem',
         }}>
           {filteredPlayers.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-              No matching players found.
+            <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--text-muted)' }}>
+              <p style={{ fontSize: '0.9rem', marginBottom: '0.75rem' }}>No players found matching "{search}"</p>
+              {search.trim() && (
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  style={{ background: '#2563eb', color: '#ffffff', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                  onClick={() => handleQuickAddPlayer(search.trim())}
+                  disabled={quickAdding}
+                >
+                  <UserPlus size={14} />
+                  <span>{quickAdding ? 'Adding...' : `+ Add "${search.trim()}" (No Email)`}</span>
+                </button>
+              )}
             </div>
           ) : (
             filteredPlayers.map((player) => {
