@@ -21,6 +21,7 @@ import {
   UserPlus,
   Phone,
   X,
+  Trash2,
 } from 'lucide-react';
 
 export default function AdminPage() {
@@ -49,12 +50,47 @@ export default function AdminPage() {
   const [creatingUser, setCreatingUser] = useState(false);
   const [addUserError, setAddUserError] = useState(null);
 
+  // Manage Players Modal
+  const [managePlayersModalOpen, setManagePlayersModalOpen] = useState(false);
+  const [playerSearchQuery, setPlayerSearchQuery] = useState('');
+  const [deletingUserId, setDeletingUserId] = useState(null);
+
   // Edit player paid amount & balance
   const [editPaymentModalOpen, setEditPaymentModalOpen] = useState(false);
   const [targetPlayer, setTargetPlayer] = useState(null);
   const [amountPaidInput, setAmountPaidInput] = useState('');
   const [paymentNoteInput, setPaymentNoteInput] = useState('');
   const [savingPayment, setSavingPayment] = useState(false);
+
+  const handleDeleteUser = async (userId, playerName) => {
+    if (!window.confirm(`Are you sure you want to permanently remove "${playerName}" and their data from the turf tracker?`)) return;
+    setDeletingUserId(userId);
+    try {
+      const res = await api.deleteUser(userId);
+      setToast(res.message || `Removed "${playerName}"!`);
+      setTimeout(() => setToast(null), 4000);
+      await Promise.all([loadOverview(), loadRoster(selectedSessionId)]);
+    } catch (err) {
+      alert(err.message || 'Failed to remove player');
+    } finally {
+      setDeletingUserId(null);
+    }
+  };
+
+  const handleClearAllData = async () => {
+    const confirmation = window.prompt(
+      'Type CLEAR to confirm clearing ALL match payment and attendance records.\nThis will reset all session balances to a clean slate:'
+    );
+    if (confirmation !== 'CLEAR') return;
+    try {
+      const res = await api.clearAllData();
+      setToast(res.message);
+      setTimeout(() => setToast(null), 5000);
+      await Promise.all([loadOverview(), loadRoster(selectedSessionId)]);
+    } catch (err) {
+      alert(err.message || 'Failed to clear data');
+    }
+  };
 
   const handleCreateUser = async (e) => {
     e.preventDefault();
@@ -363,6 +399,20 @@ export default function AdminPage() {
           </button>
 
           <button
+            type="button"
+            className="btn btn-secondary"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', fontWeight: 600 }}
+            onClick={() => {
+              setPlayerSearchQuery('');
+              setManagePlayersModalOpen(true);
+            }}
+            title="View and manage all registered players"
+          >
+            <Users size={17} color="#2563eb" />
+            <span>Manage Players ({overview?.all_profiles?.length || 0})</span>
+          </button>
+
+          <button
             className="btn btn-primary"
             onClick={() => setSquadModalOpen(true)}
           >
@@ -377,6 +427,26 @@ export default function AdminPage() {
           >
             {copied ? <Check size={18} /> : <Share2 size={18} />}
             <span>{copied ? 'Copied to Clipboard!' : 'Copy WhatsApp Match List'}</span>
+          </button>
+
+          <button
+            type="button"
+            className="btn btn-sm"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              fontWeight: 600,
+              background: '#fee2e2',
+              color: '#dc2626',
+              border: '1px solid #fecdd3',
+              padding: '0.5rem 0.85rem',
+            }}
+            onClick={handleClearAllData}
+            title="Reset and clear all match payments data"
+          >
+            <Trash2 size={15} />
+            <span>Clear All Data</span>
           </button>
         </div>
       </div>
@@ -401,17 +471,14 @@ export default function AdminPage() {
           className="stat-box"
           style={{ cursor: 'pointer', transition: 'all 0.15s ease' }}
           onClick={() => {
-            setAddUserError(null);
-            setNewPlayerName('');
-            setNewPlayerPhone('');
-            setAddToSquadImmediately(true);
-            setAddUserModalOpen(true);
+            setPlayerSearchQuery('');
+            setManagePlayersModalOpen(true);
           }}
-          title="Click to add a player without email"
+          title="Click to view and manage registered players"
         >
           <div className="stat-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span>Registered Players</span>
-            <span style={{ fontSize: '0.72rem', color: '#2563eb', fontWeight: 700 }}>+ Add New</span>
+            <span style={{ fontSize: '0.72rem', color: '#2563eb', fontWeight: 700 }}>Manage 👥</span>
           </div>
           <div className="stat-val" style={{ color: '#2563eb' }}>
             {stats.total_players_registered || 0}
@@ -1303,6 +1370,163 @@ export default function AdminPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Manage Players Modal */}
+      {managePlayersModalOpen && (
+        <div className="modal-backdrop" onClick={() => setManagePlayersModalOpen(false)}>
+          <div
+            className="modal-content"
+            style={{ maxWidth: '540px', width: '95%', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header" style={{ marginBottom: '1rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.45rem', color: '#0f172a' }}>
+                  <Users size={20} color="#2563eb" />
+                  <span>Registered Turf Players</span>
+                </h3>
+                <p style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '0.2rem' }}>
+                  Manage group members or permanently remove users from the turf system.
+                </p>
+              </div>
+              <button className="btn-close" onClick={() => setManagePlayersModalOpen(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Top action bar inside modal */}
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+              <input
+                type="text"
+                className="form-input"
+                style={{ flex: 1, minWidth: '180px', fontSize: '0.85rem' }}
+                placeholder="Search registered players..."
+                value={playerSearchQuery}
+                onChange={(e) => setPlayerSearchQuery(e.target.value)}
+              />
+              <button
+                type="button"
+                className="btn btn-sm btn-primary"
+                style={{ background: '#2563eb', color: '#ffffff', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                onClick={() => {
+                  setManagePlayersModalOpen(false);
+                  setAddUserModalOpen(true);
+                }}
+              >
+                <UserPlus size={14} />
+                <span>+ Add New</span>
+              </button>
+            </div>
+
+            {/* Players List */}
+            <div style={{
+              flex: 1,
+              overflowY: 'auto',
+              border: '1px solid #eaecf0',
+              borderRadius: '10px',
+              padding: '0.5rem',
+              background: '#f8fafc',
+            }}>
+              {(() => {
+                const list = (overview?.all_profiles || []).filter((p) =>
+                  (p.name || '').toLowerCase().includes(playerSearchQuery.toLowerCase())
+                );
+                if (list.length === 0) {
+                  return (
+                    <div style={{ textAlign: 'center', padding: '2rem', color: '#64748b', fontSize: '0.85rem' }}>
+                      No players found matching "{playerSearchQuery}"
+                    </div>
+                  );
+                }
+                return list.map((p) => {
+                  const isAdmin = p.role === 'admin';
+                  const isDeleting = deletingUserId === p.id;
+                  return (
+                    <div
+                      key={p.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '0.75rem 0.85rem',
+                        background: '#ffffff',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '8px',
+                        marginBottom: '0.45rem',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                        <div style={{
+                          width: '34px',
+                          height: '34px',
+                          borderRadius: '50%',
+                          background: isAdmin ? '#fef3c7' : '#ecfdf5',
+                          color: isAdmin ? '#b45309' : '#059669',
+                          fontWeight: 700,
+                          fontSize: '0.85rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}>
+                          {(p.name || 'P').charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.9rem' }}>
+                            {p.name}
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                            {isAdmin ? '🛡️ Turf Administrator' : '⚽ Regular Player'}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        {isAdmin ? (
+                          <span style={{ fontSize: '0.72rem', color: '#b45309', background: '#fef3c7', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 600 }}>
+                            Admin
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn btn-sm"
+                            style={{
+                              background: '#fee2e2',
+                              color: '#dc2626',
+                              border: '1px solid #fecdd3',
+                              padding: '0.35rem 0.65rem',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.35rem',
+                              fontSize: '0.78rem',
+                              fontWeight: 600,
+                            }}
+                            onClick={() => handleDeleteUser(p.id, p.name)}
+                            disabled={isDeleting}
+                            title={`Permanently delete ${p.name}`}
+                          >
+                            <Trash2 size={13} />
+                            <span>{isDeleting ? 'Removing...' : 'Remove User'}</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setManagePlayersModalOpen(false)}
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

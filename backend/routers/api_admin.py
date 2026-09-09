@@ -552,8 +552,53 @@ def delete_user(user_id: str, admin: dict = Depends(require_admin)):
         raise HTTPException(status_code=400, detail="Cannot delete your own admin account")
     db = service_client()
     try:
-        db.auth.admin.delete_user(user_id)
-        return {"message": "Player removed successfully"}
+        # 1. Delete associated payments
+        db.table("payments").delete().eq("user_id", user_id).execute()
+        # 2. Delete profile
+        db.table("profiles").delete().eq("id", user_id).execute()
+        # 3. Delete from Supabase auth
+        try:
+            db.auth.admin.delete_user(user_id)
+        except Exception as auth_err:
+            print("Auth delete warning:", auth_err)
+        return {"message": "User and all associated records removed successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+class RemoveUserByNameRequest(BaseModel):
+    name: str
+
+
+@router.post("/users/remove-by-name")
+def remove_user_by_name(data: RemoveUserByNameRequest, admin: dict = Depends(require_admin)):
+    clean_name = data.name.strip().lower()
+    db = service_client()
+    profiles = db.table("profiles").select("*").execute().data
+    target = next((p for p in profiles if p.get("name", "").strip().lower() == clean_name), None)
+    if not target:
+        raise HTTPException(status_code=404, detail=f"No user found matching '{data.name}'")
+    if target["id"] == admin["id"]:
+        raise HTTPException(status_code=400, detail="Cannot delete your own admin account")
+    return delete_user(target["id"], admin)
+
+
+@router.post("/clear-all-data")
+def clear_all_payments_data(admin: dict = Depends(require_admin)):
+    db = service_client()
+    try:
+        # Clear all payments
+        db.table("payments").delete().neq("id", 0).execute()
+        # Clean screenshots
+        try:
+            files = db.storage.from_("turf_screenshots").list()
+            if files:
+                filenames = [f["name"] for f in files]
+                db.storage.from_("turf_screenshots").remove(filenames)
+        except Exception:
+            pass
+        return {"message": "All payment and match roster records cleared successfully! Fresh clean slate."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to clear data: {str(e)}")
+
 

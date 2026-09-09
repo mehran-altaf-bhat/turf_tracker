@@ -202,5 +202,18 @@ export const api = {
       method: 'DELETE',
     });
   },
+
+  removeUserByName: async (name) => {
+    return request('/admin/users/remove-by-name', {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    });
+  },
+
+  clearAllData: async () => {
+    return request('/admin/clear-all-data', {
+      method: 'POST',
+    });
+  },
 };
 
