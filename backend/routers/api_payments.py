@@ -103,8 +103,11 @@ def get_my_payment_status(user: dict = Depends(get_current_user)):
                 "screenshot_url": cur_screenshot,
             }
 
-    # Get match squad for this Friday
-    current_squad = []
+    # Get match squad for this Friday (Playing vs Not Playing)
+    playing_squad = []
+    not_playing_squad = []
+    is_in_squad = False
+
     if current_session:
         session_payments = (
             db.table("payments")
@@ -113,17 +116,31 @@ def get_my_payment_status(user: dict = Depends(get_current_user)):
             .execute()
             .data
         )
+        all_profiles = db.table("profiles").select("id, name, role").execute().data
+        squad_user_ids = set()
+
         if session_payments:
-            all_profiles = db.table("profiles").select("id, name").execute().data
             name_map = {p["id"]: p.get("name", "Player") for p in all_profiles}
             for sp in session_payments:
-                current_squad.append({
+                squad_user_ids.add(sp["user_id"])
+                playing_squad.append({
                     "user_id": sp["user_id"],
                     "name": name_map.get(sp["user_id"], "Player"),
                     "status": sp.get("status", "unpaid"),
                     "amount": sp.get("amount", current_session.get("cost_per_person", 200)),
                 })
-            current_squad.sort(key=lambda x: x["name"].lower())
+            playing_squad.sort(key=lambda x: x["name"].lower())
+
+        is_in_squad = user["id"] in squad_user_ids
+
+        for p in all_profiles:
+            if p["id"] not in squad_user_ids:
+                not_playing_squad.append({
+                    "user_id": p["id"],
+                    "name": p.get("name", "Player"),
+                    "role": p.get("role", "user"),
+                })
+        not_playing_squad.sort(key=lambda x: x["name"].lower())
 
     # Advance payments are payments made for upcoming sessions after the current one
     advance_sessions = upcoming[1:] if len(upcoming) > 1 else []
@@ -138,12 +155,12 @@ def get_my_payment_status(user: dict = Depends(get_current_user)):
         p["amount"] for p in payments if p.get("status") == "confirmed"
     )
 
-    # Combined history
+    # Combined history: ONLY payments that are confirmed (done) or rejected
     import re
     history = []
     for s in sessions:
         p = payments_by_session.get(s["id"])
-        if p:
+        if p and p.get("status") in ["confirmed", "rejected"]:
             raw_ref = p.get("upi_ref") or ""
             screenshot_url = None
             clean_ref = raw_ref
@@ -170,7 +187,7 @@ def get_my_payment_status(user: dict = Depends(get_current_user)):
                 "amount": p["amount"],
                 "upi_ref": display_ref,
                 "screenshot_url": screenshot_url,
-                "status": p.get("status", "pending"),
+                "status": p.get("status"),
                 "submitted_at": p.get("submitted_at"),
                 "confirmed_at": p.get("confirmed_at"),
             })
@@ -181,7 +198,10 @@ def get_my_payment_status(user: dict = Depends(get_current_user)):
         "current_session": current_session,
         "current_status": current_payment["status"] if current_payment else "unpaid",
         "current_payment": current_payment,
-        "current_squad": current_squad,
+        "current_squad": playing_squad,
+        "playing_squad": playing_squad,
+        "not_playing_squad": not_playing_squad,
+        "is_in_squad": is_in_squad,
         "advance_credits": advance_paid_count,
         "total_paid_confirmed": total_paid_confirmed,
         "history": history,
@@ -309,3 +329,51 @@ def submit_payment(data: SubmitPaymentRequest, user: dict = Depends(get_current_
         "total_amount": total_amount,
         "upi_ref": ref,
     }
+
+
+class RsvpRequest(BaseModel):
+    attending: bool  # True = Playing, False = Not Playing
+
+
+@router.post("/session/{session_id}/rsvp")
+def rsvp_session(session_id: int, data: RsvpRequest, user: dict = Depends(get_current_user)):
+    db = service_client()
+    user_id = user["id"]
+
+    session_res = db.table("turf_sessions").select("*").eq("id", session_id).single().execute()
+    if not session_res.data:
+        raise HTTPException(status_code=404, detail="Session not found")
+    session = session_res.data
+    cost = session.get("cost_per_person", 200)
+
+    existing = db.table("payments").select("*").eq("session_id", session_id).eq("user_id", user_id).execute().data
+
+    if not data.attending:
+        # User is opting out / not playing
+        if existing:
+            pay = existing[0]
+            if pay.get("status") == "confirmed":
+                raise HTTPException(
+                    status_code=400,
+                    detail="Your payment for this match is already confirmed. Contact admin if you cannot attend."
+                )
+            # Delete pending or unpaid record, automatically removing player from squad
+            db.table("payments").delete().eq("id", pay["id"]).execute()
+        return {
+            "message": "You have marked yourself as NOT PLAYING. You have been removed from the match squad.",
+            "attending": False,
+        }
+    else:
+        # User is opting in / playing
+        if not existing:
+            db.table("payments").insert({
+                "user_id": user_id,
+                "session_id": session_id,
+                "amount": cost,
+                "status": "unpaid",
+            }).execute()
+        return {
+            "message": "You are now added to the Playing squad for this match!",
+            "attending": True,
+        }
+

@@ -122,6 +122,13 @@ export const api = {
     });
   },
 
+  rsvpSession: async (sessionId, attending) => {
+    return request(`/payments/session/${sessionId}/rsvp`, {
+      method: 'POST',
+      body: JSON.stringify({ attending }),
+    });
+  },
+
   updateSessionFee: async (sessionId, costPerPerson) => {
     return request(`/sessions/${sessionId}`, {
       method: 'PATCH',

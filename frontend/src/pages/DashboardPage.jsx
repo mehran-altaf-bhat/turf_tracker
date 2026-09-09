@@ -10,18 +10,27 @@ import {
   AlertCircle,
   CreditCard,
   History,
-  TrendingUp,
+  Users,
+  UserCheck,
+  UserX,
+  Camera,
+  ShieldAlert,
+  ArrowRight,
   Sparkles,
-  ArrowUpRight,
-  Users
+  ExternalLink,
+  ChevronRight,
+  ShieldCheck,
+  RefreshCw,
 } from 'lucide-react';
 
-export default function DashboardPage({ user }) {
+export default function DashboardPage({ user, activeTab = 'dashboard', setActiveTab }) {
   const [data, setData] = useState(null);
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [toast, setToast] = useState(null);
+  const [squadTab, setSquadTab] = useState('playing'); // 'playing' | 'not_playing'
+  const [rsvpLoading, setRsvpLoading] = useState(false);
 
   const loadData = async () => {
     try {
@@ -33,7 +42,7 @@ export default function DashboardPage({ user }) {
       setData(statusRes);
       setConfig(configRes);
     } catch (err) {
-      console.error(err);
+      console.error('Failed to load dashboard data:', err);
     } finally {
       setLoading(false);
     }
@@ -50,357 +59,928 @@ export default function DashboardPage({ user }) {
     await loadData();
   };
 
+  const handleRsvp = async (attending) => {
+    if (!currentSession?.id) return;
+    try {
+      setRsvpLoading(true);
+      const res = await api.rsvpSession(currentSession.id, attending);
+      setToast(res.message);
+      setTimeout(() => setToast(null), 5000);
+      await loadData();
+    } catch (err) {
+      alert(err.message || 'Failed to update RSVP');
+    } finally {
+      setRsvpLoading(false);
+    }
+  };
+
   if (loading && !data) {
     return (
-      <div style={{ textAlign: 'center', padding: '4rem 1rem' }}>
-        <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>⚽</div>
-        <p style={{ color: 'var(--text-secondary)' }}>Loading your turf schedule and payment status...</p>
+      <div style={{ textAlign: 'center', padding: '5rem 1rem' }}>
+        <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>⚽</div>
+        <p style={{ color: '#64748b', fontWeight: 500 }}>Loading Elite Turf Tracker & Squad Lineup...</p>
       </div>
     );
   }
 
   const currentSession = data?.current_session;
   const currentStatus = data?.current_status || 'unpaid';
-  const currentSquad = data?.current_squad || [];
+  const playingSquad = data?.playing_squad || data?.current_squad || [];
+  const notPlayingSquad = data?.not_playing_squad || [];
+  const isInSquad = data?.is_in_squad ?? false;
   const advanceCredits = data?.advance_credits || 0;
   const totalPaid = data?.total_paid_confirmed || 0;
-  const history = data?.history || [];
+  // Strictly filter payment history to ONLY confirmed (done) or rejected
+  const history = (data?.history || []).filter(
+    (h) => h.status === 'confirmed' || h.status === 'rejected'
+  );
   const upcomingSessions = data?.upcoming_sessions || [];
 
   return (
     <div>
-      {/* Toast message */}
+      {/* Toast Notification */}
       {toast && (
         <div className="toast-bar">
-          <CheckCircle2 size={18} color="var(--pitch-green-light)" />
-          <span>{toast}</span>
+          <CheckCircle2 size={18} color="#059669" />
+          <span style={{ fontWeight: 600, fontSize: '0.88rem' }}>{toast}</span>
         </div>
       )}
 
-      {/* Hero Match Banner */}
-      <div className="hero-card">
-        <div style={{ position: 'relative', zIndex: 2 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
+      {/* Top Banner Alert (Matching Clokin alert banner style) */}
+      {!isInSquad ? (
+        <div style={{
+          background: '#fffbeb',
+          border: '1px solid #fde68a',
+          borderRadius: '12px',
+          padding: '0.85rem 1.25rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '1.5rem',
+          gap: '1rem',
+          flexWrap: 'wrap',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <AlertCircle size={20} color="#d97706" />
             <div>
-              <span className="badge" style={{ background: '#ecfdf5', color: '#065f46', border: '1px solid #a7f3d0', marginBottom: '0.6rem' }}>
-                ⚽ Next Match Scheduled
-              </span>
-              <h2 style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                {currentSession ? `Friday, ${currentSession.session_date}` : 'Upcoming Friday Match'}
-              </h2>
+              <div style={{ fontWeight: 700, color: '#92400e', fontSize: '0.9rem' }}>
+                You are currently marked as NOT PLAYING for this Friday match
+              </div>
+              <div style={{ color: '#b45309', fontSize: '0.78rem' }}>
+                You have been removed from the match squad and will not be asked to pay.
+              </div>
             </div>
-
-            {/* Status Badge */}
+          </div>
+          <button
+            type="button"
+            className="btn btn-sm btn-primary"
+            style={{ padding: '0.45rem 1rem', fontSize: '0.82rem' }}
+            disabled={rsvpLoading}
+            onClick={() => handleRsvp(true)}
+          >
+            <UserCheck size={15} />
+            <span>Join Match Squad</span>
+          </button>
+        </div>
+      ) : currentStatus === 'rejected' ? (
+        <div style={{
+          background: '#fef2f2',
+          border: '1px solid #fecdd3',
+          borderRadius: '12px',
+          padding: '0.85rem 1.25rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '1.5rem',
+          gap: '1rem',
+          flexWrap: 'wrap',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <AlertCircle size={20} color="#dc2626" />
             <div>
-              {currentStatus === 'confirmed' && (
-                <span className="badge badge-paid" style={{ fontSize: '0.85rem', padding: '0.45rem 0.95rem' }}>
-                  <CheckCircle2 size={15} /> Paid & Confirmed
-                </span>
-              )}
-              {currentStatus === 'pending' && (
-                <span className="badge badge-pending" style={{ fontSize: '0.85rem', padding: '0.45rem 0.95rem' }}>
-                  <Clock3 size={15} /> Verification Pending
-                </span>
-              )}
-              {currentStatus === 'rejected' && (
-                <span className="badge badge-unpaid" style={{ fontSize: '0.85rem', padding: '0.45rem 0.95rem' }}>
-                  <AlertCircle size={15} /> Rejected — Please Pay Again
-                </span>
-              )}
-              {currentStatus === 'unpaid' && (
-                <span className="badge badge-unpaid" style={{ fontSize: '0.85rem', padding: '0.45rem 0.95rem' }}>
-                  <AlertCircle size={15} /> Payment Due
-                </span>
-              )}
+              <div style={{ fontWeight: 700, color: '#991b1b', fontSize: '0.9rem' }}>
+                Payment Rejected by Admin
+              </div>
+              <div style={{ color: '#b91c1c', fontSize: '0.78rem' }}>
+                Please click "Pay Again" to submit a valid UPI Reference number or screenshot.
+              </div>
             </div>
           </div>
-
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', marginBottom: '1.75rem', color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Clock size={17} color="var(--pitch-green)" />
-              <strong style={{ color: 'var(--text-primary)' }}>8:00 PM – 10:00 PM</strong> (2 Hours)
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <MapPin size={17} color="var(--pitch-green)" />
-              <span>Elite Football Turf</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <CreditCard size={17} color="var(--pitch-green)" />
-              <span>Fee: <strong style={{ color: 'var(--text-primary)' }}>₹{currentSession?.cost_per_person || 200}</strong> / player</span>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
-            <button
-              className="btn btn-primary"
-              style={{
-                fontSize: '0.95rem',
-                padding: '0.75rem 1.5rem',
-                ...(currentStatus === 'rejected' ? { background: '#dc2626' } : {})
-              }}
-              onClick={() => setModalOpen(true)}
-            >
-              <CreditCard size={18} />
-              <span>
-                {currentStatus === 'confirmed'
-                  ? 'Pay for Advance Weeks'
-                  : currentStatus === 'rejected'
-                  ? 'Pay Again'
-                  : currentStatus === 'pending'
-                  ? 'Update / Re-submit Payment'
-                  : 'Pay for Turf'}
-              </span>
-            </button>
-
-            {currentStatus === 'confirmed' && (
-              <span style={{ fontSize: '0.85rem', color: 'var(--pitch-green-dark)', fontWeight: 600 }}>
-                ✓ You're all set for this Friday! Click above to pay in advance for future weeks.
-              </span>
-            )}
-            {currentStatus === 'pending' && (
-              <span style={{ fontSize: '0.85rem', color: '#b45309', fontWeight: 600 }}>
-                Your payment reference has been submitted. The admin will verify shortly.
-              </span>
-            )}
-            {currentStatus === 'rejected' && (
-              <span style={{ fontSize: '0.85rem', color: '#be123c', fontWeight: 600 }}>
-                ⚠️ Payment was rejected by admin. Click "Pay Again" to submit with a valid UPI reference or screenshot.
-              </span>
-            )}
-          </div>
+          <button
+            type="button"
+            className="btn btn-sm"
+            style={{ background: '#dc2626', color: '#fff', padding: '0.45rem 1rem', fontSize: '0.82rem' }}
+            onClick={() => setModalOpen(true)}
+          >
+            <RefreshCw size={15} />
+            <span>Pay Again</span>
+          </button>
         </div>
-      </div>
+      ) : null}
 
-      {/* KPI Stats Grid */}
-      <div className="stats-grid">
-        <div className="stat-box">
-          <div className="stat-label">This Friday's Status</div>
-          <div className="stat-val" style={{
-            fontSize: '1.35rem',
-            color: currentStatus === 'confirmed' ? 'var(--pitch-green)' : currentStatus === 'pending' ? 'var(--amber)' : 'var(--rose)'
-          }}>
-            {currentStatus === 'confirmed' ? 'Confirmed ✅' : currentStatus === 'pending' ? 'Pending ⏳' : currentStatus === 'rejected' ? 'Rejected ❌' : 'Not Paid ⚠️'}
-          </div>
-        </div>
-
-        <div className="stat-box">
-          <div className="stat-label">Advance Prepaid Credits</div>
-          <div className="stat-val" style={{ color: '#7c3aed' }}>
-            {advanceCredits} <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Week(s)</span>
-          </div>
-        </div>
-
-        <div className="stat-box">
-          <div className="stat-label">Total Amount Paid</div>
-          <div className="stat-val" style={{ color: 'var(--pitch-green)' }}>
-            ₹{totalPaid.toLocaleString()}
-          </div>
-        </div>
-      </div>
-
-      {/* Friday Match Squad Section */}
-      <div className="card" style={{ marginBottom: '2rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-          <div>
-            <h3 style={{ fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Users size={20} color="var(--pitch-green)" />
-              Match Squad ({currentSquad.length} Players Attending)
-            </h3>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              Players playing this Friday, {currentSession?.session_date || 'upcoming match'} (8:00 PM – 10:00 PM)
-            </p>
-          </div>
-        </div>
-
-        {currentSquad.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-            The match squad hasn't been finalized by the admin yet. Check back soon!
-          </div>
-        ) : (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-            gap: '0.75rem',
-          }}>
-            {currentSquad.map((player, idx) => (
-              <div
-                key={player.user_id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '0.75rem 1rem',
-                  background: player.user_id === user.id ? '#ecfdf5' : '#f8fafc',
-                  border: player.user_id === user.id ? '1px solid #a7f3d0' : '1px solid var(--border-subtle)',
-                  borderRadius: 'var(--radius-sm)',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', width: '18px' }}>
-                    {idx + 1}.
-                  </span>
-                  <strong style={{ color: player.user_id === user.id ? '#065f46' : 'var(--text-primary)', fontSize: '0.9rem' }}>
-                    {player.name} {player.user_id === user.id && '(You)'}
-                  </strong>
-                </div>
-
+      {/* Primary Dashboard Grid (Matching Clokin screenshot) */}
+      {(activeTab === 'dashboard' || activeTab === 'all') && (
+        <div className="clokin-grid">
+          {/* Left Column Cards */}
+          <div className="clokin-left-col">
+            {/* Card 1: Welcome Banner */}
+            <div className="clokin-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', flexWrap: 'wrap' }}>
                 <div>
-                  {player.status === 'confirmed' && (
-                    <span className="badge badge-paid" style={{ fontSize: '0.7rem' }}>Paid ✅</span>
-                  )}
-                  {player.status === 'pending' && (
-                    <span className="badge badge-pending" style={{ fontSize: '0.7rem' }}>Pending ⏳</span>
-                  )}
-                  {player.status === 'rejected' && (
-                    <span className="badge badge-unpaid" style={{ fontSize: '0.7rem' }}>Rejected ❌</span>
-                  )}
-                  {player.status === 'unpaid' && (
-                    <span className="badge badge-unpaid" style={{ fontSize: '0.7rem' }}>Unpaid ⚠️</span>
+                  <h2 style={{ fontSize: '1.65rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.35rem' }}>
+                    Welcome, {user.name}!
+                  </h2>
+                  <p style={{ color: '#64748b', fontSize: '0.88rem' }}>
+                    Ready for Friday football? Ensure your attendance and payment are recorded.
+                  </p>
+                </div>
+                <div>
+                  {isInSquad ? (
+                    <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      padding: '0.35rem 0.75rem',
+                      borderRadius: '9999px',
+                      background: '#ecfdf5',
+                      color: '#059669',
+                      border: '1px solid #a7f3d0',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                    }}>
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }} />
+                      In Squad (Playing)
+                    </span>
+                  ) : (
+                    <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      padding: '0.35rem 0.75rem',
+                      borderRadius: '9999px',
+                      background: '#f1f5f9',
+                      color: '#64748b',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                    }}>
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#94a3b8' }} />
+                      Not Playing
+                    </span>
                   )}
                 </div>
               </div>
-            ))}
+
+              {/* RSVP Action Toggle */}
+              <div style={{
+                marginTop: '1.25rem',
+                paddingTop: '1.25rem',
+                borderTop: '1px solid #f1f5f9',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '0.75rem'
+              }}>
+                <div style={{ fontSize: '0.82rem', color: '#475569' }}>
+                  {isInSquad ? (
+                    <span>Cannot make it this Friday? Let the squad know:</span>
+                  ) : (
+                    <span>Plans changed? You can re-join the match squad anytime:</span>
+                  )}
+                </div>
+
+                {isInSquad ? (
+                  <button
+                    type="button"
+                    disabled={rsvpLoading}
+                    onClick={() => {
+                      if (window.confirm('Are you sure you cannot play this Friday? You will be removed from the squad.')) {
+                        handleRsvp(false);
+                      }
+                    }}
+                    style={{
+                      background: '#ffffff',
+                      border: '1px solid #fca5a5',
+                      color: '#dc2626',
+                      padding: '0.45rem 0.9rem',
+                      borderRadius: '8px',
+                      fontSize: '0.82rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.45rem',
+                      transition: 'all 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#fef2f2'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = '#ffffff'}
+                  >
+                    <UserX size={15} />
+                    <span>Not Playing This Match</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={rsvpLoading}
+                    onClick={() => handleRsvp(true)}
+                    className="btn btn-sm btn-primary"
+                    style={{ fontSize: '0.82rem', padding: '0.45rem 1rem' }}
+                  >
+                    <UserCheck size={15} />
+                    <span>I Want to Play / Join Squad</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Card 2: Match Duration & Slot (Clokin "Today's Working Hours" style) */}
+            <div className="clokin-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '10px',
+                    background: '#eff6ff',
+                    border: '1px solid #bfdbfe',
+                    color: '#2563eb',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <Clock size={19} />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.95rem' }}>
+                      Friday Match Duration
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                      Elite Football Turf (Break Time: 8:55 – 9:00 PM)
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{
+                  width: '10px',
+                  height: '10px',
+                  borderRadius: '50%',
+                  background: '#10b981',
+                  boxShadow: '0 0 0 3px rgba(16, 185, 129, 0.2)',
+                }} />
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: '1.25rem' }}>
+                <div style={{ fontSize: '2.25rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.03em' }}>
+                  2h 00m
+                </div>
+                <div style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>
+                  8:00 PM – 10:00 PM
+                </div>
+              </div>
+
+              <div className="custom-progress-bar">
+                <div className="custom-progress-fill" style={{ width: '100%' }} />
+              </div>
+
+              <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '0.35rem' }}>
+                Scheduled weekly turf slot: <strong>Friday, {currentSession?.session_date || 'Upcoming'}</strong>
+              </div>
+            </div>
+
+            {/* Card 3: Turf Venue (Clokin "GPS Location" style) */}
+            <div className="clokin-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '10px',
+                    background: '#ecfdf5',
+                    border: '1px solid #a7f3d0',
+                    color: '#059669',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <MapPin size={19} />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.95rem' }}>
+                      Elite Football Turf
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                      Turf session fee: ₹{currentSession?.cost_per_person || 200} / player
+                    </div>
+                  </div>
+                </div>
+
+                <span style={{
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  color: '#059669',
+                  padding: '0.25rem 0.65rem',
+                  borderRadius: '9999px',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                }}>
+                  Verified Turf
+                </span>
+              </div>
+            </div>
           </div>
-        )}
-      </div>
 
-      {/* Upcoming Sessions List */}
-      <div className="card" style={{ marginBottom: '2rem' }}>
-        <h3 style={{ fontSize: '1.2rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Calendar size={18} color="var(--pitch-green)" />
-          Upcoming Friday Schedule & Your Status
-        </h3>
+          {/* Right Column: Match Viewfinder & Payment Hub */}
+          <div className="clokin-right-col">
+            <div className="clokin-viewfinder">
+              <div className="clokin-card-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Camera size={18} color="#059669" />
+                  <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#0f172a' }}>
+                    Match Attendance & Payment Hub
+                  </span>
+                </div>
 
-        <div className="table-wrap">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Time Slot</th>
-                <th>Fee</th>
-                <th>Your Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {upcomingSessions.map((row, idx) => {
-                const s = row.session;
-                const status = row.status;
-                return (
-                  <tr key={s.id}>
-                    <td>
-                      <strong style={{ color: 'var(--text-primary)' }}>Friday, {s.session_date}</strong>
-                      {idx === 0 && <span style={{ marginLeft: '0.5rem', fontSize: '0.75rem', color: 'var(--pitch-green-dark)', fontWeight: 600 }}>(This Friday)</span>}
-                    </td>
-                    <td>{s.start_time || '20:00'} - {s.end_time || '22:00'}</td>
-                    <td>₹{s.cost_per_person || 200}</td>
-                    <td>
-                      {status === 'confirmed' && <span className="badge badge-paid">Paid ✅</span>}
-                      {status === 'pending' && <span className="badge badge-pending">Pending ⏳</span>}
-                      {status === 'rejected' && (
-                        <span className="badge badge-unpaid">
-                          Rejected ❌
-                        </span>
-                      )}
-                      {status === 'unpaid' && <span className="badge badge-unpaid">Unpaid</span>}
-                    </td>
-                    <td>
-                      {(status === 'unpaid' || status === 'rejected') ? (
-                        <button
-                          className="btn btn-sm btn-primary"
-                          style={status === 'rejected' ? { background: '#dc2626' } : {}}
-                          onClick={() => setModalOpen(true)}
-                        >
-                          {status === 'rejected' ? 'Pay Again' : 'Pay'}
-                        </button>
-                      ) : status === 'pending' ? (
-                        <span style={{ color: 'var(--amber)', fontSize: '0.8rem', fontWeight: 600 }}>Pending ⏳</span>
+                <div>
+                  {isInSquad ? (
+                    currentStatus === 'confirmed' ? (
+                      <span style={{
+                        background: '#ecfdf5',
+                        border: '1px solid #a7f3d0',
+                        color: '#059669',
+                        padding: '0.25rem 0.75rem',
+                        borderRadius: '9999px',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                      }}>
+                        <CheckCircle2 size={13} /> Paid & Confirmed
+                      </span>
+                    ) : currentStatus === 'pending' ? (
+                      <span style={{
+                        background: '#fffbeb',
+                        border: '1px solid #fde68a',
+                        color: '#b45309',
+                        padding: '0.25rem 0.75rem',
+                        borderRadius: '9999px',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                      }}>
+                        <Clock3 size={13} /> Verification Pending
+                      </span>
+                    ) : currentStatus === 'rejected' ? (
+                      <span style={{
+                        background: '#fef2f2',
+                        border: '1px solid #fecdd3',
+                        color: '#dc2626',
+                        padding: '0.25rem 0.75rem',
+                        borderRadius: '9999px',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                      }}>
+                        <AlertCircle size={13} /> Rejected
+                      </span>
+                    ) : (
+                      <span style={{
+                        background: '#fef2f2',
+                        border: '1px solid #fecdd3',
+                        color: '#dc2626',
+                        padding: '0.25rem 0.75rem',
+                        borderRadius: '9999px',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                      }}>
+                        <AlertCircle size={13} /> Payment Due
+                      </span>
+                    )
+                  ) : (
+                    <span style={{
+                      background: '#f1f5f9',
+                      border: '1px solid #cbd5e1',
+                      color: '#64748b',
+                      padding: '0.25rem 0.75rem',
+                      borderRadius: '9999px',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                    }}>
+                      Not Playing
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Viewfinder Center Content */}
+              <div className="viewfinder-inner">
+                {!isInSquad ? (
+                  /* User is NOT playing: Do NOT show payment process */
+                  <>
+                    <div className="viewfinder-camera-icon">
+                      <UserX size={28} color="#94a3b8" />
+                    </div>
+                    <div style={{ fontWeight: 800, color: '#1e293b', fontSize: '1.15rem', marginBottom: '0.35rem' }}>
+                      Squad Status: Not Playing
+                    </div>
+                    <p style={{ color: '#64748b', fontSize: '0.85rem', maxWidth: '340px', marginBottom: '1.25rem' }}>
+                      You opted out of this match. You are not listed in the squad and no payment is needed.
+                    </p>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      disabled={rsvpLoading}
+                      onClick={() => handleRsvp(true)}
+                    >
+                      <UserCheck size={16} />
+                      <span>Change Status: Join Playing Squad</span>
+                    </button>
+                  </>
+                ) : currentStatus === 'confirmed' ? (
+                  /* User is in squad and payment confirmed */
+                  <>
+                    <div className="viewfinder-camera-icon" style={{ background: '#ecfdf5', borderColor: '#a7f3d0' }}>
+                      <CheckCircle2 size={32} color="#059669" />
+                    </div>
+                    <div style={{ fontWeight: 800, color: '#065f46', fontSize: '1.2rem', marginBottom: '0.35rem' }}>
+                      Match Attendance Confirmed!
+                    </div>
+                    <p style={{ color: '#64748b', fontSize: '0.85rem', maxWidth: '340px', marginBottom: '1.25rem' }}>
+                      Your payment for Friday {currentSession?.session_date} is fully verified. We look forward to seeing you at 8:00 PM!
+                    </p>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => setModalOpen(true)}
+                    >
+                      <CreditCard size={15} />
+                      <span>Pay for Future Advance Weeks</span>
+                    </button>
+                  </>
+                ) : (
+                  /* User is in playing squad and payment is UNPAID, PENDING, or REJECTED */
+                  <>
+                    <div className="viewfinder-camera-icon" style={{
+                      background: currentStatus === 'rejected' ? '#fef2f2' : currentStatus === 'pending' ? '#fffbeb' : '#ffffff',
+                      borderColor: currentStatus === 'rejected' ? '#fecdd3' : currentStatus === 'pending' ? '#fde68a' : '#e2e8f0',
+                    }}>
+                      {currentStatus === 'rejected' ? (
+                        <AlertCircle size={30} color="#dc2626" />
+                      ) : currentStatus === 'pending' ? (
+                        <Clock3 size={30} color="#d97706" />
                       ) : (
-                        <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Covered ✓</span>
+                        <CreditCard size={30} color="#059669" />
                       )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                    </div>
+
+                    <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '1.15rem', marginBottom: '0.25rem' }}>
+                      {currentStatus === 'rejected'
+                        ? 'Payment Needs Attention'
+                        : currentStatus === 'pending'
+                        ? 'Payment Under Verification'
+                        : 'Match Fee Payment Process'}
+                    </div>
+
+                    <div style={{
+                      fontSize: '1.65rem',
+                      fontWeight: 800,
+                      color: '#059669',
+                      margin: '0.35rem 0 0.5rem',
+                    }}>
+                      ₹{currentSession?.cost_per_person || 200}
+                    </div>
+
+                    <p style={{ color: '#64748b', fontSize: '0.85rem', maxWidth: '340px', marginBottom: '1.25rem' }}>
+                      {currentStatus === 'rejected'
+                        ? 'Admin rejected previous reference. Click below to submit with correct UPI ID or screenshot proof.'
+                        : currentStatus === 'pending'
+                        ? 'Your payment proof has been submitted. The admin will confirm your slot shortly.'
+                        : 'Scan the dynamic UPI QR code or enter your 12-digit UTR and upload a payment screenshot.'}
+                    </p>
+
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      style={{
+                        padding: '0.65rem 1.5rem',
+                        fontSize: '0.9rem',
+                        ...(currentStatus === 'rejected' ? { background: '#dc2626' } : {})
+                      }}
+                      onClick={() => setModalOpen(true)}
+                    >
+                      <CreditCard size={17} />
+                      <span>
+                        {currentStatus === 'rejected'
+                          ? 'Pay Again'
+                          : currentStatus === 'pending'
+                          ? 'Update / Re-submit Payment'
+                          : 'Pay for Turf'}
+                      </span>
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {/* Bottom footer text inside viewfinder card */}
+              <div style={{
+                background: '#f8fafc',
+                border: '1px solid #eaecf0',
+                borderRadius: '10px',
+                padding: '0.65rem 0.85rem',
+                fontSize: '0.78rem',
+                color: '#64748b',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}>
+                <span>Total Lifetime Paid: <strong style={{ color: '#0f172a' }}>₹{totalPaid}</strong></span>
+                <span>Advance Weeks: <strong style={{ color: '#7c3aed' }}>{advanceCredits} week(s)</strong></span>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Payment History */}
-      <div className="card">
-        <h3 style={{ fontSize: '1.2rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <History size={18} color="var(--pitch-green)" />
-          Payment History
-        </h3>
+      {/* SQUAD SECTION: Both Playing and Not Playing lists */}
+      {(activeTab === 'dashboard' || activeTab === 'squad' || activeTab === 'all') && (
+        <div className="clokin-card" style={{ marginBottom: '2rem' }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            marginBottom: '1.25rem',
+            borderBottom: '1px solid #f1f5f9',
+            paddingBottom: '1rem',
+          }}>
+            <div>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Users size={20} color="#059669" />
+                Friday Match Squad
+              </h3>
+              <p style={{ fontSize: '0.82rem', color: '#64748b' }}>
+                Friday, {currentSession?.session_date || 'Upcoming'} @ Elite Football Turf (8:00 PM – 10:00 PM)
+              </p>
+            </div>
 
-        {history.length === 0 ? (
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-            No past payment submissions found. Click "Pay for Turf" to record your first Friday payment.
+            {/* Switch between Playing vs Not Playing Tabs */}
+            <div style={{
+              display: 'inline-flex',
+              background: '#f1f5f9',
+              padding: '0.25rem',
+              borderRadius: '10px',
+              border: '1px solid #eaecf0',
+            }}>
+              <button
+                type="button"
+                className={`squad-tab-btn ${squadTab === 'playing' ? 'active' : ''}`}
+                onClick={() => setSquadTab('playing')}
+              >
+                Playing Squad ({playingSquad.length})
+              </button>
+              <button
+                type="button"
+                className={`squad-tab-btn ${squadTab === 'not_playing' ? 'active' : ''}`}
+                onClick={() => setSquadTab('not_playing')}
+              >
+                Not Playing ({notPlayingSquad.length})
+              </button>
+            </div>
+          </div>
+
+          {squadTab === 'playing' ? (
+            /* Playing Squad List */
+            playingSquad.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: '#64748b' }}>
+                No players added to the playing squad yet.
+              </div>
+            ) : (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+                gap: '0.85rem',
+              }}>
+                {playingSquad.map((player, idx) => {
+                  const isMe = player.user_id === user.id;
+                  return (
+                    <div
+                      key={player.user_id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '0.85rem 1rem',
+                        background: isMe ? '#ecfdf5' : '#ffffff',
+                        border: isMe ? '1px solid #a7f3d0' : '1px solid #eaecf0',
+                        borderRadius: '10px',
+                        boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                        <span style={{
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '50%',
+                          background: isMe ? '#a7f3d0' : '#f1f5f9',
+                          color: isMe ? '#065f46' : '#64748b',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                        }}>
+                          {idx + 1}
+                        </span>
+                        <div>
+                          <div style={{
+                            fontWeight: 700,
+                            color: isMe ? '#065f46' : '#0f172a',
+                            fontSize: '0.88rem',
+                          }}>
+                            {player.name} {isMe && <span style={{ color: '#059669', fontSize: '0.75rem' }}>(You)</span>}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        {player.status === 'confirmed' && (
+                          <span className="badge badge-paid" style={{ fontSize: '0.72rem' }}>Paid ✅</span>
+                        )}
+                        {player.status === 'pending' && (
+                          <span className="badge badge-pending" style={{ fontSize: '0.72rem' }}>Pending ⏳</span>
+                        )}
+                        {player.status === 'rejected' && (
+                          <span className="badge badge-unpaid" style={{ fontSize: '0.72rem' }}>Rejected ❌</span>
+                        )}
+                        {player.status === 'unpaid' && (
+                          <span className="badge badge-unpaid" style={{ fontSize: '0.72rem' }}>Unpaid ⚠️</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )
+          ) : (
+            /* Not Playing Squad List */
+            notPlayingSquad.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: '#64748b' }}>
+                Everyone is playing! No players marked as absent.
+              </div>
+            ) : (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+                gap: '0.85rem',
+              }}>
+                {notPlayingSquad.map((player, idx) => {
+                  const isMe = player.user_id === user.id;
+                  return (
+                    <div
+                      key={player.user_id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '0.85rem 1rem',
+                        background: isMe ? '#fff1f2' : '#f8fafc',
+                        border: isMe ? '1px solid #fecdd3' : '1px solid #eaecf0',
+                        borderRadius: '10px',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                        <span style={{
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '50%',
+                          background: '#e2e8f0',
+                          color: '#64748b',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                        }}>
+                          {idx + 1}
+                        </span>
+                        <div>
+                          <div style={{
+                            fontWeight: 700,
+                            color: isMe ? '#991b1b' : '#334155',
+                            fontSize: '0.88rem',
+                          }}>
+                            {player.name} {isMe && '(You)'}
+                          </div>
+                          <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                            Not Playing this match
+                          </div>
+                        </div>
+                      </div>
+
+                      <span style={{
+                        fontSize: '0.7rem',
+                        color: '#64748b',
+                        background: '#ffffff',
+                        padding: '0.2rem 0.5rem',
+                        borderRadius: '6px',
+                        border: '1px solid #e2e8f0',
+                      }}>
+                        Out ⚪
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )
+          )}
+        </div>
+      )}
+
+      {/* PAYMENT HISTORY: ONLY confirmed (done) or rejected */}
+      {(activeTab === 'dashboard' || activeTab === 'history' || activeTab === 'all') && (
+        <div className="clokin-card" style={{ marginBottom: '2rem' }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '1rem',
+            flexWrap: 'wrap',
+            gap: '0.5rem'
+          }}>
+            <div>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <History size={20} color="#059669" />
+                Payment History
+              </h3>
+              <p style={{ fontSize: '0.82rem', color: '#64748b' }}>
+                Showing completed (done) and rejected transaction records only.
+              </p>
+            </div>
+            <span style={{ fontSize: '0.75rem', color: '#64748b', background: '#f8fafc', padding: '0.35rem 0.75rem', borderRadius: '8px', border: '1px solid #eaecf0' }}>
+              Filtered: Confirmed / Rejected only
+            </span>
+          </div>
+
+          {history.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: '#64748b' }}>
+              <History size={32} color="#cbd5e1" style={{ margin: '0 auto 0.5rem' }} />
+              <p style={{ fontSize: '0.9rem', fontWeight: 500 }}>No completed or rejected payments recorded yet.</p>
+              <p style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
+                Payments that are verified or rejected by the admin will automatically appear here.
+              </p>
+            </div>
+          ) : (
+            <div className="table-wrap">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Match Date</th>
+                    <th>Fee Amount</th>
+                    <th>Reference / Proof</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {history.map((h) => (
+                    <tr key={h.payment_id}>
+                      <td>
+                        <strong style={{ color: '#0f172a' }}>Friday, {h.session_date}</strong>
+                      </td>
+                      <td>
+                        <strong style={{ color: '#059669' }}>₹{h.amount}</strong>
+                      </td>
+                      <td style={{ fontSize: '0.85rem' }}>
+                        <span>
+                          {(() => {
+                            const ref = h.upi_ref || '';
+                            if (ref.includes('[screenshot:')) {
+                              const clean = ref.replace(/\[screenshot:.*?\]/g, '').replace(/Screenshot Attached/g, '').trim();
+                              return clean ? `${clean} (Screenshot Sent)` : 'Screenshot Sent';
+                            }
+                            return ref || '—';
+                          })()}
+                        </span>
+                        {h.screenshot_url && (
+                          <a
+                            href={h.screenshot_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              marginLeft: '0.5rem',
+                              fontSize: '0.75rem',
+                              color: '#2563eb',
+                              textDecoration: 'underline',
+                            }}
+                          >
+                            View Proof
+                          </a>
+                        )}
+                      </td>
+                      <td style={{ color: '#64748b', fontSize: '0.82rem' }}>
+                        {h.submitted_at ? new Date(h.submitted_at).toLocaleDateString() : '—'}
+                      </td>
+                      <td>
+                        {h.status === 'confirmed' && (
+                          <span className="badge badge-paid">
+                            Done / Confirmed ✅
+                          </span>
+                        )}
+                        {h.status === 'rejected' && (
+                          <span className="badge badge-unpaid">
+                            Rejected ❌
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* MATCH SCHEDULE: Upcoming Friday Fixtures */}
+      {(activeTab === 'schedule' || activeTab === 'all') && (
+        <div className="clokin-card">
+          <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Calendar size={20} color="#059669" />
+            Upcoming Friday Matches
+          </h3>
+          <p style={{ fontSize: '0.82rem', color: '#64748b', marginBottom: '1.25rem' }}>
+            Schedule of forthcoming sessions at Elite Football Turf (8:00 PM – 10:00 PM)
           </p>
-        ) : (
+
           <div className="table-wrap">
             <table className="data-table">
               <thead>
                 <tr>
                   <th>Session Date</th>
-                  <th>Amount</th>
-                  <th>UPI UTR / Reference</th>
-                  <th>Submitted At</th>
-                  <th>Status</th>
+                  <th>Slot Time</th>
+                  <th>Match Fee</th>
+                  <th>Your Status</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
-                {history.map((h) => (
-                  <tr key={h.payment_id}>
-                    <td>Friday, {h.session_date}</td>
-                    <td><strong style={{ color: 'var(--pitch-green-dark)' }}>₹{h.amount}</strong></td>
-                    <td style={{ fontSize: '0.85rem' }}>
-                      <span style={{ fontFamily: (h.upi_ref?.includes('Screenshot') || h.upi_ref?.includes('screenshot:')) ? 'inherit' : 'monospace' }}>
-                        {(() => {
-                          const ref = h.upi_ref || '';
-                          if (ref.includes('[screenshot:')) {
-                            const clean = ref.replace(/\[screenshot:.*?\]/g, '').replace(/Screenshot Attached/g, '').trim();
-                            return clean ? `${clean} (Screenshot Sent)` : 'Screenshot Sent';
-                          }
-                          return ref || '—';
-                        })()}
-                      </span>
-                      {h.screenshot_url && (
-                        <a
-                          href={h.screenshot_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            marginLeft: '0.5rem',
-                            fontSize: '0.75rem',
-                            color: '#2563eb',
-                            textDecoration: 'underline'
-                          }}
-                        >
-                          View Proof
-                        </a>
-                      )}
-                    </td>
-                    <td style={{ color: 'var(--text-muted)', fontSize: '0.825rem' }}>
-                      {h.submitted_at ? new Date(h.submitted_at).toLocaleDateString() : '—'}
-                    </td>
-                    <td>
-                      {h.status === 'confirmed' && <span className="badge badge-paid">Confirmed</span>}
-                      {h.status === 'pending' && <span className="badge badge-pending">Pending</span>}
-                      {h.status === 'rejected' && <span className="badge badge-unpaid">Rejected</span>}
-                    </td>
-                  </tr>
-                ))}
+                {upcomingSessions.map((row, idx) => {
+                  const s = row.session;
+                  const status = row.status;
+                  return (
+                    <tr key={s.id}>
+                      <td>
+                        <strong style={{ color: '#0f172a' }}>Friday, {s.session_date}</strong>
+                        {idx === 0 && (
+                          <span style={{ marginLeft: '0.5rem', fontSize: '0.72rem', color: '#059669', background: '#ecfdf5', border: '1px solid #a7f3d0', padding: '0.15rem 0.45rem', borderRadius: '4px', fontWeight: 700 }}>
+                            Next Match
+                          </span>
+                        )}
+                      </td>
+                      <td>{s.start_time || '20:00'} – {s.end_time || '22:00'}</td>
+                      <td>₹{s.cost_per_person || 200}</td>
+                      <td>
+                        {status === 'confirmed' && <span className="badge badge-paid">Paid ✅</span>}
+                        {status === 'pending' && <span className="badge badge-pending">Pending ⏳</span>}
+                        {status === 'rejected' && <span className="badge badge-unpaid">Rejected ❌</span>}
+                        {status === 'unpaid' && <span className="badge badge-unpaid">Unpaid</span>}
+                      </td>
+                      <td>
+                        {(status === 'unpaid' || status === 'rejected') ? (
+                          <button
+                            className="btn btn-sm btn-primary"
+                            style={status === 'rejected' ? { background: '#dc2626' } : {}}
+                            onClick={() => setModalOpen(true)}
+                          >
+                            {status === 'rejected' ? 'Pay Again' : 'Pay'}
+                          </button>
+                        ) : status === 'pending' ? (
+                          <span style={{ color: '#d97706', fontSize: '0.8rem', fontWeight: 600 }}>Pending ⏳</span>
+                        ) : (
+                          <span style={{ color: '#059669', fontSize: '0.8rem', fontWeight: 600 }}>Covered ✓</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Dynamic Payment Dialog */}
+      {/* Payment Dialog Modal */}
       <PaymentModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
