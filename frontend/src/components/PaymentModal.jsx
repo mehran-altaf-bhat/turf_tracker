@@ -3,19 +3,13 @@ import { QRCodeSVG } from 'qrcode.react';
 import { api } from '../services/api';
 import {
   X,
-  CheckCircle,
-  ExternalLink,
-  QrCode,
   AlertCircle,
   Upload,
-  Image as ImageIcon,
   Trash2,
-  FileCheck,
-  CreditCard,
-  Sparkles,
   Copy,
   Check,
   Calendar,
+  ExternalLink,
 } from 'lucide-react';
 
 export default function PaymentModal({
@@ -27,12 +21,10 @@ export default function PaymentModal({
   payableAmount = null,
   amountPaid = 0,
   currentSession = null,
-  upcomingSessions = [],
 }) {
   const dialogRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  const [weeks, setWeeks] = useState(1);
   const [upiRef, setUpiRef] = useState('');
   const [screenshotFile, setScreenshotFile] = useState(null);
   const [screenshotPreview, setScreenshotPreview] = useState(null);
@@ -44,51 +36,31 @@ export default function PaymentModal({
   const costPerWeek = config?.cost_per_person || 200;
   const standardFee = payableAmount || costPerWeek;
 
-  // Derive match dates for the 4 options
-  const sessionDates = [0, 1, 2, 3].map((idx) => {
-    if (upcomingSessions && upcomingSessions[idx]?.session?.session_date) {
-      return upcomingSessions[idx].session.session_date;
-    }
-    const baseStr = currentSession?.session_date;
-    if (baseStr) {
-      const [y, m, d] = baseStr.split('-').map(Number);
-      const dt = new Date(y, m - 1, d);
-      dt.setDate(dt.getDate() + idx * 7);
-      const yy = dt.getFullYear();
-      const mm = String(dt.getMonth() + 1).padStart(2, '0');
-      const dd = String(dt.getDate()).padStart(2, '0');
-      return `${yy}-${mm}-${dd}`;
-    }
-    return null;
-  });
-
   const formatDateLabel = (dateStr) => {
     if (!dateStr) return '';
     try {
       const [y, m, d] = dateStr.split('-').map(Number);
       const dt = new Date(y, m - 1, d);
-      return dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }); // e.g. "11 Sep"
+      return dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }); // e.g. "11 Sept"
     } catch {
       return dateStr;
     }
   };
 
-  const currentDateLabel = formatDateLabel(sessionDates[0]) || (currentSession?.session_date ? formatDateLabel(currentSession.session_date) : 'Friday Match');
+  const currentDateLabel = currentSession?.session_date
+    ? formatDateLabel(currentSession.session_date)
+    : 'Friday Match';
 
-  // If user has a balance due for this week, week 1 pays balanceDue, additional weeks pay full fee
+  // Partial balance check
   const hasPartialBalance = balanceDue !== null && balanceDue > 0 && balanceDue < standardFee;
-  const currentWeekPayable = hasPartialBalance ? balanceDue : standardFee;
-  const totalAmount = weeks === 1 ? currentWeekPayable : (currentWeekPayable + (weeks - 1) * costPerWeek);
+  const totalAmount = hasPartialBalance ? balanceDue : standardFee;
 
   const vpa = config?.vpa || '7006869014@hdfc';
   const payeeName = config?.name || 'FAISAL RASHID BHAT';
 
-  // Dynamic UPI URI reflecting selected weeks or balance amount
-  const upiNote = hasPartialBalance && weeks === 1
-    ? `Turf Balance Payment (₹${totalAmount})`
-    : weeks === 1
-    ? `Turf Fee - ${currentDateLabel} (Only 1 Week)`
-    : `Turf Fee for ${weeks} Weeks (Thru ${formatDateLabel(sessionDates[weeks - 1])})`;
+  const upiNote = hasPartialBalance
+    ? `Turf Balance (₹${totalAmount}) - ${currentDateLabel}`
+    : `Turf Match Fee (₹${totalAmount}) - ${currentDateLabel}`;
 
   const upiUrl = `upi://pay?pa=${encodeURIComponent(vpa)}&pn=${encodeURIComponent(payeeName)}&am=${totalAmount}&cu=INR&tn=${encodeURIComponent(upiNote)}`;
 
@@ -163,7 +135,7 @@ export default function PaymentModal({
     const cleanRef = upiRef.trim();
 
     if (!cleanRef && !screenshotFile) {
-      setError('Please provide your 12-digit UPI UTR number OR upload a payment screenshot.');
+      setError('Please upload a payment screenshot OR enter your 12-digit UPI UTR number.');
       return;
     }
 
@@ -174,14 +146,14 @@ export default function PaymentModal({
       let screenshot_url = null;
 
       if (screenshotFile) {
-        setUploadStatus('Uploading payment screenshot...');
+        setUploadStatus('Uploading screenshot...');
         const uploadRes = await api.uploadScreenshot(screenshotFile);
         screenshot_url = uploadRes.screenshot_url;
       }
 
-      setUploadStatus('Saving payment record...');
+      setUploadStatus('Recording payment...');
       await onPaymentSuccess({
-        weeks_count: weeks,
+        weeks_count: 1,
         upi_ref: cleanRef || null,
         screenshot_url: screenshot_url,
         amount: totalAmount,
@@ -191,7 +163,6 @@ export default function PaymentModal({
       setUpiRef('');
       setScreenshotFile(null);
       setScreenshotPreview(null);
-      setWeeks(1);
       onClose();
     } catch (err) {
       setError(err.message || 'Payment submission failed. Please try again.');
@@ -208,20 +179,21 @@ export default function PaymentModal({
       closedby="any"
       onClose={onClose}
     >
-      <div className="modal-content">
-        <div className="modal-header" style={{ marginBottom: '1rem' }}>
+      <div className="modal-content" style={{ padding: '1.25rem 1.5rem', maxWidth: '460px', margin: '0 auto' }}>
+        {/* Header */}
+        <div className="modal-header" style={{ marginBottom: '0.85rem', paddingBottom: '0.65rem', borderBottom: '1px solid var(--border-dim)' }}>
           <div>
-            <h3 style={{ fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.45rem', color: 'var(--text-primary)' }}>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.45rem', color: 'var(--text-primary)', margin: 0 }}>
               <span>⚽</span>
-              <span>{hasPartialBalance && weeks === 1 ? 'Pay Match Fee Balance' : `Pay for Turf (${currentDateLabel})`}</span>
+              <span>{hasPartialBalance ? 'Pay Remaining Balance' : `Pay for Turf (${currentDateLabel})`}</span>
             </h3>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.15rem' }}>
-              <Calendar size={13} color="var(--green-500)" />
-              <span>Elite Football Turf • Friday 8:00 PM - 10:00 PM</span>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem', margin: '0.2rem 0 0' }}>
+              <Calendar size={13} color="var(--green-400)" />
+              <span>Elite Football Turf • Friday 8:00 PM – 10:00 PM</span>
             </p>
           </div>
           <button className="btn-close" onClick={onClose} aria-label="Close dialog">
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
@@ -230,243 +202,129 @@ export default function PaymentModal({
             background: 'var(--rose-subtle)',
             border: '1px solid rgba(248, 113, 113, 0.25)',
             borderRadius: '8px',
-            padding: '0.75rem 1rem',
+            padding: '0.6rem 0.85rem',
             color: 'var(--rose-400)',
-            fontSize: '0.85rem',
+            fontSize: '0.82rem',
             display: 'flex',
             alignItems: 'center',
-            gap: '0.5rem',
-            marginBottom: '1rem',
+            gap: '0.45rem',
+            marginBottom: '0.85rem',
           }}>
-            <AlertCircle size={16} />
+            <AlertCircle size={15} style={{ flexShrink: 0 }} />
             <span>{error}</span>
           </div>
         )}
 
-        {/* Breakdown Card if user has partial balance / shifted credit */}
-        {hasPartialBalance && weeks === 1 && (
-          <div style={{
-            background: 'rgba(255, 255, 255, 0.04)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: '10px',
-            padding: '0.85rem 1rem',
-            marginBottom: '1rem',
-          }}>
-            <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-              Match Fee Breakdown:
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
-              <span>Total Match Fee:</span>
-              <strong style={{ color: 'var(--text-primary)' }}>₹{standardFee}</strong>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--green-400)', marginBottom: '0.4rem' }}>
-              <span>Compensated / Shifted Credit:</span>
-              <strong>-₹{amountPaid}</strong>
-            </div>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              fontSize: '0.95rem',
-              fontWeight: 800,
-              color: 'var(--text-primary)',
-              borderTop: '1px dashed var(--border-subtle)',
-              paddingTop: '0.4rem',
-            }}>
-              <span>Remaining Balance to Pay:</span>
-              <span style={{ color: 'var(--green-400)' }}>₹{balanceDue}</span>
-            </div>
-          </div>
-        )}
-
-        {/* Match Date & Advance Weeks Selector */}
-        <div style={{ marginBottom: '1.25rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem', flexWrap: 'wrap', gap: '0.35rem' }}>
-            <label className="form-label" style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 700, margin: 0 }}>
-              Match Date & Duration:
-            </label>
-            <span style={{
-              fontSize: '0.72rem',
-              color: 'var(--green-400)',
-              background: 'rgba(34, 197, 94, 0.12)',
-              border: '1px solid rgba(34, 197, 94, 0.3)',
-              padding: '0.15rem 0.5rem',
-              borderRadius: '6px',
-              fontWeight: 700
-            }}>
-              {weeks === 1 ? 'For Only 1 Week Payment' : `${weeks} Weeks Advance`}
-            </span>
-          </div>
-
-          <div style={{
-            background: 'rgba(34, 197, 94, 0.08)',
-            border: '1px solid rgba(34, 197, 94, 0.25)',
-            borderRadius: '8px',
-            padding: '0.5rem 0.75rem',
-            marginBottom: '0.75rem',
-            fontSize: '0.78rem',
-            color: 'var(--text-secondary)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.45rem'
-          }}>
-            <Sparkles size={14} color="var(--green-400)" />
-            <span>
-              <strong>Note:</strong> Pre-selected <strong>for only 1 week payment</strong> (Friday, {currentDateLabel}). You can also tap future dates to pre-pay advance weeks.
-            </span>
-          </div>
-
-          <div className="weeks-selector">
-            {[1, 2, 3, 4].map((w) => {
-              const previewAmount = w === 1 ? currentWeekPayable : (currentWeekPayable + (w - 1) * costPerWeek);
-              const dateText = formatDateLabel(sessionDates[w - 1]);
-              const isSelected = weeks === w;
-              return (
-                <button
-                  type="button"
-                  key={w}
-                  className={`week-btn ${isSelected ? 'active' : ''}`}
-                  onClick={() => setWeeks(w)}
-                  style={{
-                    position: 'relative',
-                    padding: '0.75rem 0.35rem',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    width: '100%',
-                  }}
-                >
-                  {w === 1 && (
-                    <span style={{
-                      position: 'absolute',
-                      top: '-9px',
-                      fontSize: '0.62rem',
-                      fontWeight: 800,
-                      background: 'var(--green-600)',
-                      color: '#ffffff',
-                      padding: '0.1rem 0.45rem',
-                      borderRadius: '10px',
-                      letterSpacing: '0.02em',
-                      whiteSpace: 'nowrap',
-                      boxShadow: '0 2px 6px rgba(34,197,94,0.3)',
-                    }}>
-                      Only 1 Week
-                    </span>
-                  )}
-                  <div className="week-count" style={{ fontSize: '0.92rem', fontWeight: 800, color: isSelected ? 'var(--green-400)' : 'var(--text-primary)' }}>
-                    {dateText || `Week ${w}`}
-                  </div>
-                  <div style={{ fontSize: '0.7rem', color: isSelected ? 'var(--green-400)' : 'var(--text-muted)', marginTop: '0.1rem' }}>
-                    {w === 1 ? 'Current Match' : `${w} Matches`}
-                  </div>
-                  <div className="week-amount" style={{ marginTop: '0.25rem', fontWeight: 700, fontSize: '0.85rem' }}>
-                    ₹{previewAmount}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Dynamic Amount Highlight */}
+        {/* Compact Amount Banner */}
         <div style={{
-          background: 'rgba(34, 197, 94, 0.08)',
-          border: '1px solid rgba(34, 197, 94, 0.25)',
+          background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.12) 0%, rgba(16, 185, 129, 0.05) 100%)',
+          border: '1px solid rgba(34, 197, 94, 0.3)',
           borderRadius: '10px',
-          padding: '0.85rem 1rem',
+          padding: '0.75rem 1rem',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          margin: '1rem 0',
+          marginBottom: '0.85rem',
         }}>
           <div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--green-400)', fontWeight: 700 }}>
-              {hasPartialBalance && weeks === 1
-                ? 'Net Balance Due'
-                : weeks === 1
-                ? `Only 1 Week Fee (Friday, ${currentDateLabel})`
-                : `Amount Payable (${weeks} Matches through ${formatDateLabel(sessionDates[weeks - 1])})`}
+            <div style={{ fontSize: '0.72rem', color: 'var(--green-400)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              {hasPartialBalance ? 'Remaining Match Balance' : 'Your Match Share'}
             </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>
-              Receiver: {payeeName}
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '0.1rem' }}>
+              Receiver: <strong style={{ color: 'var(--text-primary)' }}>{payeeName}</strong>
             </div>
           </div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--green-400)' }}>
+          <div style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--green-400)', letterSpacing: '-0.02em' }}>
             ₹{totalAmount}
           </div>
         </div>
 
-        {/* QR Code Block */}
-        <div style={{ textAlign: 'center', margin: '0.75rem 0' }}>
-          <div className="qr-container" style={{ margin: '0 auto' }}>
-            <QRCodeSVG
-              value={upiUrl}
-              size={160}
-              level="H"
-              includeMargin={true}
-            />
-          </div>
-
+        {/* Side-by-Side QR & UPI Info Card */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1rem',
+          background: 'rgba(255, 255, 255, 0.02)',
+          border: '1px solid var(--border-dim)',
+          borderRadius: '10px',
+          padding: '0.85rem',
+          marginBottom: '1rem',
+        }}>
+          {/* QR Code */}
           <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            background: 'rgba(255, 255, 255, 0.05)',
-            border: '1px solid var(--border-subtle)',
+            background: '#ffffff',
+            padding: '5px',
             borderRadius: '8px',
-            padding: '0.35rem 0.75rem',
-            marginTop: '0.5rem',
+            display: 'inline-flex',
+            flexShrink: 0,
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.25)',
           }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>UPI ID:</span>
-            <strong style={{ color: 'var(--text-primary)', fontFamily: 'monospace', fontSize: '0.88rem' }}>{vpa}</strong>
-            <button
-              type="button"
-              onClick={handleCopyUpi}
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                color: copiedUpi ? 'var(--green-500)' : 'var(--text-muted)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.2rem',
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                padding: '0.15rem 0.35rem',
-              }}
-              title="Copy UPI ID"
-            >
-              {copiedUpi ? <Check size={14} /> : <Copy size={14} />}
-              <span>{copiedUpi ? 'Copied' : 'Copy'}</span>
-            </button>
+            <QRCodeSVG value={upiUrl} size={110} level="M" />
           </div>
 
-          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
-            Scan with Google Pay, PhonePe, Paytm, or BHIM to pay ₹{totalAmount}
-          </div>
+          {/* UPI ID & Mobile Link */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.2rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Scan QR or use UPI ID:
+            </div>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: 'var(--bg-layer-1)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: '6px',
+              padding: '0.35rem 0.6rem',
+              marginBottom: '0.5rem',
+            }}>
+              <span style={{ fontFamily: 'monospace', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {vpa}
+              </span>
+              <button
+                type="button"
+                onClick={handleCopyUpi}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: copiedUpi ? 'var(--green-400)' : 'var(--text-muted)',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.2rem',
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  padding: '2px 4px',
+                }}
+                title="Copy UPI ID"
+              >
+                {copiedUpi ? <Check size={13} /> : <Copy size={13} />}
+                <span>{copiedUpi ? 'Copied' : 'Copy'}</span>
+              </button>
+            </div>
 
-          <div style={{ marginTop: '0.5rem' }}>
             <a
               href={upiUrl}
               className="btn btn-sm btn-secondary"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.78rem' }}
+              style={{
+                width: '100%',
+                justifyContent: 'center',
+                fontSize: '0.75rem',
+                padding: '0.35rem 0.5rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+              }}
             >
-              <span>Open in UPI App (Mobile)</span>
-              <ExternalLink size={13} />
+              <ExternalLink size={12} />
+              <span>Open in UPI App</span>
             </a>
           </div>
         </div>
 
-        {/* Payment Confirmation Form */}
-        <form onSubmit={handleSubmit} style={{ marginTop: '1.25rem', borderTop: '1px solid var(--border-dim)', paddingTop: '1.25rem' }}>
-          {/* Screenshot Upload Section */}
-          <div style={{ marginBottom: '1.25rem' }}>
-            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}>
-              <ImageIcon size={15} color="var(--green-500)" />
-              <span>Payment Screenshot (Recommended)</span>
-            </label>
-
+        {/* Verification Form */}
+        <form onSubmit={handleSubmit}>
+          {/* Screenshot Upload Bar */}
+          <div style={{ marginBottom: '0.65rem' }}>
             <input
               ref={fileInputRef}
               type="file"
@@ -479,68 +337,55 @@ export default function PaymentModal({
               <div
                 onClick={() => fileInputRef.current?.click()}
                 style={{
-                  border: '2px dashed rgba(255,255,255,0.1)',
-                  borderRadius: '10px',
-                  padding: '1.15rem',
-                  textAlign: 'center',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  border: '1px dashed var(--border-subtle)',
+                  borderRadius: '8px',
+                  padding: '0.65rem 0.85rem',
+                  background: 'rgba(255, 255, 255, 0.02)',
                   cursor: 'pointer',
-                  background: 'rgba(255,255,255,0.03)',
+                  color: 'var(--text-secondary)',
+                  fontSize: '0.82rem',
                   transition: 'all 0.15s ease',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(34, 197, 94, 0.4)';
-                  e.currentTarget.style.background = 'rgba(34, 197, 94, 0.05)';
+                  e.currentTarget.style.borderColor = 'var(--green-500)';
+                  e.currentTarget.style.color = 'var(--text-primary)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
-                  e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
+                  e.currentTarget.style.borderColor = 'var(--border-subtle)';
+                  e.currentTarget.style.color = 'var(--text-secondary)';
                 }}
               >
-                <Upload size={22} color="var(--text-muted)" style={{ margin: '0 auto 0.35rem' }} />
-                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                  Click to upload payment screenshot
-                </div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
-                  PNG, JPG or JPEG (Max 10MB)
-                </div>
+                <Upload size={16} color="var(--green-400)" />
+                <span>Upload Payment Screenshot (Recommended)</span>
               </div>
             ) : (
               <div style={{
-                position: 'relative',
-                borderRadius: '10px',
-                overflow: 'hidden',
-                border: '1px solid rgba(34, 197, 94, 0.3)',
-                background: 'rgba(34, 197, 94, 0.06)',
-                padding: '0.75rem',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.85rem',
+                justifyContent: 'space-between',
+                background: 'rgba(34, 197, 94, 0.08)',
+                border: '1px solid rgba(34, 197, 94, 0.3)',
+                borderRadius: '8px',
+                padding: '0.4rem 0.75rem',
               }}>
-                <img
-                  src={screenshotPreview}
-                  alt="Proof"
-                  style={{
-                    width: '58px',
-                    height: '58px',
-                    objectFit: 'cover',
-                    borderRadius: '6px',
-                    border: '1px solid var(--border-subtle)',
-                  }}
-                />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--green-400)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                    <FileCheck size={16} />
-                    <span>Screenshot Selected</span>
-                  </div>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                    {screenshotFile?.name}
-                  </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', overflow: 'hidden' }}>
+                  <img
+                    src={screenshotPreview}
+                    alt="Proof"
+                    style={{ width: '30px', height: '30px', objectFit: 'cover', borderRadius: '4px' }}
+                  />
+                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--green-400)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {screenshotFile?.name || 'Screenshot attached'}
+                  </span>
                 </div>
                 <button
                   type="button"
-                  className="btn btn-sm btn-danger"
-                  style={{ padding: '0.35rem 0.6rem' }}
                   onClick={handleRemoveScreenshot}
+                  style={{ background: 'none', border: 'none', color: 'var(--rose-400)', cursor: 'pointer', padding: '2px' }}
                   title="Remove screenshot"
                 >
                   <Trash2 size={15} />
@@ -550,28 +395,27 @@ export default function PaymentModal({
           </div>
 
           {/* UPI Reference Input */}
-          <div style={{ marginBottom: '1.25rem' }}>
-            <label className="form-label" htmlFor="upi-ref" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              UPI Reference / UTR Number (Optional if screenshot uploaded)
-            </label>
+          <div style={{ marginBottom: '1rem' }}>
             <input
               id="upi-ref"
               type="text"
               className="form-input"
-              placeholder="e.g. 3254XXXXXXXX (12 digits)"
+              placeholder="Or enter 12-digit UPI Ref / UTR Number"
               value={upiRef}
               onChange={(e) => setUpiRef(e.target.value)}
               maxLength={30}
-              style={{ fontSize: '0.9rem' }}
+              style={{ fontSize: '0.82rem', padding: '0.5rem 0.75rem' }}
             />
           </div>
 
-          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem', flexWrap: 'wrap' }}>
+          {/* Action Buttons */}
+          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', alignItems: 'center' }}>
             <button
               type="button"
               className="btn btn-secondary"
               onClick={onClose}
               disabled={submitting}
+              style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}
             >
               Cancel
             </button>
@@ -579,17 +423,9 @@ export default function PaymentModal({
               type="submit"
               className="btn btn-primary"
               disabled={submitting}
-              style={{ minWidth: '150px' }}
+              style={{ padding: '0.5rem 1.25rem', fontSize: '0.85rem', fontWeight: 700 }}
             >
-              {submitting ? (
-                <span>{uploadStatus || 'Processing...'}</span>
-              ) : (
-                <span>
-                  {weeks === 1
-                    ? `Submit ₹${totalAmount} for ${currentDateLabel}`
-                    : `Submit ₹${totalAmount} (${weeks} Weeks)`}
-                </span>
-              )}
+              {submitting ? (uploadStatus || 'Processing...') : `Submit ₹${totalAmount}`}
             </button>
           </div>
         </form>
