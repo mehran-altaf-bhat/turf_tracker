@@ -17,13 +17,16 @@ import {
   Clock,
   UserX,
   ShieldCheck,
+  Lock,
+  Key,
 } from 'lucide-react';
 
 export default function UserManagementPage({ currentUser }) {
   const [users, setUsers] = useState([]);
+  const [adminUser, setAdminUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState('all'); // 'all' | 'pending' | 'approved' | 'admin'
+  const [roleFilter, setRoleFilter] = useState('all'); // 'all' | 'pending' | 'approved'
   const [toast, setToast] = useState(null);
   const [approvingId, setApprovingId] = useState(null);
 
@@ -34,6 +37,14 @@ export default function UserManagementPage({ currentUser }) {
   const [editRole, setEditRole] = useState('user');
   const [savingEdit, setSavingEdit] = useState(false);
   const [editError, setEditError] = useState(null);
+
+  // Admin Profile Modal State
+  const [adminModalOpen, setAdminModalOpen] = useState(false);
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminName, setAdminName] = useState('');
+  const [adminPhone, setAdminPhone] = useState('');
+  const [savingAdmin, setSavingAdmin] = useState(false);
+  const [adminError, setAdminError] = useState(null);
 
   // Delete Modal State
   const [deletingUser, setDeletingUser] = useState(null);
@@ -47,11 +58,47 @@ export default function UserManagementPage({ currentUser }) {
     setLoading(true);
     try {
       const data = await api.getAllUsers();
-      setUsers(data.users || []);
+      setUsers((data.users || []).filter((u) => u.role !== 'admin'));
+      if (data.admin_user) {
+        setAdminUser(data.admin_user);
+      }
     } catch (err) {
       showToast(err.message || 'Failed to fetch users', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleOpenAdminEdit = () => {
+    const a = adminUser || currentUser || {};
+    setAdminName(a.name || currentUser?.name || 'Administrator');
+    setAdminEmail(a.email || currentUser?.email || 'mehranbhat010@gmail.com');
+    setAdminPhone(a.phone || currentUser?.phone || '');
+    setAdminError(null);
+    setAdminModalOpen(true);
+  };
+
+  const handleSaveAdminProfile = async (e) => {
+    e.preventDefault();
+    if (!adminEmail.trim() || !adminEmail.includes('@')) {
+      setAdminError('Please provide a valid administrator email address');
+      return;
+    }
+    setSavingAdmin(true);
+    setAdminError(null);
+    try {
+      const res = await api.updateAdminProfile({
+        name: adminName.trim(),
+        email: adminEmail.trim().toLowerCase(),
+        phone: adminPhone.trim(),
+      });
+      showToast(res.message || 'Admin email and profile updated successfully!');
+      setAdminModalOpen(false);
+      await loadUsers();
+    } catch (err) {
+      setAdminError(err.message || 'Failed to update admin profile');
+    } finally {
+      setSavingAdmin(false);
     }
   };
 
@@ -128,22 +175,21 @@ export default function UserManagementPage({ currentUser }) {
     }
   };
 
-  // Counts
+  // Counts (Squad Players only - Admin is separate)
   const totalCount = users.length;
   const pendingUsers = users.filter((u) => !u.is_approved);
   const pendingCount = pendingUsers.length;
-  const adminCount = users.filter((u) => u.role === 'admin').length;
   const approvedCount = totalCount - pendingCount;
 
-  // Filtering
+  // Filtering (strictly squad players only)
   const filteredUsers = users.filter((u) => {
+    if (u.role === 'admin') return false; // Admin is separate
     const q = searchQuery.toLowerCase().trim();
     const matchesQuery =
       !q ||
       (u.name && u.name.toLowerCase().includes(q)) ||
       (u.phone && u.phone.toLowerCase().includes(q)) ||
-      (u.email && u.email.toLowerCase().includes(q)) ||
-      (u.role && u.role.toLowerCase().includes(q));
+      (u.email && u.email.toLowerCase().includes(q));
 
     if (!matchesQuery) return false;
 
@@ -243,6 +289,113 @@ export default function UserManagementPage({ currentUser }) {
             >
               <RefreshCw size={15} className={loading ? 'spin' : ''} />
               <span>Refresh Directory</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Dedicated Administrator Account Card (Separated from Squad Players) */}
+      <div
+        className="card"
+        style={{
+          marginBottom: '1.5rem',
+          padding: '1.25rem 1.5rem',
+          background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.75) 0%, rgba(15, 23, 42, 0.95) 100%)',
+          border: '1px solid rgba(245, 158, 11, 0.35)',
+          borderRadius: '14px',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.35)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div
+              style={{
+                width: '46px',
+                height: '46px',
+                borderRadius: '12px',
+                background: 'rgba(245, 158, 11, 0.15)',
+                color: 'var(--amber-400)',
+                border: '1.5px solid rgba(245, 158, 11, 0.35)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.25rem',
+                fontWeight: 800,
+                flexShrink: 0,
+              }}
+            >
+              👑
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                  {adminUser?.name || currentUser?.name || 'Mehran'}
+                </span>
+                <span
+                  style={{
+                    fontSize: '0.72rem',
+                    background: 'rgba(245, 158, 11, 0.15)',
+                    color: 'var(--amber-400)',
+                    border: '1px solid rgba(245, 158, 11, 0.35)',
+                    padding: '0.15rem 0.55rem',
+                    borderRadius: '9999px',
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.3rem',
+                  }}
+                >
+                  <ShieldCheck size={12} />
+                  System Administrator (Dedicated)
+                </span>
+                <span
+                  style={{
+                    fontSize: '0.7rem',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    color: 'var(--text-muted)',
+                    border: '1px solid var(--border-subtle)',
+                    padding: '0.15rem 0.5rem',
+                    borderRadius: '4px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.25rem',
+                  }}
+                >
+                  <Lock size={11} /> Self-Deletion Blocked
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', marginTop: '0.35rem', flexWrap: 'wrap', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <Mail size={13} color="var(--amber-400)" />
+                  <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
+                    {adminUser?.email || currentUser?.email || 'mehranbhat010@gmail.com'}
+                  </span>
+                </div>
+                {(adminUser?.phone || currentUser?.phone) && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <Phone size={13} color="var(--green-400)" />
+                    <span>{adminUser?.phone || currentUser?.phone}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <button
+              type="button"
+              className="btn btn-sm btn-primary"
+              onClick={handleOpenAdminEdit}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                fontSize: '0.82rem',
+                padding: '0.5rem 1rem',
+              }}
+            >
+              <Pencil size={14} />
+              <span>Change Admin Email & Details</span>
             </button>
           </div>
         </div>
@@ -947,6 +1100,191 @@ export default function UserManagementPage({ currentUser }) {
                 <span>{isDeleting ? 'Deleting...' : 'Yes, Remove'}</span>
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= EDIT ADMIN PROFILE MODAL ================= */}
+      {adminModalOpen && (
+        <div className="modal-backdrop" onClick={() => !savingAdmin && setAdminModalOpen(false)}>
+          <div
+            className="modal-content"
+            style={{ maxWidth: '450px', width: '100%' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <div
+                  style={{
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '8px',
+                    background: 'rgba(245, 158, 11, 0.15)',
+                    color: 'var(--amber-400)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Key size={18} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
+                    Update Admin Email & Profile
+                  </h3>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    Dedicated Administrator Account
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAdminModalOpen(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  padding: '4px',
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div
+              style={{
+                background: 'rgba(245, 158, 11, 0.08)',
+                border: '1px solid rgba(245, 158, 11, 0.25)',
+                borderRadius: '10px',
+                padding: '0.75rem 0.9rem',
+                fontSize: '0.78rem',
+                color: 'var(--text-secondary)',
+                marginBottom: '1.25rem',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '0.5rem',
+              }}
+            >
+              <Lock size={15} color="var(--amber-400)" style={{ flexShrink: 0, marginTop: '2px' }} />
+              <div>
+                <strong style={{ color: 'var(--amber-400)' }}>Permanent Account:</strong> Modifying this email updates your administrator login credentials directly. Self-deletion is disabled for system security.
+              </div>
+            </div>
+
+            {adminError && (
+              <div
+                style={{
+                  background: 'rgba(239, 68, 68, 0.1)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  color: '#ef4444',
+                  padding: '0.65rem 0.85rem',
+                  borderRadius: '8px',
+                  fontSize: '0.82rem',
+                  marginBottom: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                }}
+              >
+                <AlertCircle size={16} />
+                <span>{adminError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveAdminProfile}>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
+                  Admin Email (Login ID) *
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={adminEmail}
+                  onChange={(e) => setAdminEmail(e.target.value)}
+                  placeholder="admin@example.com"
+                  style={{
+                    width: '100%',
+                    padding: '0.65rem 0.75rem',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-subtle)',
+                    background: 'var(--bg-layer-1)',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.875rem',
+                    outline: 'none',
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
+                  Administrator Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={adminName}
+                  onChange={(e) => setAdminName(e.target.value)}
+                  placeholder="Administrator Name"
+                  style={{
+                    width: '100%',
+                    padding: '0.65rem 0.75rem',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-subtle)',
+                    background: 'var(--bg-layer-1)',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.875rem',
+                    outline: 'none',
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
+                  Phone / WhatsApp
+                </label>
+                <input
+                  type="tel"
+                  value={adminPhone}
+                  onChange={(e) => setAdminPhone(e.target.value)}
+                  placeholder="e.g. 7051880655"
+                  style={{
+                    width: '100%',
+                    padding: '0.65rem 0.75rem',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-subtle)',
+                    background: 'var(--bg-layer-1)',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.875rem',
+                    outline: 'none',
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setAdminModalOpen(false)}
+                  disabled={savingAdmin}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={savingAdmin}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                  }}
+                >
+                  {savingAdmin ? <RefreshCw size={14} className="spin" /> : <CheckCircle2 size={15} />}
+                  <span>{savingAdmin ? 'Updating...' : 'Save Admin Details'}</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

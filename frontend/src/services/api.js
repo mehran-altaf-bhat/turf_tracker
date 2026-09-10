@@ -227,6 +227,13 @@ export const api = {
     return request('/admin/users');
   },
 
+  updateAdminProfile: async ({ name, email, phone }) => {
+    return request('/admin/profile', {
+      method: 'PUT',
+      body: JSON.stringify({ name, email, phone }),
+    });
+  },
+
   updateUser: async (userId, { name, phone, role }) => {
     return request(`/admin/users/${userId}`, {
       method: 'PUT',

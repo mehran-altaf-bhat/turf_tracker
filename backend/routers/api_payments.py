@@ -232,6 +232,49 @@ def get_my_payment_status(user: dict = Depends(get_current_user)):
     # Most recent first
     history.sort(key=lambda x: x["session_date"], reverse=True)
 
+    # Calculate turf collections for upcoming sessions across all players
+    upcoming_ids = [s["id"] for s in upcoming]
+    all_upcoming_payments = []
+    if upcoming_ids:
+        all_upcoming_payments = (
+            db.table("payments")
+            .select("session_id, amount, status, user_id")
+            .in_("session_id", upcoming_ids)
+            .execute()
+            .data
+            or []
+        )
+
+    collected_by_session = {}
+    for p in all_upcoming_payments:
+        if p.get("status") in ["confirmed", "partial"]:
+            sid = p.get("session_id")
+            collected_by_session[sid] = collected_by_session.get(sid, 0) + (p.get("amount") or 0)
+
+    upcoming_sessions_list = []
+    for s in upcoming:
+        sid = s["id"]
+        sess_collected = collected_by_session.get(sid, 0)
+        turf_target = 3800
+        is_paid = sess_collected >= turf_target
+        p_for_user = payments_by_session.get(sid)
+        user_st = p_for_user.get("status", "unpaid") if p_for_user else "unpaid"
+        user_amt = p_for_user.get("amount", 0) if (p_for_user and user_st in ["confirmed", "partial"]) else 0
+        per_person = s.get("cost_per_person", 1900)
+
+        upcoming_sessions_list.append({
+            "session": s,
+            "payment": p_for_user,
+            "status": user_st,
+            "amount_paid": user_amt,
+            "balance": max(0, per_person - user_amt),
+            "cost_per_player": per_person,
+            "collected_amount": sess_collected,
+            "total_turf_target": turf_target,
+            "is_turf_paid": is_paid,
+            "turf_paid_status": "Paid in Full" if is_paid else (f"Partially Paid" if sess_collected > 0 else "Unpaid"),
+        })
+
     return {
         "current_session": current_session,
         "current_status": cur_status,
@@ -246,16 +289,7 @@ def get_my_payment_status(user: dict = Depends(get_current_user)):
         "advance_credits": advance_paid_count,
         "total_paid_confirmed": total_paid_confirmed,
         "history": history,
-        "upcoming_sessions": [
-            {
-                "session": s,
-                "payment": payments_by_session.get(s["id"]),
-                "status": payments_by_session.get(s["id"], {}).get("status", "unpaid"),
-                "amount_paid": payments_by_session.get(s["id"], {}).get("amount", 0) if payments_by_session.get(s["id"], {}).get("status") in ["confirmed", "partial"] else 0,
-                "balance": max(0, s.get("cost_per_person", 200) - (payments_by_session.get(s["id"], {}).get("amount", 0) if payments_by_session.get(s["id"], {}).get("status") in ["confirmed", "partial"] else 0)),
-            }
-            for s in upcoming
-        ],
+        "upcoming_sessions": upcoming_sessions_list,
     }
 
 

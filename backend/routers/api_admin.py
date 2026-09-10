@@ -513,8 +513,12 @@ def approve_user(user_id: str, admin: dict = Depends(require_admin)):
 @router.delete("/users/{user_id}")
 def delete_user(user_id: str, admin: dict = Depends(require_admin)):
     if user_id == admin["id"]:
-        raise HTTPException(status_code=400, detail="Cannot delete your own admin account")
+        raise HTTPException(status_code=400, detail="The administrator cannot delete their own account.")
     db = service_client()
+    target_prof = db.table("profiles").select("role").eq("id", user_id).execute().data
+    if target_prof and target_prof[0].get("role") == "admin":
+        raise HTTPException(status_code=400, detail="The dedicated administrator account cannot be deleted.")
+
     try:
         # 1. Delete associated payments
         db.table("payments").delete().eq("user_id", user_id).execute()
@@ -619,8 +623,17 @@ def get_all_users_detailed(admin: dict = Depends(require_admin)):
             "matches_count": stats["matches_count"],
         })
 
-    pending_count = sum(1 for u in result if not u.get("is_approved"))
-    return {"users": result, "total": len(result), "pending_count": pending_count}
+    # Separate players from the system administrator
+    player_list = [u for u in result if u.get("role") != "admin"]
+    admin_user = next((u for u in result if u.get("role") == "admin"), None)
+    pending_count = sum(1 for u in player_list if not u.get("is_approved"))
+
+    return {
+        "users": player_list,
+        "admin_user": admin_user,
+        "total": len(player_list),
+        "pending_count": pending_count,
+    }
 
 
 class UpdateUserRequest(BaseModel):
@@ -668,6 +681,60 @@ def update_user(user_id: str, data: UpdateUserRequest, admin: dict = Depends(req
         print("Auth metadata update note:", e)
 
     return {"message": "Player details updated successfully!"}
+
+
+class UpdateAdminProfileRequest(BaseModel):
+    name: Optional[str] = None
+    email: str
+    phone: Optional[str] = None
+
+
+@router.put("/profile")
+def update_admin_profile(data: UpdateAdminProfileRequest, admin: dict = Depends(require_admin)):
+    """Allow the administrator to change their own email and contact details. Admin cannot be deleted."""
+    db = service_client()
+    admin_id = admin["id"]
+
+    clean_email = (data.email or "").strip().lower()
+    clean_name = (data.name or "").strip()
+    clean_phone = (data.phone or "").strip()
+
+    if not clean_email or "@" not in clean_email:
+        raise HTTPException(status_code=400, detail="A valid admin email address is required.")
+
+    auth_update = {
+        "email": clean_email,
+        "email_confirm": True,
+    }
+
+    try:
+        user_res = db.auth.admin.get_user_by_id(admin_id)
+        current_meta = user_res.user.user_metadata or {} if user_res and user_res.user else {}
+        if clean_name:
+            current_meta["name"] = clean_name
+        if clean_phone:
+            current_meta["phone"] = clean_phone
+        auth_update["user_metadata"] = current_meta
+        if clean_phone:
+            auth_update["phone"] = clean_phone
+
+        db.auth.admin.update_user_by_id(admin_id, auth_update)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to update admin email in auth: {str(e)}")
+
+    if clean_name:
+        db.table("profiles").update({"name": clean_name}).eq("id", admin_id).execute()
+
+    return {
+        "message": "Admin profile and email updated successfully!",
+        "admin": {
+            "id": admin_id,
+            "name": clean_name or admin.get("name"),
+            "email": clean_email,
+            "phone": clean_phone or admin.get("phone"),
+            "role": "admin",
+        },
+    }
 
 
 

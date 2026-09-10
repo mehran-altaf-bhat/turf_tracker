@@ -19,6 +19,7 @@ import {
   Sparkles,
   ExternalLink,
   ChevronRight,
+  Shield,
   ShieldCheck,
   RefreshCw,
   Trophy,
@@ -27,6 +28,7 @@ import {
 } from 'lucide-react';
 
 export default function DashboardPage({ user, activeTab = 'dashboard', setActiveTab }) {
+  const isAdmin = user?.role === 'admin';
   const [data, setData] = useState(null);
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -152,8 +154,8 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
         </div>
       )}
 
-      {/* Opted-Out Alert Banner */}
-      {!isInSquad ? (
+      {/* Opted-Out Alert Banner (Regular Players only) */}
+      {!isAdmin && !isInSquad ? (
         <div style={{
           background: 'var(--amber-subtle)',
           border: '1px solid rgba(251, 191, 36, 0.25)',
@@ -188,7 +190,7 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
             <span>Join Match Squad</span>
           </button>
         </div>
-      ) : currentStatus === 'rejected' ? (
+      ) : (!isAdmin && currentStatus === 'rejected') ? (
         <div style={{
           background: 'var(--rose-subtle)',
           border: '1px solid rgba(248, 113, 113, 0.25)',
@@ -237,11 +239,29 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                     Welcome, {user.name}!
                   </h2>
                   <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
-                    Ready for Friday turf football? Verify your squad attendance and balance.
+                    {isAdmin
+                      ? 'Turf Administrator Console • Overseeing match collections, squad roster, and player accounts.'
+                      : 'Ready for Friday turf football? Verify your squad attendance and balance.'}
                   </p>
                 </div>
                 <div>
-                  {isInSquad ? (
+                  {isAdmin ? (
+                    <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      padding: '0.35rem 0.75rem',
+                      borderRadius: '9999px',
+                      background: 'rgba(245, 158, 11, 0.12)',
+                      color: 'var(--amber-400)',
+                      border: '1px solid rgba(245, 158, 11, 0.3)',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                    }}>
+                      <ShieldCheck size={14} />
+                      System Admin
+                    </span>
+                  ) : isInSquad ? (
                     <span style={{
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -277,67 +297,69 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                 </div>
               </div>
 
-              {/* RSVP Action Toggle */}
-              <div style={{
-                marginTop: '1.25rem',
-                paddingTop: '1.25rem',
-                borderTop: '1px solid var(--border-dim)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '0.75rem'
-              }}>
-                <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+              {/* RSVP Action Toggle (Regular Players only, not Admin) */}
+              {!isAdmin && (
+                <div style={{
+                  marginTop: '1.25rem',
+                  paddingTop: '1.25rem',
+                  borderTop: '1px solid var(--border-dim)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '0.75rem'
+                }}>
+                  <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                    {isInSquad ? (
+                      <span>Cannot play this match? Your payment will shift to the next match:</span>
+                    ) : (
+                      <span>Ready to play? You can re-join the match squad anytime:</span>
+                    )}
+                  </div>
+
                   {isInSquad ? (
-                    <span>Cannot play this match? Your payment will shift to the next match:</span>
+                    <button
+                      type="button"
+                      disabled={rsvpLoading}
+                      onClick={() => {
+                        if (window.confirm('Cannot play this Friday? Your payment (if paid) will automatically shift to the next match as carryover credit.')) {
+                          handleRsvp(false);
+                        }
+                      }}
+                      style={{
+                        background: 'var(--rose-subtle)',
+                        border: '1px solid rgba(248, 113, 113, 0.25)',
+                        color: 'var(--rose-400)',
+                        padding: '0.45rem 0.9rem',
+                        borderRadius: '8px',
+                        fontSize: '0.82rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.45rem',
+                        transition: 'all 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(248, 113, 113, 0.18)'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'var(--rose-subtle)'}
+                    >
+                      <UserX size={15} />
+                      <span>Not Playing This Match</span>
+                    </button>
                   ) : (
-                    <span>Ready to play? You can re-join the match squad anytime:</span>
+                    <button
+                      type="button"
+                      disabled={rsvpLoading}
+                      onClick={() => handleRsvp(true)}
+                      className="btn btn-sm btn-primary"
+                      style={{ fontSize: '0.82rem', padding: '0.45rem 1rem' }}
+                    >
+                      <UserCheck size={15} />
+                      <span>I Want to Play / Join Squad</span>
+                    </button>
                   )}
                 </div>
-
-                {isInSquad ? (
-                  <button
-                    type="button"
-                    disabled={rsvpLoading}
-                    onClick={() => {
-                      if (window.confirm('Cannot play this Friday? Your payment (if paid) will automatically shift to the next match as carryover credit.')) {
-                        handleRsvp(false);
-                      }
-                    }}
-                    style={{
-                      background: 'var(--rose-subtle)',
-                      border: '1px solid rgba(248, 113, 113, 0.25)',
-                      color: 'var(--rose-400)',
-                      padding: '0.45rem 0.9rem',
-                      borderRadius: '8px',
-                      fontSize: '0.82rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '0.45rem',
-                      transition: 'all 0.15s ease',
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(248, 113, 113, 0.18)'}
-                    onMouseLeave={(e) => e.currentTarget.style.background = 'var(--rose-subtle)'}
-                  >
-                    <UserX size={15} />
-                    <span>Not Playing This Match</span>
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    disabled={rsvpLoading}
-                    onClick={() => handleRsvp(true)}
-                    className="btn btn-sm btn-primary"
-                    style={{ fontSize: '0.82rem', padding: '0.45rem 1rem' }}
-                  >
-                    <UserCheck size={15} />
-                    <span>I Want to Play / Join Squad</span>
-                  </button>
-                )}
-              </div>
+              )}
             </div>
 
             {/* Card 2: Friday Turf Slot & Duration */}
@@ -445,18 +467,18 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                     width: '28px',
                     height: '28px',
                     borderRadius: '8px',
-                    background: 'rgba(34, 197, 94, 0.12)',
-                    color: 'var(--green-400)',
+                    background: isAdmin ? 'rgba(245, 158, 11, 0.12)' : 'rgba(34, 197, 94, 0.12)',
+                    color: isAdmin ? 'var(--amber-400)' : 'var(--green-400)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontSize: '1rem',
                   }}>
-                    🏙️
+                    {isAdmin ? '🛡️' : '🏙️'}
                   </div>
                   <div>
                     <span style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
-                      Pitch Pass & Match Terminal
+                      {isAdmin ? 'Turf Financial & Booking Hub' : 'Pitch Pass & Match Terminal'}
                     </span>
                     <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                       Friday Match #{currentSession?.id || 1} • Elite Turf
@@ -465,7 +487,17 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                 </div>
 
                 <div>
-                  {isInSquad ? (
+                  {isAdmin ? (
+                    (upcomingSessions[0]?.collected_amount || 0) >= 3800 ? (
+                      <span className="badge badge-paid">
+                        <CheckCircle2 size={13} /> Turf Fully Funded ✅
+                      </span>
+                    ) : (
+                      <span className="badge badge-pending">
+                        <Clock3 size={13} /> Collection In Progress ⏳
+                      </span>
+                    )
+                  ) : isInSquad ? (
                     currentStatus === 'confirmed' && balanceDue === 0 ? (
                       <span className="badge badge-paid">
                         <CheckCircle2 size={13} /> Paid Full ✅
@@ -497,7 +529,78 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
 
               {/* Terminal Center Graphic */}
               <div className="viewfinder-inner">
-                {!isInSquad ? (
+                {isAdmin ? (
+                  /* ADMIN TERMINAL VIEW */
+                  <>
+                    <div className="viewfinder-camera-icon" style={{ background: 'rgba(245, 158, 11, 0.12)', borderColor: 'rgba(245, 158, 11, 0.35)' }}>
+                      <Shield size={32} color="var(--amber-400)" />
+                    </div>
+                    <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '1.2rem', marginBottom: '0.2rem' }}>
+                      Turf Booking & Financial Command
+                    </div>
+                    <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '1.1rem' }}>
+                      Friday {currentSession?.session_date} • Elite Football Turf
+                    </div>
+
+                    {/* Financial Breakdown Chips */}
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(3, 1fr)',
+                      gap: '0.65rem',
+                      width: '100%',
+                      maxWidth: '380px',
+                      margin: '0 auto 1.25rem',
+                    }}>
+                      <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--border-subtle)', borderRadius: '10px', padding: '0.65rem 0.5rem', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Turf Cost</div>
+                        <div style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--text-primary)' }}>₹3,800</div>
+                      </div>
+                      <div style={{ background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.25)', borderRadius: '10px', padding: '0.65rem 0.5rem', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--green-400)' }}>Collected</div>
+                        <div style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--green-400)' }}>
+                          ₹{upcomingSessions[0]?.collected_amount || 0}
+                        </div>
+                      </div>
+                      <div style={{
+                        background: Math.max(0, 3800 - (upcomingSessions[0]?.collected_amount || 0)) > 0 ? 'rgba(245, 158, 11, 0.1)' : 'rgba(34, 197, 94, 0.1)',
+                        border: Math.max(0, 3800 - (upcomingSessions[0]?.collected_amount || 0)) > 0 ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid rgba(34, 197, 94, 0.25)',
+                        borderRadius: '10px',
+                        padding: '0.65rem 0.5rem',
+                        textAlign: 'center',
+                      }}>
+                        <div style={{ fontSize: '0.72rem', color: Math.max(0, 3800 - (upcomingSessions[0]?.collected_amount || 0)) > 0 ? 'var(--amber-400)' : 'var(--green-400)' }}>Remaining</div>
+                        <div style={{ fontWeight: 800, fontSize: '1.05rem', color: Math.max(0, 3800 - (upcomingSessions[0]?.collected_amount || 0)) > 0 ? 'var(--amber-400)' : 'var(--green-400)' }}>
+                          ₹{Math.max(0, 3800 - (upcomingSessions[0]?.collected_amount || 0))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', maxWidth: '340px', marginBottom: '1.25rem' }}>
+                      {(upcomingSessions[0]?.collected_amount || 0) >= 3800
+                        ? 'Turf booking fee is fully covered by player contributions! Ready for kickoff.'
+                        : `Current squad split is ₹${upcomingSessions[0]?.cost_per_player || 1900} per player. Track approvals or record cash in the Admin Command.`}
+                    </p>
+
+                    <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        onClick={() => setActiveTab && setActiveTab('admin_command')}
+                      >
+                        <ShieldCheck size={15} />
+                        <span>Admin Command Center</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => setActiveTab && setActiveTab('user_approvals')}
+                      >
+                        <Users size={15} />
+                        <span>Player Approvals</span>
+                      </button>
+                    </div>
+                  </>
+                ) : !isInSquad ? (
                   /* User is NOT playing: Show Bench card */
                   <>
                     <div className="viewfinder-camera-icon" style={{ background: 'rgba(255,255,255,0.04)', borderColor: 'var(--border-subtle)' }}>
@@ -634,8 +737,17 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                 alignItems: 'center',
                 justifyContent: 'space-between',
               }}>
-                <span>Total Lifetime Paid: <strong style={{ color: 'var(--text-primary)' }}>₹{totalPaid}</strong></span>
-                <span>Advance Credits: <strong style={{ color: 'var(--purple-400)' }}>{advanceCredits} week(s)</strong></span>
+                {isAdmin ? (
+                  <>
+                    <span>Active Squad: <strong style={{ color: 'var(--text-primary)' }}>{playingSquad.length} Players</strong></span>
+                    <span>Turf Target: <strong style={{ color: 'var(--amber-400)' }}>₹3,800 Total</strong></span>
+                  </>
+                ) : (
+                  <>
+                    <span>Total Lifetime Paid: <strong style={{ color: 'var(--text-primary)' }}>₹{totalPaid}</strong></span>
+                    <span>Advance Credits: <strong style={{ color: 'var(--purple-400)' }}>{advanceCredits} week(s)</strong></span>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -984,18 +1096,34 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
           <div className="table-wrap">
             <table className="data-table">
               <thead>
-                <tr>
-                  <th>Session Date</th>
-                  <th>Slot Time</th>
-                  <th>Match Fee</th>
-                  <th>Your Status</th>
-                  <th>Action</th>
-                </tr>
+                {isAdmin ? (
+                  <tr>
+                    <th>Session Date</th>
+                    <th>Slot Time</th>
+                    <th>Match Fee</th>
+                    <th>Turf Collection (from ₹3,800)</th>
+                    <th>Turf Booking Status</th>
+                    <th style={{ textAlign: 'right' }}>Squad Action</th>
+                  </tr>
+                ) : (
+                  <tr>
+                    <th>Session Date</th>
+                    <th>Slot Time</th>
+                    <th>Match Fee</th>
+                    <th>Your Status</th>
+                    <th>Action</th>
+                  </tr>
+                )}
               </thead>
               <tbody>
                 {upcomingSessions.map((row, idx) => {
                   const s = row.session;
                   const status = row.status;
+                  const collected = row.collected_amount || 0;
+                  const target = row.total_turf_target || 3800;
+                  const costPerPlayer = row.cost_per_player || s.cost_per_person || 1900;
+                  const isTurfPaid = row.is_turf_paid || (collected >= target);
+
                   return (
                     <tr key={s.id}>
                       <td>
@@ -1007,29 +1135,108 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                         )}
                       </td>
                       <td>{s.start_time || '20:00'} – {s.end_time || '22:00'}</td>
-                      <td>₹{s.cost_per_person || 200}</td>
-                      <td>
-                        {status === 'confirmed' && <span className="badge badge-paid">Paid ✅</span>}
-                        {status === 'partial' && <span className="badge badge-pending">Partial ⚠️</span>}
-                        {status === 'pending' && <span className="badge badge-pending">Pending ⏳</span>}
-                        {status === 'rejected' && <span className="badge badge-unpaid">Rejected ❌</span>}
-                        {status === 'unpaid' && <span className="badge badge-unpaid">Unpaid</span>}
-                      </td>
-                      <td>
-                        {(status === 'unpaid' || status === 'rejected' || status === 'partial') ? (
-                          <button
-                            className="btn btn-sm btn-primary"
-                            style={status === 'rejected' ? { background: '#dc2626' } : {}}
-                            onClick={() => setModalOpen(true)}
-                          >
-                            {status === 'rejected' ? 'Pay Again' : status === 'partial' ? 'Pay Balance' : 'Pay'}
-                          </button>
-                        ) : status === 'pending' ? (
-                          <span style={{ color: 'var(--amber-400)', fontSize: '0.8rem', fontWeight: 600 }}>Pending ⏳</span>
-                        ) : (
-                          <span style={{ color: 'var(--green-400)', fontSize: '0.8rem', fontWeight: 600 }}>Covered ✓</span>
-                        )}
-                      </td>
+
+                      {isAdmin ? (
+                        /* ADMIN VIEW */
+                        <>
+                          <td>
+                            <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                              ₹{costPerPlayer}
+                            </div>
+                            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                              per player
+                            </div>
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                              <strong style={{ color: collected >= target ? 'var(--green-400)' : 'var(--text-primary)', fontSize: '0.92rem' }}>
+                                ₹{collected}
+                              </strong>
+                              <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>/ ₹{target}</span>
+                            </div>
+                            <div style={{
+                              width: '110px',
+                              height: '5px',
+                              background: 'rgba(255,255,255,0.08)',
+                              borderRadius: '9999px',
+                              overflow: 'hidden',
+                              marginTop: '4px'
+                            }}>
+                              <div style={{
+                                width: `${Math.min(100, Math.round((collected / target) * 100))}%`,
+                                height: '100%',
+                                background: collected >= target ? 'var(--green-500)' : 'linear-gradient(90deg, #3b82f6, #10b981)',
+                                borderRadius: '9999px',
+                              }} />
+                            </div>
+                          </td>
+                          <td>
+                            {isTurfPaid ? (
+                              <span className="badge badge-paid" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                                <CheckCircle2 size={12} />
+                                <span>Paid for Turf ✅</span>
+                              </span>
+                            ) : collected > 0 ? (
+                              <span className="badge badge-pending" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                                <Clock3 size={12} />
+                                <span>Pending (₹{Math.max(0, target - collected)} left)</span>
+                              </span>
+                            ) : (
+                              <span className="badge badge-unpaid" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                                <AlertCircle size={12} />
+                                <span>Unpaid (₹{target} due)</span>
+                              </span>
+                            )}
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-secondary"
+                              onClick={() => {
+                                if (setActiveTab) setActiveTab('admin_command');
+                                else window.location.href = '/admin';
+                              }}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.35rem',
+                                fontSize: '0.78rem',
+                                padding: '0.35rem 0.75rem',
+                              }}
+                            >
+                              <Users size={13} />
+                              <span>Manage Squad</span>
+                            </button>
+                          </td>
+                        </>
+                      ) : (
+                        /* REGULAR PLAYER VIEW */
+                        <>
+                          <td>₹{costPerPlayer}</td>
+                          <td>
+                            {status === 'confirmed' && <span className="badge badge-paid">Paid ✅</span>}
+                            {status === 'partial' && <span className="badge badge-pending">Partial ⚠️</span>}
+                            {status === 'pending' && <span className="badge badge-pending">Pending ⏳</span>}
+                            {status === 'rejected' && <span className="badge badge-unpaid">Rejected ❌</span>}
+                            {status === 'unpaid' && <span className="badge badge-unpaid">Unpaid</span>}
+                          </td>
+                          <td>
+                            {(status === 'unpaid' || status === 'rejected' || status === 'partial') ? (
+                              <button
+                                className="btn btn-sm btn-primary"
+                                style={status === 'rejected' ? { background: '#dc2626' } : {}}
+                                onClick={() => setModalOpen(true)}
+                              >
+                                {status === 'rejected' ? 'Pay Again' : status === 'partial' ? 'Pay Balance' : 'Pay'}
+                              </button>
+                            ) : status === 'pending' ? (
+                              <span style={{ color: 'var(--amber-400)', fontSize: '0.8rem', fontWeight: 600 }}>Pending ⏳</span>
+                            ) : (
+                              <span style={{ color: 'var(--green-400)', fontSize: '0.8rem', fontWeight: 600 }}>Covered ✓</span>
+                            )}
+                          </td>
+                        </>
+                      )}
                     </tr>
                   );
                 })}

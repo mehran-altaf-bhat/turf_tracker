@@ -104,7 +104,7 @@ def create_session(data: CreateSessionRequest, admin: dict = Depends(require_adm
 
         # Optionally populate all registered players into this match's squad
         if new_session and data.populate_all_players:
-            profiles = db.table("profiles").select("id").execute().data
+            profiles = db.table("profiles").select("id, role").neq("role", "admin").execute().data
             for p in profiles:
                 try:
                     db.table("payments").insert({
@@ -138,13 +138,14 @@ def add_past_fridays(data: AddPastFridaysRequest, admin: dict = Depends(require_
     days_back = (today.weekday() - 4) % 7
     if days_back == 0:
         days_back = 7
+
     most_recent_past_friday = today - timedelta(days=days_back)
 
     past_fridays = [most_recent_past_friday - timedelta(weeks=i) for i in range(data.weeks_count)]
 
     existing = db.table("turf_sessions").select("session_date").execute().data
     existing_dates = {s["session_date"] for s in existing}
-    profiles = db.table("profiles").select("id").execute().data if data.populate_all_players else []
+    profiles = db.table("profiles").select("id, role").neq("role", "admin").execute().data if data.populate_all_players else []
 
     created_count = 0
     for f_date in past_fridays:
