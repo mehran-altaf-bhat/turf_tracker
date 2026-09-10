@@ -6,7 +6,7 @@ import DashboardPage from './pages/DashboardPage';
 import AdminPage from './pages/AdminPage';
 import UserManagementPage from './pages/UserManagementPage';
 import { api, getStoredToken } from './services/api';
-import { Shield, CheckCircle2, Clock, Menu } from 'lucide-react';
+import { Shield, Menu } from 'lucide-react';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -64,15 +64,32 @@ export default function App() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: '#ffffff',
-        color: '#0f172a',
+        background: 'var(--bg-base)',
         flexDirection: 'column',
-        gap: '0.75rem',
+        gap: '1rem',
       }}>
-        <img src={aseefLogo} alt="ASEEF XI" style={{ height: '48px', width: 'auto' }} />
-        <div style={{ fontSize: '1.05rem', color: '#059669', fontWeight: 700, letterSpacing: '0.02em' }}>
+        <div style={{
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '80px',
+          height: '80px',
+        }}>
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            borderRadius: '50%',
+            border: '2px solid rgba(34, 197, 94, 0.3)',
+            borderTopColor: 'var(--green-500)',
+            animation: 'spinLoader 0.8s linear infinite',
+          }} />
+          <img src={aseefLogo} alt="ASEEF XI" style={{ height: '42px', width: 'auto', borderRadius: '8px' }} />
+        </div>
+        <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.04em' }}>
           Loading ASEEF XI...
         </div>
+        <style>{`@keyframes spinLoader { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
@@ -154,7 +171,7 @@ export default function App() {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <div className="header-status-pill">
-              <Clock size={14} color="#059669" />
+              <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: 'var(--green-500)', display: 'inline-block', flexShrink: 0 }} className="pulse-dot" />
               <span>Friday 8:00 PM – 10:00 PM</span>
             </div>
 
@@ -163,9 +180,9 @@ export default function App() {
                 type="button"
                 className="btn btn-sm"
                 style={{
-                  background: '#fef3c7',
-                  color: '#92400e',
-                  border: '1px solid #fde68a',
+                  background: 'rgba(245, 158, 11, 0.15)',
+                  color: 'var(--amber-400)',
+                  border: '1px solid rgba(245, 158, 11, 0.35)',
                   fontSize: '0.8rem',
                   fontWeight: 600,
                   display: 'inline-flex',
@@ -200,18 +217,16 @@ export default function App() {
 
         {/* Footer */}
         <footer style={{
-          borderTop: '1px solid #eaecf0',
-          background: '#ffffff',
-          padding: '1.25rem 2rem',
+          borderTop: '1px solid var(--border-dim)',
+          background: 'rgba(10, 15, 30, 0.6)',
+          padding: '1rem 2rem',
           textAlign: 'center',
-          color: '#64748b',
-          fontSize: '0.82rem',
+          color: 'var(--text-muted)',
+          fontSize: '0.78rem',
           marginTop: 'auto',
+          backdropFilter: 'blur(10px)',
         }}>
-          <div>⚽ <strong>Elite Football Turf</strong> — Every Friday, 8:00 PM to 10:00 PM</div>
-          <div style={{ marginTop: '0.2rem', color: '#94a3b8', fontSize: '0.75rem' }}>
-            Weekly Football Session & Attendance Tracker
-          </div>
+          <div>⚽ <strong style={{ color: 'var(--text-secondary)' }}>Elite Football Turf</strong> — Every Friday, 8:00 PM to 10:00 PM</div>
         </footer>
       </div>
     </div>

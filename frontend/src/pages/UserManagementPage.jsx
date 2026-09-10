@@ -189,8 +189,9 @@ export default function UserManagementPage({ currentUser }) {
         style={{
           marginBottom: '1.5rem',
           padding: '1.5rem 1.75rem',
-          background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
-          border: '1px solid #e2e8f0',
+          background: 'linear-gradient(135deg, rgba(20, 29, 53, 0.9) 0%, rgba(15, 22, 41, 0.98) 100%)',
+          border: '1px solid var(--border-subtle)',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.35)',
         }}
       >
         <div
@@ -209,8 +210,9 @@ export default function UserManagementPage({ currentUser }) {
                   width: '36px',
                   height: '36px',
                   borderRadius: '10px',
-                  background: '#eff6ff',
-                  color: '#2563eb',
+                  background: 'rgba(34, 197, 94, 0.12)',
+                  color: 'var(--green-400)',
+                  border: '1px solid rgba(34, 197, 94, 0.25)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -218,12 +220,12 @@ export default function UserManagementPage({ currentUser }) {
               >
                 <Users size={20} />
               </div>
-              <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+              <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
                 Player & User Approvals
               </h2>
             </div>
-            <p style={{ margin: 0, color: '#64748b', fontSize: '0.875rem' }}>
-              Players register with their Name, Email, Phone, and Password. Review and approve their accounts before they can log in.
+            <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+              Review registered squad players and approve accounts so they can log in and participate in matches.
             </p>
           </div>
 
@@ -236,9 +238,9 @@ export default function UserManagementPage({ currentUser }) {
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '0.4rem',
+                gap: '0.45rem',
                 fontSize: '0.85rem',
-                padding: '0.55rem 0.95rem',
+                padding: '0.55rem 1rem',
               }}
             >
               <RefreshCw size={15} className={loading ? 'spin' : ''} />
@@ -252,8 +254,8 @@ export default function UserManagementPage({ currentUser }) {
       {pendingCount > 0 && (
         <div
           style={{
-            background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
-            border: '1.5px solid #fcd34d',
+            background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(217, 119, 6, 0.06) 100%)',
+            border: '1px solid rgba(245, 158, 11, 0.3)',
             borderRadius: '12px',
             padding: '1rem 1.25rem',
             marginBottom: '1.25rem',
@@ -262,7 +264,7 @@ export default function UserManagementPage({ currentUser }) {
             justifyContent: 'space-between',
             flexWrap: 'wrap',
             gap: '1rem',
-            boxShadow: '0 2px 8px rgba(217, 119, 6, 0.08)',
+            boxShadow: '0 4px 20px rgba(245, 158, 11, 0.08)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -271,8 +273,9 @@ export default function UserManagementPage({ currentUser }) {
                 width: '36px',
                 height: '36px',
                 borderRadius: '50%',
-                background: '#fef08a',
-                color: '#b45309',
+                background: 'rgba(245, 158, 11, 0.2)',
+                color: 'var(--amber-400)',
+                border: '1px solid rgba(245, 158, 11, 0.4)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -284,10 +287,10 @@ export default function UserManagementPage({ currentUser }) {
               ⏳
             </div>
             <div>
-              <div style={{ fontWeight: 800, color: '#92400e', fontSize: '0.95rem' }}>
+              <div style={{ fontWeight: 800, color: 'var(--amber-400)', fontSize: '0.95rem' }}>
                 {pendingCount} New Player Registration{pendingCount > 1 ? 's' : ''} Pending Your Approval
               </div>
-              <div style={{ fontSize: '0.82rem', color: '#b45309' }}>
+              <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
                 Players cannot log in until you approve them below.
               </div>
             </div>
@@ -298,13 +301,14 @@ export default function UserManagementPage({ currentUser }) {
             className="btn btn-sm"
             onClick={() => setRoleFilter('pending')}
             style={{
-              background: '#d97706',
+              background: 'linear-gradient(135deg, #f59e0b, #d97706)',
               color: '#ffffff',
               border: 'none',
               fontWeight: 700,
-              padding: '0.45rem 0.85rem',
-              borderRadius: '6px',
+              padding: '0.45rem 1rem',
+              borderRadius: '8px',
               cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(245, 158, 11, 0.3)',
             }}
           >
             View Pending ({pendingCount})
@@ -328,7 +332,7 @@ export default function UserManagementPage({ currentUser }) {
         <div style={{ position: 'relative', flex: '1 1 280px', maxWidth: '420px' }}>
           <Search
             size={16}
-            color="#94a3b8"
+            color="var(--text-muted)"
             style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }}
           />
           <input
@@ -338,9 +342,11 @@ export default function UserManagementPage({ currentUser }) {
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{
               width: '100%',
-              padding: '0.55rem 0.75rem 0.55rem 2.25rem',
+              padding: '0.6rem 0.75rem 0.6rem 2.25rem',
               borderRadius: '8px',
-              border: '1px solid #cbd5e1',
+              border: '1px solid var(--border-subtle)',
+              background: 'var(--bg-layer-1)',
+              color: 'var(--text-primary)',
               fontSize: '0.875rem',
               outline: 'none',
             }}
@@ -357,7 +363,7 @@ export default function UserManagementPage({ currentUser }) {
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                color: '#94a3b8',
+                color: 'var(--text-muted)',
                 padding: '2px',
               }}
             >
@@ -384,9 +390,15 @@ export default function UserManagementPage({ currentUser }) {
               fontSize: '0.78rem',
               borderRadius: '9999px',
               padding: '0.35rem 0.85rem',
-              background: roleFilter === 'pending' ? '#d97706' : (pendingCount > 0 ? '#fef3c7' : undefined),
-              color: roleFilter === 'pending' ? '#ffffff' : (pendingCount > 0 ? '#92400e' : undefined),
-              borderColor: pendingCount > 0 ? '#fcd34d' : undefined,
+              background: roleFilter === 'pending'
+                ? 'linear-gradient(135deg, #f59e0b, #d97706)'
+                : (pendingCount > 0 ? 'rgba(245, 158, 11, 0.12)' : undefined),
+              color: roleFilter === 'pending'
+                ? '#ffffff'
+                : (pendingCount > 0 ? 'var(--amber-400)' : undefined),
+              border: pendingCount > 0 && roleFilter !== 'pending'
+                ? '1px solid rgba(245, 158, 11, 0.3)'
+                : undefined,
               fontWeight: pendingCount > 0 ? 700 : 500,
             }}
             onClick={() => setRoleFilter('pending')}
@@ -417,41 +429,29 @@ export default function UserManagementPage({ currentUser }) {
       {/* Users Table / Directory */}
       <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
         {loading ? (
-          <div style={{ padding: '3.5rem 1rem', textAlign: 'center', color: '#64748b' }}>
+          <div style={{ padding: '3.5rem 1rem', textAlign: 'center', color: 'var(--text-muted)' }}>
             <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>⚽</div>
-            <div style={{ fontWeight: 600 }}>Loading players directory...</div>
+            <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Loading players directory...</div>
           </div>
         ) : filteredUsers.length === 0 ? (
-          <div style={{ padding: '3.5rem 1rem', textAlign: 'center', color: '#64748b' }}>
-            <Users size={36} color="#cbd5e1" style={{ margin: '0 auto 0.75rem' }} />
-            <div style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b' }}>No players found</div>
-            <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginTop: '0.25rem' }}>
+          <div style={{ padding: '3.5rem 1rem', textAlign: 'center' }}>
+            <Users size={36} color="var(--text-muted)" style={{ margin: '0 auto 0.75rem' }} />
+            <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>No players found</div>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
               {searchQuery ? `No players match your search "${searchQuery}"` : 'No players in this category.'}
             </p>
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+          <div className="table-wrap">
+            <table className="data-table">
               <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                  <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>
-                    Player Name
-                  </th>
-                  <th style={{ padding: '0.85rem 1rem', fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>
-                    Phone / WhatsApp
-                  </th>
-                  <th style={{ padding: '0.85rem 1rem', fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>
-                    Email
-                  </th>
-                  <th style={{ padding: '0.85rem 1rem', fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>
-                    Approval Status
-                  </th>
-                  <th style={{ padding: '0.85rem 1rem', fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>
-                    Role
-                  </th>
-                  <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', textAlign: 'right' }}>
-                    Actions
-                  </th>
+                <tr>
+                  <th>Player Name</th>
+                  <th>Phone / WhatsApp</th>
+                  <th>Email</th>
+                  <th>Approval Status</th>
+                  <th>Role</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -464,46 +464,50 @@ export default function UserManagementPage({ currentUser }) {
                     <tr
                       key={u.id || idx}
                       style={{
-                        borderBottom: '1px solid #f1f5f9',
-                        backgroundColor: isPending ? '#fffdf7' : 'transparent',
-                        transition: 'background-color 0.15s ease',
+                        backgroundColor: isPending ? 'rgba(245, 158, 11, 0.04)' : undefined,
+                        borderLeft: isPending ? '3px solid var(--amber-400)' : '3px solid transparent',
                       }}
-                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = isPending ? '#fefce8' : '#fbfcfe')}
-                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = isPending ? '#fffdf7' : 'transparent')}
                     >
                       {/* Player Avatar & Name */}
-                      <td style={{ padding: '1rem 1.25rem' }}>
+                      <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                           <div
                             style={{
-                              width: '38px',
-                              height: '38px',
+                              width: '40px',
+                              height: '40px',
                               borderRadius: '50%',
-                              background: u.role === 'admin' ? '#fef3c7' : (isPending ? '#fef08a' : '#ecfdf5'),
-                              color: u.role === 'admin' ? '#b45309' : (isPending ? '#854d0e' : '#047857'),
+                              background: u.role === 'admin'
+                                ? 'rgba(245, 158, 11, 0.15)'
+                                : (isPending ? 'rgba(245, 158, 11, 0.15)' : 'rgba(34, 197, 94, 0.12)'),
+                              color: u.role === 'admin'
+                                ? 'var(--amber-400)'
+                                : (isPending ? 'var(--amber-400)' : 'var(--green-400)'),
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              fontWeight: 700,
-                              fontSize: '0.95rem',
-                              border: u.role === 'admin' ? '1px solid #fde68a' : (isPending ? '1px solid #fef08a' : '1px solid #a7f3d0'),
+                              fontWeight: 800,
+                              fontSize: '1rem',
+                              border: u.role === 'admin'
+                                ? '1.5px solid rgba(245, 158, 11, 0.35)'
+                                : (isPending ? '1.5px solid rgba(245, 158, 11, 0.35)' : '1.5px solid rgba(34, 197, 94, 0.3)'),
                               flexShrink: 0,
                             }}
                           >
                             {(u.name || 'P').charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                              <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.92rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                              <span style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.95rem' }}>
                                 {u.name}
                               </span>
                               {isCurrentAdmin && (
                                 <span
                                   style={{
                                     fontSize: '0.68rem',
-                                    background: '#e0e7ff',
-                                    color: '#3730a3',
-                                    padding: '0.1rem 0.4rem',
+                                    background: 'rgba(96, 165, 250, 0.15)',
+                                    color: 'var(--blue-400)',
+                                    border: '1px solid rgba(96, 165, 250, 0.3)',
+                                    padding: '0.1rem 0.45rem',
                                     borderRadius: '4px',
                                     fontWeight: 700,
                                   }}
@@ -512,7 +516,7 @@ export default function UserManagementPage({ currentUser }) {
                                 </span>
                               )}
                             </div>
-                            <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.1rem' }}>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>
                               ID: {u.id.substring(0, 8)}...
                             </div>
                           </div>
@@ -520,14 +524,14 @@ export default function UserManagementPage({ currentUser }) {
                       </td>
 
                       {/* Phone / WhatsApp */}
-                      <td style={{ padding: '1rem 1rem' }}>
+                      <td>
                         {u.phone ? (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                            <Phone size={14} color="#059669" />
+                            <Phone size={14} color="var(--green-400)" />
                             <a
                               href={`tel:${u.phone}`}
                               style={{
-                                color: '#0f172a',
+                                color: 'var(--text-primary)',
                                 fontWeight: 600,
                                 fontSize: '0.875rem',
                                 textDecoration: 'none',
@@ -548,9 +552,11 @@ export default function UserManagementPage({ currentUser }) {
                                   width: '24px',
                                   height: '24px',
                                   borderRadius: '50%',
-                                  background: '#dcfce7',
-                                  color: '#15803d',
+                                  background: 'rgba(34, 197, 94, 0.15)',
+                                  color: 'var(--green-400)',
+                                  border: '1px solid rgba(34, 197, 94, 0.3)',
                                   marginLeft: '0.2rem',
+                                  transition: 'all 0.15s ease',
                                 }}
                               >
                                 <MessageCircle size={13} />
@@ -558,30 +564,30 @@ export default function UserManagementPage({ currentUser }) {
                             )}
                           </div>
                         ) : (
-                          <span style={{ color: '#94a3b8', fontSize: '0.82rem', fontStyle: 'italic' }}>
+                          <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem', fontStyle: 'italic' }}>
                             No phone set
                           </span>
                         )}
                       </td>
 
                       {/* Email */}
-                      <td style={{ padding: '1rem 1rem' }}>
+                      <td>
                         <span
                           style={{
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: '0.3rem',
-                            fontSize: '0.82rem',
-                            color: '#334155',
+                            gap: '0.35rem',
+                            fontSize: '0.85rem',
+                            color: 'var(--text-secondary)',
                           }}
                         >
-                          <Mail size={13} color="#64748b" />
+                          <Mail size={13} color="var(--text-muted)" />
                           <span>{u.email || '—'}</span>
                         </span>
                       </td>
 
                       {/* Approval Status */}
-                      <td style={{ padding: '1rem 1rem' }}>
+                      <td>
                         {isPending ? (
                           <span
                             style={{
@@ -591,30 +597,17 @@ export default function UserManagementPage({ currentUser }) {
                               fontSize: '0.75rem',
                               padding: '0.25rem 0.65rem',
                               borderRadius: '9999px',
-                              background: '#fffbeb',
-                              color: '#b45309',
+                              background: 'rgba(245, 158, 11, 0.12)',
+                              color: 'var(--amber-400)',
                               fontWeight: 700,
-                              border: '1.5px solid #fde68a',
+                              border: '1px solid rgba(245, 158, 11, 0.3)',
                             }}
                           >
                             <Clock size={12} />
                             <span>Pending Approval</span>
                           </span>
                         ) : (
-                          <span
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '0.3rem',
-                              fontSize: '0.75rem',
-                              padding: '0.25rem 0.65rem',
-                              borderRadius: '9999px',
-                              background: '#ecfdf5',
-                              color: '#047857',
-                              fontWeight: 600,
-                              border: '1px solid #a7f3d0',
-                            }}
-                          >
+                          <span className="badge badge-paid" style={{ fontSize: '0.75rem' }}>
                             <ShieldCheck size={12} />
                             <span>Approved</span>
                           </span>
@@ -622,7 +615,7 @@ export default function UserManagementPage({ currentUser }) {
                       </td>
 
                       {/* Role Badge */}
-                      <td style={{ padding: '1rem 1rem' }}>
+                      <td>
                         {u.role === 'admin' ? (
                           <span
                             style={{
@@ -632,13 +625,13 @@ export default function UserManagementPage({ currentUser }) {
                               fontSize: '0.75rem',
                               padding: '0.25rem 0.6rem',
                               borderRadius: '9999px',
-                              background: '#fffbeb',
-                              color: '#b45309',
+                              background: 'rgba(245, 158, 11, 0.12)',
+                              color: 'var(--amber-400)',
                               fontWeight: 700,
-                              border: '1px solid #fde68a',
+                              border: '1px solid rgba(245, 158, 11, 0.3)',
                             }}
                           >
-                            <Shield size={12} color="#d97706" />
+                            <Shield size={12} color="var(--amber-400)" />
                             <span>Admin</span>
                           </span>
                         ) : (
@@ -650,10 +643,10 @@ export default function UserManagementPage({ currentUser }) {
                               fontSize: '0.75rem',
                               padding: '0.25rem 0.6rem',
                               borderRadius: '9999px',
-                              background: '#f1f5f9',
-                              color: '#475569',
+                              background: 'rgba(255, 255, 255, 0.05)',
+                              color: 'var(--text-secondary)',
                               fontWeight: 600,
-                              border: '1px solid #e2e8f0',
+                              border: '1px solid var(--border-dim)',
                             }}
                           >
                             <UserCheck size={12} />
@@ -663,12 +656,12 @@ export default function UserManagementPage({ currentUser }) {
                       </td>
 
                       {/* Actions */}
-                      <td style={{ padding: '1rem 1.25rem', textAlign: 'right' }}>
+                      <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}>
                           {isPending && (
                             <button
                               type="button"
-                              className="btn btn-sm"
+                              className="btn btn-sm btn-primary"
                               onClick={() => handleApproveUser(u)}
                               disabled={approvingId === u.id}
                               title="Approve this player account"
@@ -678,10 +671,6 @@ export default function UserManagementPage({ currentUser }) {
                                 gap: '0.3rem',
                                 fontSize: '0.78rem',
                                 padding: '0.35rem 0.75rem',
-                                background: '#059669',
-                                color: '#ffffff',
-                                border: 'none',
-                                fontWeight: 700,
                               }}
                             >
                               {approvingId === u.id ? <RefreshCw size={12} className="spin" /> : <CheckCircle2 size={13} />}
@@ -718,9 +707,9 @@ export default function UserManagementPage({ currentUser }) {
                               gap: '0.3rem',
                               fontSize: '0.78rem',
                               padding: '0.35rem 0.7rem',
-                              background: isCurrentAdmin ? '#f1f5f9' : '#fff1f2',
-                              color: isCurrentAdmin ? '#94a3b8' : '#e11d48',
-                              border: isCurrentAdmin ? '1px solid #e2e8f0' : '1px solid #fecdd3',
+                              background: isCurrentAdmin ? 'rgba(255,255,255,0.03)' : 'rgba(248, 113, 113, 0.1)',
+                              color: isCurrentAdmin ? 'var(--text-muted)' : 'var(--rose-400)',
+                              border: isCurrentAdmin ? '1px solid var(--border-dim)' : '1px solid rgba(248, 113, 113, 0.25)',
                               cursor: isCurrentAdmin ? 'not-allowed' : 'pointer',
                             }}
                           >
@@ -753,8 +742,9 @@ export default function UserManagementPage({ currentUser }) {
                     width: '32px',
                     height: '32px',
                     borderRadius: '8px',
-                    background: '#eff6ff',
-                    color: '#2563eb',
+                    background: 'rgba(96, 165, 250, 0.15)',
+                    color: 'var(--blue-400)',
+                    border: '1px solid rgba(96, 165, 250, 0.3)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -762,7 +752,7 @@ export default function UserManagementPage({ currentUser }) {
                 >
                   <Pencil size={16} />
                 </div>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
                   Edit Player Details
                 </h3>
               </div>
@@ -773,7 +763,7 @@ export default function UserManagementPage({ currentUser }) {
                   background: 'none',
                   border: 'none',
                   cursor: 'pointer',
-                  color: '#94a3b8',
+                  color: 'var(--text-muted)',
                   padding: '4px',
                 }}
               >
@@ -785,10 +775,10 @@ export default function UserManagementPage({ currentUser }) {
               <div
                 style={{
                   padding: '0.65rem 0.85rem',
-                  background: '#fef2f2',
-                  border: '1px solid #fecdd3',
+                  background: 'rgba(248, 113, 113, 0.12)',
+                  border: '1px solid rgba(248, 113, 113, 0.3)',
                   borderRadius: '8px',
-                  color: '#991b1b',
+                  color: 'var(--rose-400)',
                   fontSize: '0.85rem',
                   marginBottom: '1rem',
                   display: 'flex',
@@ -803,7 +793,7 @@ export default function UserManagementPage({ currentUser }) {
 
             <form onSubmit={handleSaveEdit}>
               <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
                   Player Full Name *
                 </label>
                 <input
@@ -814,9 +804,11 @@ export default function UserManagementPage({ currentUser }) {
                   placeholder="e.g. Faisal Rashid..."
                   style={{
                     width: '100%',
-                    padding: '0.6rem 0.85rem',
+                    padding: '0.65rem 0.85rem',
                     borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
+                    border: '1px solid var(--border-subtle)',
+                    background: 'var(--bg-layer-1)',
+                    color: 'var(--text-primary)',
                     fontSize: '0.9rem',
                     outline: 'none',
                   }}
@@ -824,7 +816,7 @@ export default function UserManagementPage({ currentUser }) {
               </div>
 
               <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
                   Phone / WhatsApp Number
                 </label>
                 <input
@@ -834,20 +826,22 @@ export default function UserManagementPage({ currentUser }) {
                   placeholder="e.g. 9876543210"
                   style={{
                     width: '100%',
-                    padding: '0.6rem 0.85rem',
+                    padding: '0.65rem 0.85rem',
                     borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
+                    border: '1px solid var(--border-subtle)',
+                    background: 'var(--bg-layer-1)',
+                    color: 'var(--text-primary)',
                     fontSize: '0.9rem',
                     outline: 'none',
                   }}
                 />
-                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.3rem' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>
                   Used for WhatsApp match roster updates.
                 </div>
               </div>
 
               <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
                   Account Role & Permissions
                 </label>
                 <select
@@ -855,11 +849,12 @@ export default function UserManagementPage({ currentUser }) {
                   onChange={(e) => setEditRole(e.target.value)}
                   style={{
                     width: '100%',
-                    padding: '0.6rem 0.85rem',
+                    padding: '0.65rem 0.85rem',
                     borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
+                    border: '1px solid var(--border-subtle)',
                     fontSize: '0.9rem',
-                    background: '#ffffff',
+                    background: 'var(--bg-layer-1)',
+                    color: 'var(--text-primary)',
                     outline: 'none',
                   }}
                 >
@@ -882,8 +877,6 @@ export default function UserManagementPage({ currentUser }) {
                   className="btn btn-primary"
                   disabled={savingEdit}
                   style={{
-                    background: '#059669',
-                    borderColor: '#059669',
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '0.4rem',
@@ -911,8 +904,9 @@ export default function UserManagementPage({ currentUser }) {
                 width: '48px',
                 height: '48px',
                 borderRadius: '50%',
-                background: '#fee2e2',
-                color: '#ef4444',
+                background: 'rgba(248, 113, 113, 0.15)',
+                color: 'var(--rose-400)',
+                border: '1px solid rgba(248, 113, 113, 0.3)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -922,12 +916,12 @@ export default function UserManagementPage({ currentUser }) {
               <Trash2 size={24} />
             </div>
 
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.5rem' }}>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
               Remove {deletingUser.name}?
             </h3>
 
-            <p style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '1.5rem', lineHeight: 1.5 }}>
-              Are you sure you want to permanently remove <strong>{deletingUser.name}</strong>?
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '1.5rem', lineHeight: 1.5 }}>
+              Are you sure you want to permanently remove <strong style={{ color: 'var(--text-primary)' }}>{deletingUser.name}</strong>?
               All associated match payment records for this player will also be cleaned up.
             </p>
 
@@ -948,7 +942,7 @@ export default function UserManagementPage({ currentUser }) {
                 disabled={isDeleting}
                 style={{
                   flex: 1,
-                  background: '#ef4444',
+                  background: 'linear-gradient(135deg, #ef4444, #dc2626)',
                   color: '#ffffff',
                   border: 'none',
                   fontWeight: 700,
@@ -956,6 +950,7 @@ export default function UserManagementPage({ currentUser }) {
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '0.4rem',
+                  boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
                 }}
               >
                 {isDeleting ? <RefreshCw size={15} className="spin" /> : <Trash2 size={15} />}

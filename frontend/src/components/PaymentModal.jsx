@@ -211,12 +211,12 @@ export default function PaymentModal({
       <div className="modal-content">
         <div className="modal-header" style={{ marginBottom: '1rem' }}>
           <div>
-            <h3 style={{ fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.45rem', color: '#0f172a' }}>
+            <h3 style={{ fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.45rem', color: 'var(--text-primary)' }}>
               <span>⚽</span>
               <span>{hasPartialBalance && weeks === 1 ? 'Pay Match Fee Balance' : `Pay for Turf (${currentDateLabel})`}</span>
             </h3>
-            <p style={{ fontSize: '0.85rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.15rem' }}>
-              <Calendar size={13} color="#059669" />
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.15rem' }}>
+              <Calendar size={13} color="var(--green-500)" />
               <span>Elite Football Turf • Friday 8:00 PM - 10:00 PM</span>
             </p>
           </div>
@@ -227,11 +227,11 @@ export default function PaymentModal({
 
         {error && (
           <div style={{
-            background: '#fff1f2',
-            border: '1px solid #fecdd3',
+            background: 'var(--rose-subtle)',
+            border: '1px solid rgba(248, 113, 113, 0.25)',
             borderRadius: '8px',
             padding: '0.75rem 1rem',
-            color: '#be123c',
+            color: 'var(--rose-400)',
             fontSize: '0.85rem',
             display: 'flex',
             alignItems: 'center',
@@ -246,20 +246,20 @@ export default function PaymentModal({
         {/* Breakdown Card if user has partial balance / shifted credit */}
         {hasPartialBalance && weeks === 1 && (
           <div style={{
-            background: '#f8fafc',
-            border: '1px solid #eaecf0',
+            background: 'rgba(255, 255, 255, 0.04)',
+            border: '1px solid var(--border-subtle)',
             borderRadius: '10px',
             padding: '0.85rem 1rem',
             marginBottom: '1rem',
           }}>
-            <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.5rem' }}>
+            <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
               Match Fee Breakdown:
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
               <span>Total Match Fee:</span>
-              <strong style={{ color: '#0f172a' }}>₹{standardFee}</strong>
+              <strong style={{ color: 'var(--text-primary)' }}>₹{standardFee}</strong>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#059669', marginBottom: '0.4rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--green-400)', marginBottom: '0.4rem' }}>
               <span>Compensated / Shifted Credit:</span>
               <strong>-₹{amountPaid}</strong>
             </div>
@@ -268,12 +268,12 @@ export default function PaymentModal({
               justifyContent: 'space-between',
               fontSize: '0.95rem',
               fontWeight: 800,
-              color: '#0f172a',
-              borderTop: '1px dashed #cbd5e1',
+              color: 'var(--text-primary)',
+              borderTop: '1px dashed var(--border-subtle)',
               paddingTop: '0.4rem',
             }}>
               <span>Remaining Balance to Pay:</span>
-              <span style={{ color: '#059669' }}>₹{balanceDue}</span>
+              <span style={{ color: 'var(--green-400)' }}>₹{balanceDue}</span>
             </div>
           </div>
         )}
@@ -281,14 +281,14 @@ export default function PaymentModal({
         {/* Match Date & Advance Weeks Selector */}
         <div style={{ marginBottom: '1.25rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem', flexWrap: 'wrap', gap: '0.35rem' }}>
-            <label className="form-label" style={{ fontSize: '0.85rem', color: '#1e293b', fontWeight: 700, margin: 0 }}>
+            <label className="form-label" style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 700, margin: 0 }}>
               Match Date & Duration:
             </label>
             <span style={{
               fontSize: '0.72rem',
-              color: '#065f46',
-              background: '#ecfdf5',
-              border: '1px solid #a7f3d0',
+              color: 'var(--green-400)',
+              background: 'rgba(34, 197, 94, 0.12)',
+              border: '1px solid rgba(34, 197, 94, 0.3)',
               padding: '0.15rem 0.5rem',
               borderRadius: '6px',
               fontWeight: 700
@@ -298,18 +298,18 @@ export default function PaymentModal({
           </div>
 
           <div style={{
-            background: '#f8fafc',
-            border: '1px solid #eaecf0',
+            background: 'rgba(34, 197, 94, 0.08)',
+            border: '1px solid rgba(34, 197, 94, 0.25)',
             borderRadius: '8px',
             padding: '0.5rem 0.75rem',
             marginBottom: '0.75rem',
             fontSize: '0.78rem',
-            color: '#475569',
+            color: 'var(--text-secondary)',
             display: 'flex',
             alignItems: 'center',
             gap: '0.45rem'
           }}>
-            <Sparkles size={14} color="#059669" />
+            <Sparkles size={14} color="var(--green-400)" />
             <span>
               <strong>Note:</strong> Pre-selected <strong>for only 1 week payment</strong> (Friday, {currentDateLabel}). You can also tap future dates to pre-pay advance weeks.
             </span>
@@ -343,21 +343,21 @@ export default function PaymentModal({
                       top: '-9px',
                       fontSize: '0.62rem',
                       fontWeight: 800,
-                      background: '#059669',
+                      background: 'var(--green-600)',
                       color: '#ffffff',
                       padding: '0.1rem 0.45rem',
                       borderRadius: '10px',
                       letterSpacing: '0.02em',
                       whiteSpace: 'nowrap',
-                      boxShadow: '0 2px 4px rgba(5,150,105,0.2)',
+                      boxShadow: '0 2px 6px rgba(34,197,94,0.3)',
                     }}>
                       Only 1 Week
                     </span>
                   )}
-                  <div className="week-count" style={{ fontSize: '0.92rem', fontWeight: 800, color: isSelected ? '#059669' : '#0f172a' }}>
+                  <div className="week-count" style={{ fontSize: '0.92rem', fontWeight: 800, color: isSelected ? 'var(--green-400)' : 'var(--text-primary)' }}>
                     {dateText || `Week ${w}`}
                   </div>
-                  <div style={{ fontSize: '0.7rem', color: isSelected ? '#047857' : '#64748b', marginTop: '0.1rem' }}>
+                  <div style={{ fontSize: '0.7rem', color: isSelected ? 'var(--green-400)' : 'var(--text-muted)', marginTop: '0.1rem' }}>
                     {w === 1 ? 'Current Match' : `${w} Matches`}
                   </div>
                   <div className="week-amount" style={{ marginTop: '0.25rem', fontWeight: 700, fontSize: '0.85rem' }}>
@@ -371,8 +371,8 @@ export default function PaymentModal({
 
         {/* Dynamic Amount Highlight */}
         <div style={{
-          background: '#f0fdf4',
-          border: '1px solid #bbf7d0',
+          background: 'rgba(34, 197, 94, 0.08)',
+          border: '1px solid rgba(34, 197, 94, 0.25)',
           borderRadius: '10px',
           padding: '0.85rem 1rem',
           display: 'flex',
@@ -381,18 +381,18 @@ export default function PaymentModal({
           margin: '1rem 0',
         }}>
           <div>
-            <div style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 700 }}>
+            <div style={{ fontSize: '0.8rem', color: 'var(--green-400)', fontWeight: 700 }}>
               {hasPartialBalance && weeks === 1
                 ? 'Net Balance Due'
                 : weeks === 1
                 ? `Only 1 Week Fee (Friday, ${currentDateLabel})`
                 : `Amount Payable (${weeks} Matches through ${formatDateLabel(sessionDates[weeks - 1])})`}
             </div>
-            <div style={{ fontSize: '0.75rem', color: '#15803d', marginTop: '0.1rem' }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>
               Receiver: {payeeName}
             </div>
           </div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#059669' }}>
+          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--green-400)' }}>
             ₹{totalAmount}
           </div>
         </div>
@@ -412,14 +412,14 @@ export default function PaymentModal({
             display: 'inline-flex',
             alignItems: 'center',
             gap: '0.5rem',
-            background: '#f8fafc',
-            border: '1px solid #eaecf0',
+            background: 'rgba(255, 255, 255, 0.05)',
+            border: '1px solid var(--border-subtle)',
             borderRadius: '8px',
             padding: '0.35rem 0.75rem',
             marginTop: '0.5rem',
           }}>
-            <span style={{ fontSize: '0.8rem', color: '#64748b' }}>UPI ID:</span>
-            <strong style={{ color: '#0f172a', fontFamily: 'monospace', fontSize: '0.88rem' }}>{vpa}</strong>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>UPI ID:</span>
+            <strong style={{ color: 'var(--text-primary)', fontFamily: 'monospace', fontSize: '0.88rem' }}>{vpa}</strong>
             <button
               type="button"
               onClick={handleCopyUpi}
@@ -427,7 +427,7 @@ export default function PaymentModal({
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                color: copiedUpi ? '#059669' : '#64748b',
+                color: copiedUpi ? 'var(--green-500)' : 'var(--text-muted)',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '0.2rem',
@@ -442,7 +442,7 @@ export default function PaymentModal({
             </button>
           </div>
 
-          <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '0.35rem' }}>
+          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
             Scan with Google Pay, PhonePe, Paytm, or BHIM to pay ₹{totalAmount}
           </div>
 
@@ -459,11 +459,11 @@ export default function PaymentModal({
         </div>
 
         {/* Payment Confirmation Form */}
-        <form onSubmit={handleSubmit} style={{ marginTop: '1.25rem', borderTop: '1px solid #f1f5f9', paddingTop: '1.25rem' }}>
+        <form onSubmit={handleSubmit} style={{ marginTop: '1.25rem', borderTop: '1px solid var(--border-dim)', paddingTop: '1.25rem' }}>
           {/* Screenshot Upload Section */}
           <div style={{ marginBottom: '1.25rem' }}>
             <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}>
-              <ImageIcon size={15} color="#059669" />
+              <ImageIcon size={15} color="var(--green-500)" />
               <span>Payment Screenshot (Recommended)</span>
             </label>
 
@@ -479,28 +479,28 @@ export default function PaymentModal({
               <div
                 onClick={() => fileInputRef.current?.click()}
                 style={{
-                  border: '2px dashed #cbd5e1',
+                  border: '2px dashed rgba(255,255,255,0.1)',
                   borderRadius: '10px',
                   padding: '1.15rem',
                   textAlign: 'center',
                   cursor: 'pointer',
-                  background: '#f8fafc',
+                  background: 'rgba(255,255,255,0.03)',
                   transition: 'all 0.15s ease',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = '#059669';
-                  e.currentTarget.style.background = '#f0fdf4';
+                  e.currentTarget.style.borderColor = 'rgba(34, 197, 94, 0.4)';
+                  e.currentTarget.style.background = 'rgba(34, 197, 94, 0.05)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = '#cbd5e1';
-                  e.currentTarget.style.background = '#f8fafc';
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
                 }}
               >
-                <Upload size={22} color="#64748b" style={{ margin: '0 auto 0.35rem' }} />
-                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>
+                <Upload size={22} color="var(--text-muted)" style={{ margin: '0 auto 0.35rem' }} />
+                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
                   Click to upload payment screenshot
                 </div>
-                <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '0.15rem' }}>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
                   PNG, JPG or JPEG (Max 10MB)
                 </div>
               </div>
@@ -509,8 +509,8 @@ export default function PaymentModal({
                 position: 'relative',
                 borderRadius: '10px',
                 overflow: 'hidden',
-                border: '1px solid #a7f3d0',
-                background: '#ecfdf5',
+                border: '1px solid rgba(34, 197, 94, 0.3)',
+                background: 'rgba(34, 197, 94, 0.06)',
                 padding: '0.75rem',
                 display: 'flex',
                 alignItems: 'center',
@@ -524,22 +524,22 @@ export default function PaymentModal({
                     height: '58px',
                     objectFit: 'cover',
                     borderRadius: '6px',
-                    border: '1px solid #e2e8f0',
+                    border: '1px solid var(--border-subtle)',
                   }}
                 />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#065f46', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--green-400)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                     <FileCheck size={16} />
                     <span>Screenshot Selected</span>
                   </div>
-                  <div style={{ fontSize: '0.72rem', color: '#047857', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                     {screenshotFile?.name}
                   </div>
                 </div>
                 <button
                   type="button"
-                  className="btn btn-sm"
-                  style={{ background: '#ffffff', color: '#dc2626', border: '1px solid #fecdd3', padding: '0.35rem 0.6rem' }}
+                  className="btn btn-sm btn-danger"
+                  style={{ padding: '0.35rem 0.6rem' }}
                   onClick={handleRemoveScreenshot}
                   title="Remove screenshot"
                 >
@@ -551,7 +551,7 @@ export default function PaymentModal({
 
           {/* UPI Reference Input */}
           <div style={{ marginBottom: '1.25rem' }}>
-            <label className="form-label" htmlFor="upi-ref" style={{ fontSize: '0.85rem', color: '#334155' }}>
+            <label className="form-label" htmlFor="upi-ref" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
               UPI Reference / UTR Number (Optional if screenshot uploaded)
             </label>
             <input

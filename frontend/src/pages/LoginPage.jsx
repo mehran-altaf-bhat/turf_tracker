@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import aseefLogo from '../assets/aseef-logo.svg';
 import { api } from '../services/api';
-import { ShieldCheck, Mail, Lock, User, AlertCircle, ArrowRight } from 'lucide-react';
+import { AlertCircle, ArrowRight, Loader2, CheckCircle, User, Mail, Lock, Phone } from 'lucide-react';
 
 export default function LoginPage({ onLoginSuccess }) {
   const [isLogin, setIsLogin] = useState(true);
@@ -25,7 +25,7 @@ export default function LoginPage({ onLoginSuccess }) {
         onLoginSuccess(data.user);
       } else {
         const res = await api.signup(name.trim(), email.trim(), password, phone.trim());
-        setSuccessMsg(res.message || 'Registration submitted! Please wait for the admin to approve your account before logging in.');
+        setSuccessMsg(res.message || 'Registration submitted! Please wait for admin approval before logging in.');
         setIsLogin(true);
         setPassword('');
         setPhone('');
@@ -37,77 +37,48 @@ export default function LoginPage({ onLoginSuccess }) {
     }
   };
 
+  const switchTab = (toLogin) => {
+    setIsLogin(toLogin);
+    setError(null);
+    setSuccessMsg(null);
+  };
+
   return (
-    <div style={{
-      minHeight: '85vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '1.5rem',
-    }}>
-      <div className="card highlight" style={{
-        maxWidth: '440px',
-        width: '100%',
-        padding: '2.5rem 2rem',
-      }}>
+    <div className="login-wrapper">
+      <div className="login-card">
         {/* Brand Header */}
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '0.65rem 1.25rem',
-            background: '#ffffff',
-            border: '1.5px solid #e2e8f0',
-            borderRadius: '16px',
-            marginBottom: '1rem',
-            boxShadow: '0 4px 12px rgba(15, 23, 42, 0.05)',
-          }}>
-            <img src={aseefLogo} alt="ASEEF XI Logo" style={{ height: '38px', width: 'auto' }} />
+          <div className="login-logo-wrap">
+            <img src={aseefLogo} alt="ASEEF XI Logo" style={{ height: '36px', width: 'auto' }} />
           </div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.35rem', color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+          <h1 style={{
+            fontFamily: 'var(--font-heading)',
+            fontSize: '1.85rem',
+            fontWeight: 900,
+            color: 'var(--text-primary)',
+            letterSpacing: '-0.03em',
+            marginBottom: '0.3rem',
+          }}>
             ASEEF XI
           </h1>
-          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
-            Weekly Friday Football (8:00 PM – 10:00 PM)
+          <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: 500, letterSpacing: '0.02em' }}>
+            ⚽ Friday Football · 8:00 PM – 10:00 PM
           </p>
         </div>
 
         {/* Tab Toggle */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          background: '#f1f5f9',
-          borderRadius: 'var(--radius-sm)',
-          padding: '0.25rem',
-          marginBottom: '1.5rem',
-          border: '1px solid var(--border-subtle)',
-        }}>
+        <div className="login-tabs">
           <button
             type="button"
-            className="btn btn-sm"
-            style={{
-              background: isLogin ? '#ffffff' : 'transparent',
-              color: isLogin ? 'var(--text-primary)' : 'var(--text-muted)',
-              border: isLogin ? '1px solid #e2e8f0' : 'none',
-              boxShadow: isLogin ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
-              fontWeight: 600,
-            }}
-            onClick={() => { setIsLogin(true); setError(null); }}
+            className={`login-tab-btn ${isLogin ? 'active' : ''}`}
+            onClick={() => switchTab(true)}
           >
             Log In
           </button>
           <button
             type="button"
-            className="btn btn-sm"
-            style={{
-              background: !isLogin ? '#ffffff' : 'transparent',
-              color: !isLogin ? 'var(--text-primary)' : 'var(--text-muted)',
-              border: !isLogin ? '1px solid #e2e8f0' : 'none',
-              boxShadow: !isLogin ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
-              fontWeight: 600,
-            }}
-            onClick={() => { setIsLogin(false); setError(null); }}
+            className={`login-tab-btn ${!isLogin ? 'active' : ''}`}
+            onClick={() => switchTab(false)}
           >
             Sign Up
           </button>
@@ -115,34 +86,16 @@ export default function LoginPage({ onLoginSuccess }) {
 
         {/* Success Alert */}
         {successMsg && (
-          <div style={{
-            background: '#ecfdf5',
-            border: '1px solid #a7f3d0',
-            borderRadius: 'var(--radius-sm)',
-            padding: '0.75rem 1rem',
-            color: '#065f46',
-            fontSize: '0.85rem',
-            marginBottom: '1.25rem',
-          }}>
-            {successMsg}
+          <div className="login-alert-success">
+            <CheckCircle size={16} style={{ flexShrink: 0, marginTop: '1px' }} />
+            <span>{successMsg}</span>
           </div>
         )}
 
         {/* Error Alert */}
         {error && (
-          <div style={{
-            background: '#fff1f2',
-            border: '1px solid #fecdd3',
-            borderRadius: 'var(--radius-sm)',
-            padding: '0.75rem 1rem',
-            color: '#be123c',
-            fontSize: '0.85rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            marginBottom: '1.25rem',
-          }}>
-            <AlertCircle size={16} />
+          <div className="login-alert-error">
+            <AlertCircle size={16} style={{ flexShrink: 0 }} />
             <span>{error}</span>
           </div>
         )}
@@ -152,7 +105,11 @@ export default function LoginPage({ onLoginSuccess }) {
           {!isLogin && (
             <>
               <div className="form-group">
-                <label className="form-label" htmlFor="user-name">Full Name *</label>
+                <label className="form-label" htmlFor="user-name">
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <User size={13} /> Full Name *
+                  </span>
+                </label>
                 <input
                   id="user-name"
                   type="text"
@@ -164,7 +121,11 @@ export default function LoginPage({ onLoginSuccess }) {
                 />
               </div>
               <div className="form-group">
-                <label className="form-label" htmlFor="user-phone">Phone Number (WhatsApp)</label>
+                <label className="form-label" htmlFor="user-phone">
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <Phone size={13} /> WhatsApp Number
+                  </span>
+                </label>
                 <input
                   id="user-phone"
                   type="tel"
@@ -174,14 +135,18 @@ export default function LoginPage({ onLoginSuccess }) {
                   onChange={(e) => setPhone(e.target.value)}
                 />
                 <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem', display: 'block' }}>
-                  Used for match squad rosters and WhatsApp payment reminders
+                  Used for squad rosters and WhatsApp payment reminders
                 </span>
               </div>
             </>
           )}
 
           <div className="form-group">
-            <label className="form-label" htmlFor="user-email">Email Address</label>
+            <label className="form-label" htmlFor="user-email">
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Mail size={13} /> Email Address
+              </span>
+            </label>
             <input
               id="user-email"
               type="email"
@@ -194,7 +159,11 @@ export default function LoginPage({ onLoginSuccess }) {
           </div>
 
           <div className="form-group">
-            <label className="form-label" htmlFor="user-password">Password</label>
+            <label className="form-label" htmlFor="user-password">
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Lock size={13} /> Password
+              </span>
+            </label>
             <input
               id="user-password"
               type="password"
@@ -209,18 +178,51 @@ export default function LoginPage({ onLoginSuccess }) {
           <button
             type="submit"
             className="btn btn-primary"
-            style={{ width: '100%', marginTop: '1rem' }}
+            style={{ width: '100%', marginTop: '0.75rem', padding: '0.8rem 1.5rem', fontSize: '0.95rem' }}
             disabled={loading}
           >
-            {loading ? 'Please wait...' : (
+            {loading ? (
+              <>
+                <Loader2 size={17} style={{ animation: 'spin 0.8s linear infinite' }} />
+                <span>Please wait...</span>
+              </>
+            ) : (
               <>
                 <span>{isLogin ? 'Log In to ASEEF XI' : 'Register for ASEEF XI'}</span>
-                <ArrowRight size={16} />
+                <ArrowRight size={17} />
               </>
             )}
           </button>
         </form>
+
+        {/* Footer Note */}
+        {!isLogin && (
+          <p style={{
+            textAlign: 'center',
+            marginTop: '1.25rem',
+            fontSize: '0.78rem',
+            color: 'var(--text-muted)',
+            lineHeight: 1.5,
+          }}>
+            After signing up, an admin will review and approve your account before you can log in.
+          </p>
+        )}
+
+        <div style={{
+          marginTop: '1.75rem',
+          paddingTop: '1.25rem',
+          borderTop: '1px solid var(--border-dim)',
+          textAlign: 'center',
+          fontSize: '0.75rem',
+          color: 'var(--text-muted)',
+        }}>
+          🏟️ Elite Football Turf · Every Friday Night
+        </div>
       </div>
+
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      `}</style>
     </div>
   );
 }

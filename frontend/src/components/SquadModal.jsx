@@ -124,11 +124,11 @@ export default function SquadModal({
 
         {error && (
           <div style={{
-            background: '#fff1f2',
-            border: '1px solid #fecdd3',
+            background: 'rgba(248, 113, 113, 0.12)',
+            border: '1px solid rgba(248, 113, 113, 0.3)',
             borderRadius: 'var(--radius-sm)',
             padding: '0.75rem 1rem',
-            color: '#be123c',
+            color: 'var(--rose-400)',
             fontSize: '0.85rem',
             marginBottom: '1rem',
             display: 'flex',
@@ -142,20 +142,20 @@ export default function SquadModal({
 
         {/* Dynamic Split Calculation Banner */}
         <div style={{
-          background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)',
-          border: '1.5px solid #86efac',
+          background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.12) 0%, rgba(16, 185, 129, 0.05) 100%)',
+          border: '1px solid rgba(34, 197, 94, 0.3)',
           borderRadius: '12px',
           padding: '1rem 1.25rem',
           marginBottom: '1rem',
-          boxShadow: '0 2px 8px rgba(16, 185, 129, 0.08)',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700, color: '#14532d', fontSize: '0.95rem' }}>
-              <Calculator size={18} color="#059669" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700, color: 'var(--green-400)', fontSize: '0.95rem' }}>
+              <Calculator size={18} color="var(--green-400)" />
               <span>Turf Rent Split Calculator</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <label htmlFor="total-cost-input" style={{ fontSize: '0.82rem', color: '#166534', fontWeight: 600 }}>
+              <label htmlFor="total-cost-input" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
                 Total Turf Fee (₹):
               </label>
               <input
@@ -166,13 +166,13 @@ export default function SquadModal({
                 value={totalTurfCost}
                 onChange={(e) => setTotalTurfCost(e.target.value)}
                 style={{
-                  width: '105px',
-                  padding: '0.35rem 0.6rem',
-                  fontSize: '0.95rem',
-                  fontWeight: 700,
-                  color: '#0f172a',
-                  background: '#ffffff',
-                  border: '1.5px solid #86efac',
+                  width: '110px',
+                  padding: '0.4rem 0.65rem',
+                  fontSize: '1rem',
+                  fontWeight: 800,
+                  color: 'var(--text-primary)',
+                  background: 'var(--bg-layer-1)',
+                  border: '1px solid rgba(34, 197, 94, 0.4)',
                   borderRadius: '6px',
                   textAlign: 'right',
                 }}
@@ -185,28 +185,28 @@ export default function SquadModal({
             gridTemplateColumns: 'repeat(3, 1fr)',
             gap: '0.75rem',
             textAlign: 'center',
-            background: 'rgba(255, 255, 255, 0.75)',
+            background: 'rgba(0, 0, 0, 0.25)',
             padding: '0.75rem',
             borderRadius: '8px',
-            border: '1px solid #bbf7d0',
+            border: '1px solid var(--border-dim)',
           }}>
             <div>
-              <div style={{ fontSize: '0.72rem', color: '#4b5563', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Turf Cost</div>
-              <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>₹{costNum.toLocaleString()}</div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Turf Cost</div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)' }}>₹{costNum.toLocaleString()}</div>
             </div>
             <div>
-              <div style={{ fontSize: '0.72rem', color: '#4b5563', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Squad Players</div>
-              <div style={{ fontSize: '1.2rem', fontWeight: 800, color: count > 0 ? '#059669' : '#9ca3af' }}>{count}</div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Squad Players</div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 800, color: count > 0 ? 'var(--green-400)' : 'var(--text-muted)' }}>{count}</div>
             </div>
             <div>
-              <div style={{ fontSize: '0.72rem', color: '#4b5563', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Split / Player</div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#15803d' }}>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Split / Player</div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--green-400)' }}>
                 ₹{splitPerPlayer}
               </div>
             </div>
           </div>
           {count > 0 && (
-            <div style={{ fontSize: '0.75rem', color: '#166534', marginTop: '0.5rem', textAlign: 'center', fontWeight: 500 }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--green-300)', marginTop: '0.5rem', textAlign: 'center', fontWeight: 500 }}>
               💡 ₹{costNum} ÷ {count} players = ₹{splitPerPlayer} per confirmed player for this match.
             </div>
           )}
@@ -219,7 +219,7 @@ export default function SquadModal({
           alignItems: 'center',
           flexWrap: 'wrap',
           gap: '0.75rem',
-          background: '#f8fafc',
+          background: 'rgba(255, 255, 255, 0.03)',
           padding: '0.65rem 0.85rem',
           borderRadius: 'var(--radius-sm)',
           marginBottom: '0.75rem',
@@ -227,7 +227,7 @@ export default function SquadModal({
         }}>
           <div>
             <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Selected: </span>
-            <strong style={{ fontSize: '1.05rem', color: 'var(--pitch-green-dark)' }}>
+            <strong style={{ fontSize: '1.05rem', color: 'var(--green-400)' }}>
               {count}
             </strong>
             <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}> / {allPlayers.length} approved players</span>
@@ -273,7 +273,7 @@ export default function SquadModal({
           border: '1px solid var(--border-subtle)',
           borderRadius: 'var(--radius-sm)',
           padding: '0.5rem',
-          background: '#ffffff',
+          background: 'var(--bg-layer-1)',
           marginBottom: '1rem',
         }}>
           {filteredPlayers.length === 0 ? (
@@ -293,8 +293,8 @@ export default function SquadModal({
                     justifyContent: 'space-between',
                     padding: '0.6rem 0.85rem',
                     borderRadius: 'var(--radius-sm)',
-                    background: isChecked ? '#ecfdf5' : 'transparent',
-                    border: isChecked ? '1px solid #a7f3d0' : '1px solid transparent',
+                    background: isChecked ? 'rgba(34, 197, 94, 0.1)' : 'transparent',
+                    border: isChecked ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid transparent',
                     cursor: 'pointer',
                     marginBottom: '0.3rem',
                     transition: 'all 0.15s ease',
@@ -313,7 +313,7 @@ export default function SquadModal({
                       }}
                     />
                     <div>
-                      <strong style={{ color: isChecked ? '#065f46' : 'var(--text-primary)', fontSize: '0.925rem' }}>
+                      <strong style={{ color: isChecked ? 'var(--green-400)' : 'var(--text-primary)', fontSize: '0.925rem' }}>
                         {player.name}
                       </strong>
                       {player.role === 'admin' && (
@@ -325,7 +325,7 @@ export default function SquadModal({
                   </div>
 
                   {isChecked ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--pitch-green-dark)', fontSize: '0.8rem', fontWeight: 600 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--green-400)', fontSize: '0.8rem', fontWeight: 600 }}>
                       <CheckCircle2 size={15} />
                       <span>₹{splitPerPlayer}</span>
                     </div>

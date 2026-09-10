@@ -79,9 +79,9 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
 
   if (loading && !data) {
     return (
-      <div style={{ textAlign: 'center', padding: '5rem 1rem' }}>
-        <img src={aseefLogo} alt="ASEEF XI" style={{ height: '42px', width: 'auto', marginBottom: '0.75rem' }} />
-        <p style={{ color: '#64748b', fontWeight: 600 }}>Loading ASEEF XI Match Hub...</p>
+      <div style={{ textAlign: 'center', padding: '5rem 1rem', color: 'var(--text-muted)' }}>
+        <img src={aseefLogo} alt="ASEEF XI" style={{ height: '42px', width: 'auto', marginBottom: '0.75rem', opacity: 0.8 }} />
+        <p style={{ color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.03em' }}>Loading Match Hub...</p>
       </div>
     );
   }
@@ -110,7 +110,7 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
       {/* Toast Notification */}
       {toast && (
         <div className="toast-bar">
-          <CheckCircle2 size={18} color="#059669" />
+          <CheckCircle2 size={18} color="var(--green-500)" />
           <span style={{ fontWeight: 600, fontSize: '0.88rem' }}>{toast}</span>
         </div>
       )}
@@ -118,8 +118,8 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
       {/* Credit Shifted Banner */}
       {hasShiftedCredit && isInSquad && (
         <div style={{
-          background: '#eff6ff',
-          border: '1px solid #bfdbfe',
+          background: 'var(--blue-subtle)',
+          border: '1px solid rgba(96, 165, 250, 0.25)',
           borderRadius: '12px',
           padding: '0.85rem 1.25rem',
           display: 'flex',
@@ -130,13 +130,13 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
           flexWrap: 'wrap',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <Sparkles size={20} color="#2563eb" />
+            <Sparkles size={20} color="var(--blue-400)" />
             <div>
-              <div style={{ fontWeight: 700, color: '#1e40af', fontSize: '0.9rem' }}>
+              <div style={{ fontWeight: 700, color: 'var(--blue-400)', fontSize: '0.9rem' }}>
                 Previous Payment Shifted to this Match!
               </div>
-              <div style={{ color: '#3b82f6', fontSize: '0.8rem' }}>
-                ₹{amountPaid} credit from your previous match was compensated. Remaining balance for this Friday: <strong>₹{balanceDue}</strong>.
+              <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+                ₹{amountPaid} credit from your previous match was compensated. Remaining balance for this Friday: <strong style={{ color: 'var(--blue-400)' }}>₹{balanceDue}</strong>.
               </div>
             </div>
           </div>
@@ -155,8 +155,8 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
       {/* Opted-Out Alert Banner */}
       {!isInSquad ? (
         <div style={{
-          background: '#fffbeb',
-          border: '1px solid #fde68a',
+          background: 'var(--amber-subtle)',
+          border: '1px solid rgba(251, 191, 36, 0.25)',
           borderRadius: '12px',
           padding: '0.85rem 1.25rem',
           display: 'flex',
@@ -167,12 +167,12 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
           flexWrap: 'wrap',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <AlertCircle size={20} color="#d97706" />
+            <AlertCircle size={20} color="var(--amber-400)" />
             <div>
-              <div style={{ fontWeight: 700, color: '#92400e', fontSize: '0.9rem' }}>
+              <div style={{ fontWeight: 700, color: 'var(--amber-400)', fontSize: '0.9rem' }}>
                 You are currently marked as NOT PLAYING for this Friday match
               </div>
-              <div style={{ color: '#b45309', fontSize: '0.78rem' }}>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '0.78rem' }}>
                 You have been removed from the match squad. Any prior payment has been transferred to your next match as credit!
               </div>
             </div>
@@ -190,8 +190,8 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
         </div>
       ) : currentStatus === 'rejected' ? (
         <div style={{
-          background: '#fef2f2',
-          border: '1px solid #fecdd3',
+          background: 'var(--rose-subtle)',
+          border: '1px solid rgba(248, 113, 113, 0.25)',
           borderRadius: '12px',
           padding: '0.85rem 1.25rem',
           display: 'flex',
@@ -202,20 +202,20 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
           flexWrap: 'wrap',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <AlertCircle size={20} color="#dc2626" />
+            <AlertCircle size={20} color="var(--rose-400)" />
             <div>
-              <div style={{ fontWeight: 700, color: '#991b1b', fontSize: '0.9rem' }}>
+              <div style={{ fontWeight: 700, color: 'var(--rose-400)', fontSize: '0.9rem' }}>
                 Payment Proof Rejected by Admin
               </div>
-              <div style={{ color: '#b91c1c', fontSize: '0.78rem' }}>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '0.78rem' }}>
                 Please submit a valid UPI reference number or screenshot proof.
               </div>
             </div>
           </div>
           <button
             type="button"
-            className="btn btn-sm"
-            style={{ background: '#dc2626', color: '#fff', padding: '0.45rem 1rem', fontSize: '0.82rem' }}
+            className="btn btn-sm btn-danger"
+            style={{ padding: '0.45rem 1rem', fontSize: '0.82rem' }}
             onClick={() => setModalOpen(true)}
           >
             <RefreshCw size={15} />
@@ -233,10 +233,10 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
             <div className="clokin-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', flexWrap: 'wrap' }}>
                 <div>
-                  <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.35rem' }}>
+                  <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
                     Welcome, {user.name}!
                   </h2>
-                  <p style={{ color: '#64748b', fontSize: '0.88rem' }}>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
                     Ready for Friday turf football? Verify your squad attendance and balance.
                   </p>
                 </div>
@@ -248,13 +248,13 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                       gap: '0.4rem',
                       padding: '0.35rem 0.75rem',
                       borderRadius: '9999px',
-                      background: '#ecfdf5',
-                      color: '#059669',
-                      border: '1px solid #a7f3d0',
+                      background: 'rgba(34, 197, 94, 0.12)',
+                      color: 'var(--green-400)',
+                      border: '1px solid rgba(34, 197, 94, 0.3)',
                       fontSize: '0.78rem',
                       fontWeight: 700,
                     }}>
-                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }} />
+                      <span className="pulse-dot" style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--green-500)', flexShrink: 0 }} />
                       In Squad (Playing)
                     </span>
                   ) : (
@@ -264,13 +264,13 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                       gap: '0.4rem',
                       padding: '0.35rem 0.75rem',
                       borderRadius: '9999px',
-                      background: '#f1f5f9',
-                      color: '#64748b',
-                      border: '1px solid #cbd5e1',
+                      background: 'rgba(255,255,255,0.05)',
+                      color: 'var(--text-muted)',
+                      border: '1px solid var(--border-subtle)',
                       fontSize: '0.78rem',
                       fontWeight: 700,
                     }}>
-                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#94a3b8' }} />
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--text-muted)' }} />
                       Not Playing
                     </span>
                   )}
@@ -281,14 +281,14 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
               <div style={{
                 marginTop: '1.25rem',
                 paddingTop: '1.25rem',
-                borderTop: '1px solid #f1f5f9',
+                borderTop: '1px solid var(--border-dim)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 flexWrap: 'wrap',
                 gap: '0.75rem'
               }}>
-                <div style={{ fontSize: '0.82rem', color: '#475569' }}>
+                <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
                   {isInSquad ? (
                     <span>Cannot play this match? Your payment will shift to the next match:</span>
                   ) : (
@@ -306,9 +306,9 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                       }
                     }}
                     style={{
-                      background: '#ffffff',
-                      border: '1px solid #fca5a5',
-                      color: '#dc2626',
+                      background: 'var(--rose-subtle)',
+                      border: '1px solid rgba(248, 113, 113, 0.25)',
+                      color: 'var(--rose-400)',
                       padding: '0.45rem 0.9rem',
                       borderRadius: '8px',
                       fontSize: '0.82rem',
@@ -319,8 +319,8 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                       gap: '0.45rem',
                       transition: 'all 0.15s ease',
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = '#fef2f2'}
-                    onMouseLeave={(e) => e.currentTarget.style.background = '#ffffff'}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(248, 113, 113, 0.18)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'var(--rose-subtle)'}
                   >
                     <UserX size={15} />
                     <span>Not Playing This Match</span>
@@ -348,9 +348,9 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                     width: '38px',
                     height: '38px',
                     borderRadius: '10px',
-                    background: '#ecfdf5',
-                    border: '1px solid #a7f3d0',
-                    color: '#059669',
+                    background: 'rgba(34, 197, 94, 0.12)',
+                    border: '1px solid rgba(34, 197, 94, 0.25)',
+                    color: 'var(--green-400)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -358,10 +358,10 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                     <Clock size={19} />
                   </div>
                   <div>
-                    <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.95rem' }}>
+                    <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.95rem' }}>
                       Friday Turf Match Slot
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                       Elite Football Turf • 8:00 PM – 10:00 PM
                     </div>
                   </div>
@@ -371,16 +371,16 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                   width: '10px',
                   height: '10px',
                   borderRadius: '50%',
-                  background: '#10b981',
-                  boxShadow: '0 0 0 3px rgba(16, 185, 129, 0.2)',
-                }} />
+                  background: 'var(--green-500)',
+                  boxShadow: '0 0 0 3px rgba(34, 197, 94, 0.2)',
+                }} className="pulse-dot" />
               </div>
 
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: '1.25rem' }}>
-                <div style={{ fontSize: '2.25rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.03em' }}>
+                <div style={{ fontSize: '2.25rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
                   2h 00m
                 </div>
-                <div style={{ fontSize: '0.82rem', color: '#059669', fontWeight: 700, background: '#f0fdf4', padding: '0.2rem 0.6rem', borderRadius: '9999px', border: '1px solid #bbf7d0' }}>
+                <div style={{ fontSize: '0.82rem', color: 'var(--green-400)', fontWeight: 700, background: 'rgba(34, 197, 94, 0.1)', padding: '0.2rem 0.6rem', borderRadius: '9999px', border: '1px solid rgba(34, 197, 94, 0.25)' }}>
                   Match Scheduled
                 </div>
               </div>
@@ -389,8 +389,8 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                 <div className="custom-progress-fill" style={{ width: '100%' }} />
               </div>
 
-              <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '0.35rem' }}>
-                Match date: <strong>Friday, {currentSession?.session_date || 'Upcoming'}</strong>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
+                Match date: <strong style={{ color: 'var(--text-secondary)' }}>Friday, {currentSession?.session_date || 'Upcoming'}</strong>
               </div>
             </div>
 
@@ -402,9 +402,9 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                     width: '38px',
                     height: '38px',
                     borderRadius: '10px',
-                    background: '#eff6ff',
-                    border: '1px solid #bfdbfe',
-                    color: '#2563eb',
+                    background: 'var(--blue-subtle)',
+                    border: '1px solid rgba(96, 165, 250, 0.25)',
+                    color: 'var(--blue-400)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -412,19 +412,19 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                     <MapPin size={19} />
                   </div>
                   <div>
-                    <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.95rem' }}>
+                    <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.95rem' }}>
                       Elite Football Turf Ground
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                       Official match fee: ₹{payableAmount} / player
                     </div>
                   </div>
                 </div>
 
                 <span style={{
-                  background: '#f8fafc',
-                  border: '1px solid #e2e8f0',
-                  color: '#059669',
+                  background: 'rgba(34, 197, 94, 0.1)',
+                  border: '1px solid rgba(34, 197, 94, 0.25)',
+                  color: 'var(--green-400)',
                   padding: '0.25rem 0.65rem',
                   borderRadius: '9999px',
                   fontSize: '0.75rem',
@@ -445,20 +445,20 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                     width: '28px',
                     height: '28px',
                     borderRadius: '8px',
-                    background: '#ecfdf5',
-                    color: '#059669',
+                    background: 'rgba(34, 197, 94, 0.12)',
+                    color: 'var(--green-400)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontSize: '1rem',
                   }}>
-                    🏟️
+                    🏙️
                   </div>
                   <div>
-                    <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#0f172a' }}>
+                    <span style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
                       Pitch Pass & Match Terminal
                     </span>
-                    <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                       Friday Match #{currentSession?.id || 1} • Elite Turf
                     </div>
                   </div>
@@ -467,91 +467,28 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                 <div>
                   {isInSquad ? (
                     currentStatus === 'confirmed' && balanceDue === 0 ? (
-                      <span style={{
-                        background: '#ecfdf5',
-                        border: '1px solid #a7f3d0',
-                        color: '#059669',
-                        padding: '0.25rem 0.75rem',
-                        borderRadius: '9999px',
-                        fontSize: '0.78rem',
-                        fontWeight: 700,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.35rem',
-                      }}>
+                      <span className="badge badge-paid">
                         <CheckCircle2 size={13} /> Paid Full ✅
                       </span>
                     ) : (currentStatus === 'partial' || balanceDue > 0) ? (
-                      <span style={{
-                        background: '#fffbeb',
-                        border: '1px solid #fde68a',
-                        color: '#b45309',
-                        padding: '0.25rem 0.75rem',
-                        borderRadius: '9999px',
-                        fontSize: '0.78rem',
-                        fontWeight: 700,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.35rem',
-                      }}>
+                      <span className="badge badge-pending">
                         <Clock3 size={13} /> Partial (₹{balanceDue} due)
                       </span>
                     ) : currentStatus === 'pending' ? (
-                      <span style={{
-                        background: '#fffbeb',
-                        border: '1px solid #fde68a',
-                        color: '#b45309',
-                        padding: '0.25rem 0.75rem',
-                        borderRadius: '9999px',
-                        fontSize: '0.78rem',
-                        fontWeight: 700,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.35rem',
-                      }}>
+                      <span className="badge badge-pending">
                         <Clock3 size={13} /> Verification Pending
                       </span>
                     ) : currentStatus === 'rejected' ? (
-                      <span style={{
-                        background: '#fef2f2',
-                        border: '1px solid #fecdd3',
-                        color: '#dc2626',
-                        padding: '0.25rem 0.75rem',
-                        borderRadius: '9999px',
-                        fontSize: '0.78rem',
-                        fontWeight: 700,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.35rem',
-                      }}>
+                      <span className="badge badge-unpaid">
                         <AlertCircle size={13} /> Rejected
                       </span>
                     ) : (
-                      <span style={{
-                        background: '#fef2f2',
-                        border: '1px solid #fecdd3',
-                        color: '#dc2626',
-                        padding: '0.25rem 0.75rem',
-                        borderRadius: '9999px',
-                        fontSize: '0.78rem',
-                        fontWeight: 700,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.35rem',
-                      }}>
+                      <span className="badge badge-unpaid">
                         <AlertCircle size={13} /> Payment Due
                       </span>
                     )
                   ) : (
-                    <span style={{
-                      background: '#f1f5f9',
-                      border: '1px solid #cbd5e1',
-                      color: '#64748b',
-                      padding: '0.25rem 0.75rem',
-                      borderRadius: '9999px',
-                      fontSize: '0.78rem',
-                      fontWeight: 700,
-                    }}>
+                    <span className="badge" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', border: '1px solid var(--border-subtle)' }}>
                       Benched (Not Playing)
                     </span>
                   )}
@@ -563,13 +500,13 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                 {!isInSquad ? (
                   /* User is NOT playing: Show Bench card */
                   <>
-                    <div className="viewfinder-camera-icon" style={{ background: '#f8fafc', borderColor: '#cbd5e1' }}>
-                      <UserX size={30} color="#64748b" />
+                    <div className="viewfinder-camera-icon" style={{ background: 'rgba(255,255,255,0.04)', borderColor: 'var(--border-subtle)' }}>
+                      <UserX size={30} color="var(--text-muted)" />
                     </div>
-                    <div style={{ fontWeight: 800, color: '#1e293b', fontSize: '1.2rem', marginBottom: '0.35rem' }}>
+                    <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '1.2rem', marginBottom: '0.35rem' }}>
                       Player Bench / Out of Squad
                     </div>
-                    <p style={{ color: '#64748b', fontSize: '0.85rem', maxWidth: '340px', marginBottom: '1.25rem' }}>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', maxWidth: '340px', marginBottom: '1.25rem' }}>
                       You marked yourself as not playing for Friday {currentSession?.session_date}. If you had already paid, your funds are shifted to the next match!
                     </p>
                     <button
@@ -585,16 +522,16 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                 ) : currentStatus === 'confirmed' && balanceDue === 0 ? (
                   /* User is paid in full */
                   <>
-                    <div className="viewfinder-camera-icon" style={{ background: '#ecfdf5', borderColor: '#a7f3d0' }}>
-                      <CheckCircle2 size={34} color="#059669" />
+                    <div className="viewfinder-camera-icon" style={{ background: 'rgba(34, 197, 94, 0.15)', borderColor: 'rgba(34, 197, 94, 0.35)' }}>
+                      <CheckCircle2 size={34} color="var(--green-400)" />
                     </div>
-                    <div style={{ fontWeight: 800, color: '#065f46', fontSize: '1.2rem', marginBottom: '0.35rem' }}>
+                    <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '1.2rem', marginBottom: '0.35rem' }}>
                       Pitch Pass Confirmed!
                     </div>
-                    <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#059669', marginBottom: '0.25rem' }}>
+                    <div style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--green-400)', marginBottom: '0.25rem' }}>
                       ₹{payableAmount} Paid in Full
                     </div>
-                    <p style={{ color: '#64748b', fontSize: '0.85rem', maxWidth: '340px', marginBottom: '1.25rem' }}>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', maxWidth: '340px', marginBottom: '1.25rem' }}>
                       Your match fee for Friday {currentSession?.session_date} is fully settled. See you on the pitch at 8:00 PM!
                     </p>
                     <button
@@ -618,29 +555,29 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                       maxWidth: '380px',
                       margin: '0 auto 1.25rem',
                     }}>
-                      <div style={{ background: '#ffffff', border: '1px solid #eaecf0', borderRadius: '10px', padding: '0.65rem 0.5rem', textAlign: 'center' }}>
-                        <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Match Fee</div>
-                        <div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#0f172a' }}>₹{payableAmount}</div>
+                      <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--border-subtle)', borderRadius: '10px', padding: '0.65rem 0.5rem', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Match Fee</div>
+                        <div style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--text-primary)' }}>₹{payableAmount}</div>
                       </div>
-                      <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '10px', padding: '0.65rem 0.5rem', textAlign: 'center' }}>
-                        <div style={{ fontSize: '0.72rem', color: '#047857' }}>Credit / Paid</div>
-                        <div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#059669' }}>-₹{amountPaid}</div>
+                      <div style={{ background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.25)', borderRadius: '10px', padding: '0.65rem 0.5rem', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--green-400)' }}>Credit / Paid</div>
+                        <div style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--green-400)' }}>-₹{amountPaid}</div>
                       </div>
                       <div style={{
-                        background: balanceDue > 0 ? '#fffbeb' : '#f8fafc',
-                        border: balanceDue > 0 ? '1px solid #fde68a' : '1px solid #eaecf0',
+                        background: balanceDue > 0 ? 'rgba(245, 158, 11, 0.1)' : 'rgba(255, 255, 255, 0.03)',
+                        border: balanceDue > 0 ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid var(--border-subtle)',
                         borderRadius: '10px',
                         padding: '0.65rem 0.5rem',
                         textAlign: 'center',
                       }}>
-                        <div style={{ fontSize: '0.72rem', color: balanceDue > 0 ? '#92400e' : '#64748b' }}>Balance Due</div>
-                        <div style={{ fontWeight: 800, fontSize: '1.05rem', color: balanceDue > 0 ? '#d97706' : '#059669' }}>
+                        <div style={{ fontSize: '0.72rem', color: balanceDue > 0 ? 'var(--amber-400)' : 'var(--text-muted)' }}>Balance Due</div>
+                        <div style={{ fontWeight: 800, fontSize: '1.05rem', color: balanceDue > 0 ? 'var(--amber-400)' : 'var(--green-400)' }}>
                           ₹{balanceDue}
                         </div>
                       </div>
                     </div>
 
-                    <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '1.15rem', marginBottom: '0.25rem' }}>
+                    <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '1.15rem', marginBottom: '0.25rem' }}>
                       {currentStatus === 'rejected'
                         ? 'Payment Needs Attention'
                         : currentStatus === 'pending'
@@ -650,7 +587,7 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                         : 'Match Fee Payment Process'}
                     </div>
 
-                    <p style={{ color: '#64748b', fontSize: '0.85rem', maxWidth: '340px', marginBottom: '1.25rem' }}>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', maxWidth: '340px', marginBottom: '1.25rem' }}>
                       {hasShiftedCredit
                         ? `You have ₹${amountPaid} credit applied. Pay the remaining ₹${balanceDue} to lock your pitch pass!`
                         : currentStatus === 'rejected'
@@ -685,18 +622,18 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
 
               {/* Bottom footer text inside terminal card */}
               <div style={{
-                background: '#f8fafc',
-                border: '1px solid #eaecf0',
+                background: 'rgba(255, 255, 255, 0.03)',
+                border: '1px solid var(--border-dim)',
                 borderRadius: '10px',
                 padding: '0.65rem 0.85rem',
                 fontSize: '0.78rem',
-                color: '#64748b',
+                color: 'var(--text-secondary)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
               }}>
-                <span>Total Lifetime Paid: <strong style={{ color: '#0f172a' }}>₹{totalPaid}</strong></span>
-                <span>Advance Credits: <strong style={{ color: '#7c3aed' }}>{advanceCredits} week(s)</strong></span>
+                <span>Total Lifetime Paid: <strong style={{ color: 'var(--text-primary)' }}>₹{totalPaid}</strong></span>
+                <span>Advance Credits: <strong style={{ color: 'var(--purple-400)' }}>{advanceCredits} week(s)</strong></span>
               </div>
             </div>
           </div>
@@ -713,15 +650,15 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
             flexWrap: 'wrap',
             gap: '1rem',
             marginBottom: '1.25rem',
-            borderBottom: '1px solid #f1f5f9',
+            borderBottom: '1px solid var(--border-dim)',
             paddingBottom: '1rem',
           }}>
             <div>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Users size={20} color="#059669" />
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Users size={20} color="var(--green-400)" />
                 Friday Match Squad
               </h3>
-              <p style={{ fontSize: '0.82rem', color: '#64748b' }}>
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
                 Friday, {currentSession?.session_date || 'Upcoming'} @ Elite Football Turf (8:00 PM – 10:00 PM)
               </p>
             </div>
@@ -729,10 +666,10 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
             {/* Switch between Playing vs Not Playing Tabs */}
             <div style={{
               display: 'inline-flex',
-              background: '#f1f5f9',
+              background: 'rgba(255, 255, 255, 0.04)',
               padding: '0.25rem',
               borderRadius: '10px',
-              border: '1px solid #eaecf0',
+              border: '1px solid var(--border-subtle)',
             }}>
               <button
                 type="button"
@@ -754,7 +691,7 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
           {squadTab === 'playing' ? (
             /* Playing Squad List */
             playingSquad.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: '#64748b' }}>
+              <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--text-muted)' }}>
                 No players added to the playing squad yet.
               </div>
             ) : (
@@ -773,10 +710,10 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         padding: '0.85rem 1rem',
-                        background: isMe ? '#ecfdf5' : '#ffffff',
-                        border: isMe ? '1px solid #a7f3d0' : '1px solid #eaecf0',
+                        background: isMe ? 'rgba(34, 197, 94, 0.1)' : 'rgba(255, 255, 255, 0.03)',
+                        border: isMe ? '1px solid rgba(34, 197, 94, 0.35)' : '1px solid var(--border-dim)',
                         borderRadius: '10px',
-                        boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
+                        boxShadow: isMe ? '0 0 15px rgba(34, 197, 94, 0.1)' : 'none',
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
@@ -784,8 +721,8 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                           width: '24px',
                           height: '24px',
                           borderRadius: '50%',
-                          background: isMe ? '#a7f3d0' : '#f1f5f9',
-                          color: isMe ? '#065f46' : '#64748b',
+                          background: isMe ? 'rgba(34, 197, 94, 0.2)' : 'rgba(255, 255, 255, 0.08)',
+                          color: isMe ? 'var(--green-400)' : 'var(--text-secondary)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -797,13 +734,13 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                         <div>
                           <div style={{
                             fontWeight: 700,
-                            color: isMe ? '#065f46' : '#0f172a',
+                            color: isMe ? 'var(--green-400)' : 'var(--text-primary)',
                             fontSize: '0.88rem',
                           }}>
-                            {player.name} {isMe && <span style={{ color: '#059669', fontSize: '0.75rem' }}>(You)</span>}
+                            {player.name} {isMe && <span style={{ color: 'var(--green-400)', fontSize: '0.75rem', fontWeight: 800 }}>(You)</span>}
                           </div>
                           {player.status === 'partial' && player.balance > 0 && (
-                            <div style={{ fontSize: '0.72rem', color: '#b45309' }}>
+                            <div style={{ fontSize: '0.72rem', color: 'var(--amber-400)' }}>
                               Paid ₹{player.amount} • ₹{player.balance} due
                             </div>
                           )}
@@ -835,7 +772,7 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
           ) : (
             /* Not Playing Squad List */
             notPlayingSquad.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: '#64748b' }}>
+              <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--text-muted)' }}>
                 Everyone is playing! No players marked as absent.
               </div>
             ) : (
@@ -854,8 +791,8 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         padding: '0.85rem 1rem',
-                        background: isMe ? '#fff1f2' : '#f8fafc',
-                        border: isMe ? '1px solid #fecdd3' : '1px solid #eaecf0',
+                        background: isMe ? 'rgba(248, 113, 113, 0.1)' : 'rgba(255, 255, 255, 0.02)',
+                        border: isMe ? '1px solid rgba(248, 113, 113, 0.3)' : '1px solid var(--border-dim)',
                         borderRadius: '10px',
                       }}
                     >
@@ -864,8 +801,8 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                           width: '24px',
                           height: '24px',
                           borderRadius: '50%',
-                          background: '#e2e8f0',
-                          color: '#64748b',
+                          background: 'rgba(255, 255, 255, 0.08)',
+                          color: 'var(--text-muted)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -877,12 +814,12 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                         <div>
                           <div style={{
                             fontWeight: 700,
-                            color: isMe ? '#991b1b' : '#334155',
+                            color: isMe ? 'var(--rose-400)' : 'var(--text-secondary)',
                             fontSize: '0.88rem',
                           }}>
                             {player.name} {isMe && '(You)'}
                           </div>
-                          <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
                             Not Playing this match
                           </div>
                         </div>
@@ -890,11 +827,11 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
 
                       <span style={{
                         fontSize: '0.7rem',
-                        color: '#64748b',
-                        background: '#ffffff',
+                        color: 'var(--text-muted)',
+                        background: 'rgba(255, 255, 255, 0.04)',
                         padding: '0.2rem 0.5rem',
                         borderRadius: '6px',
-                        border: '1px solid #e2e8f0',
+                        border: '1px solid var(--border-dim)',
                       }}>
                         Out ⚪
                       </span>
@@ -919,24 +856,24 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
             gap: '0.5rem'
           }}>
             <div>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <History size={20} color="#059669" />
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <History size={20} color="var(--green-400)" />
                 Payment History
               </h3>
-              <p style={{ fontSize: '0.82rem', color: '#64748b' }}>
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
                 Showing completed (done), partial, and rejected transaction logs only.
               </p>
             </div>
-            <span style={{ fontSize: '0.75rem', color: '#64748b', background: '#f8fafc', padding: '0.35rem 0.75rem', borderRadius: '8px', border: '1px solid #eaecf0' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', background: 'rgba(255, 255, 255, 0.04)', padding: '0.35rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
               Filtered: Confirmed / Partial / Rejected only
             </span>
           </div>
 
           {history.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: '#64748b' }}>
-              <History size={32} color="#cbd5e1" style={{ margin: '0 auto 0.5rem' }} />
-              <p style={{ fontSize: '0.9rem', fontWeight: 500 }}>No completed or rejected payments recorded yet.</p>
-              <p style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
+            <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--text-muted)' }}>
+              <History size={32} color="var(--text-muted)" style={{ margin: '0 auto 0.5rem' }} />
+              <p style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>No completed or rejected payments recorded yet.</p>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
                 Payments that are verified, partially compensated, or rejected by the admin will appear here.
               </p>
             </div>
@@ -958,19 +895,19 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                   {history.map((h) => (
                     <tr key={h.payment_id}>
                       <td>
-                        <strong style={{ color: '#0f172a' }}>Friday, {h.session_date}</strong>
+                        <strong style={{ color: 'var(--text-primary)' }}>Friday, {h.session_date}</strong>
                       </td>
                       <td>
-                        <span style={{ color: '#64748b' }}>₹{h.payable || payableAmount}</span>
+                        <span style={{ color: 'var(--text-secondary)' }}>₹{h.payable || payableAmount}</span>
                       </td>
                       <td>
-                        <strong style={{ color: '#059669' }}>₹{h.amount}</strong>
+                        <strong style={{ color: 'var(--green-400)' }}>₹{h.amount}</strong>
                       </td>
                       <td>
                         {h.balance > 0 ? (
-                          <span style={{ color: '#dc2626', fontWeight: 700 }}>₹{h.balance}</span>
+                          <span style={{ color: 'var(--rose-400)', fontWeight: 700 }}>₹{h.balance}</span>
                         ) : (
-                          <span style={{ color: '#059669', fontWeight: 600 }}>₹0</span>
+                          <span style={{ color: 'var(--green-400)', fontWeight: 600 }}>₹0</span>
                         )}
                       </td>
                       <td style={{ fontSize: '0.85rem' }}>
@@ -994,7 +931,7 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                               alignItems: 'center',
                               marginLeft: '0.5rem',
                               fontSize: '0.75rem',
-                              color: '#2563eb',
+                              color: 'var(--blue-400)',
                               textDecoration: 'underline',
                             }}
                           >
@@ -1002,7 +939,7 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                           </a>
                         )}
                       </td>
-                      <td style={{ color: '#64748b', fontSize: '0.82rem' }}>
+                      <td style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>
                         {h.submitted_at ? new Date(h.submitted_at).toLocaleDateString() : '—'}
                       </td>
                       <td>
@@ -1034,11 +971,11 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
       {/* MATCH SCHEDULE: Upcoming Friday Fixtures */}
       {(activeTab === 'schedule' || activeTab === 'all') && (
         <div className="clokin-card">
-          <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Calendar size={20} color="#059669" />
+          <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Calendar size={20} color="var(--green-400)" />
             Upcoming Friday Matches
           </h3>
-          <p style={{ fontSize: '0.82rem', color: '#64748b', marginBottom: '1.25rem' }}>
+          <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
             Schedule of forthcoming sessions at Elite Football Turf (8:00 PM – 10:00 PM)
           </p>
 
@@ -1060,9 +997,9 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                   return (
                     <tr key={s.id}>
                       <td>
-                        <strong style={{ color: '#0f172a' }}>Friday, {s.session_date}</strong>
+                        <strong style={{ color: 'var(--text-primary)' }}>Friday, {s.session_date}</strong>
                         {idx === 0 && (
-                          <span style={{ marginLeft: '0.5rem', fontSize: '0.72rem', color: '#059669', background: '#ecfdf5', border: '1px solid #a7f3d0', padding: '0.15rem 0.45rem', borderRadius: '4px', fontWeight: 700 }}>
+                          <span style={{ marginLeft: '0.5rem', fontSize: '0.72rem', color: 'var(--green-400)', background: 'rgba(34, 197, 94, 0.15)', border: '1px solid rgba(34, 197, 94, 0.3)', padding: '0.15rem 0.5rem', borderRadius: '4px', fontWeight: 700 }}>
                             Next Match
                           </span>
                         )}
@@ -1086,9 +1023,9 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                             {status === 'rejected' ? 'Pay Again' : status === 'partial' ? 'Pay Balance' : 'Pay'}
                           </button>
                         ) : status === 'pending' ? (
-                          <span style={{ color: '#d97706', fontSize: '0.8rem', fontWeight: 600 }}>Pending ⏳</span>
+                          <span style={{ color: 'var(--amber-400)', fontSize: '0.8rem', fontWeight: 600 }}>Pending ⏳</span>
                         ) : (
-                          <span style={{ color: '#059669', fontSize: '0.8rem', fontWeight: 600 }}>Covered ✓</span>
+                          <span style={{ color: 'var(--green-400)', fontSize: '0.8rem', fontWeight: 600 }}>Covered ✓</span>
                         )}
                       </td>
                     </tr>
@@ -1115,3 +1052,4 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
     </div>
   );
 }
+

@@ -439,7 +439,7 @@ export default function AdminPage({ setActiveTab }) {
       {/* Admin Title Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
         <div>
-          <span className="badge" style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', marginBottom: '0.4rem' }}>
+          <span className="badge" style={{ background: 'rgba(245, 158, 11, 0.15)', color: 'var(--amber-400)', border: '1px solid rgba(245, 158, 11, 0.35)', marginBottom: '0.4rem' }}>
             <ShieldCheck size={14} /> Admin Command Center
           </span>
           <h2 style={{ fontSize: '1.75rem', color: 'var(--text-primary)' }}>Turf Squad & Payment Management</h2>
@@ -513,9 +513,9 @@ export default function AdminPage({ setActiveTab }) {
               alignItems: 'center',
               gap: '0.35rem',
               fontWeight: 600,
-              background: '#fee2e2',
-              color: '#dc2626',
-              border: '1px solid #fecdd3',
+              background: 'rgba(239, 68, 68, 0.12)',
+              color: 'var(--rose-400)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
               padding: '0.5rem 0.85rem',
             }}
             onClick={handleClearAllData}
@@ -554,9 +554,9 @@ export default function AdminPage({ setActiveTab }) {
         >
           <div className="stat-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span>Registered Players</span>
-            <span style={{ fontSize: '0.72rem', color: '#2563eb', fontWeight: 700 }}>Manage 👥</span>
+            <span style={{ fontSize: '0.72rem', color: 'var(--blue-400)', fontWeight: 700 }}>Manage 👥</span>
           </div>
-          <div className="stat-val" style={{ color: '#2563eb' }}>
+          <div className="stat-val" style={{ color: 'var(--blue-400)' }}>
             {stats.total_players_registered || 0}
           </div>
         </div>
@@ -636,9 +636,9 @@ export default function AdminPage({ setActiveTab }) {
                   alignItems: 'center',
                   gap: '0.35rem',
                   padding: '0.65rem 0.85rem',
-                  background: '#fee2e2',
-                  color: '#dc2626',
-                  border: '1px solid #fecdd3',
+                  background: 'rgba(239, 68, 68, 0.12)',
+                  color: 'var(--rose-400)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
                   fontWeight: 600,
                 }}
                 onClick={() => handleDeleteSession(selectedSessionId, currentSessionObj?.session_date)}
@@ -656,7 +656,7 @@ export default function AdminPage({ setActiveTab }) {
                 Slot: <strong style={{ color: 'var(--text-primary)' }}>{currentSessionObj.start_time || '20:00'} - {currentSessionObj.end_time || '22:00'}</strong>
               </div>
               <div>
-                Squad Size: <strong style={{ color: '#2563eb' }}>{currentSquadCount} Players</strong>
+                Squad Size: <strong style={{ color: 'var(--blue-400)' }}>{currentSquadCount} Players</strong>
               </div>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
                 Fee:
@@ -671,7 +671,7 @@ export default function AdminPage({ setActiveTab }) {
                         width: '75px',
                         padding: '0.25rem 0.4rem',
                         fontSize: '0.85rem',
-                        background: '#ffffff',
+                        background: 'var(--bg-layer-1)',
                         border: '1px solid var(--border-focus)',
                         color: 'var(--text-primary)',
                         borderRadius: '4px',
@@ -700,7 +700,7 @@ export default function AdminPage({ setActiveTab }) {
                   </form>
                 ) : (
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <strong style={{ color: '#b45309', fontSize: '1rem' }}>₹{currentSessionObj.cost_per_person || 200}</strong>
+                    <strong style={{ color: 'var(--amber-400)', fontSize: '1rem' }}>₹{currentSessionObj.cost_per_person || 200}</strong>
                     <button
                       onClick={startEditFee}
                       type="button"
@@ -715,7 +715,7 @@ export default function AdminPage({ setActiveTab }) {
                         border: '1px solid var(--border-subtle)',
                         borderRadius: '4px',
                         cursor: 'pointer',
-                        background: '#f8fafc',
+                        background: 'rgba(255, 255, 255, 0.05)',
                       }}
                       title="Admin: Change Match Fee"
                     >
@@ -729,7 +729,7 @@ export default function AdminPage({ setActiveTab }) {
                 Target: <strong style={{ color: 'var(--text-primary)' }}>₹{rosterData?.summary?.expected_total || 0}</strong>
               </div>
               <div>
-                Collected: <strong style={{ color: 'var(--pitch-green-dark)' }}>₹{rosterData?.summary?.total_collected || 0}</strong>
+                Collected: <strong style={{ color: 'var(--green-400)' }}>₹{rosterData?.summary?.total_collected || 0}</strong>
               </div>
             </div>
           )}
@@ -741,15 +741,15 @@ export default function AdminPage({ setActiveTab }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
           <div>
             <h3 style={{ fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)' }}>
-              <Users size={20} color="var(--pitch-green)" />
+              <Users size={20} color="var(--green-400)" />
               Match Squad ({currentSquadCount} Players)
             </h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
               {rosterData ? (
                 <>
-                  <strong style={{ color: 'var(--pitch-green-dark)' }}>{rosterData.summary.confirmed_count} Paid</strong> •{' '}
-                  <strong style={{ color: '#b45309' }}>{rosterData.summary.pending_count} Pending</strong> •{' '}
-                  <strong style={{ color: '#be123c' }}>{rosterData.summary.unpaid_count} Unpaid</strong>
+                  <strong style={{ color: 'var(--green-400)' }}>{rosterData.summary.confirmed_count} Paid</strong> •{' '}
+                  <strong style={{ color: 'var(--amber-400)' }}>{rosterData.summary.pending_count} Pending</strong> •{' '}
+                  <strong style={{ color: 'var(--rose-400)' }}>{rosterData.summary.unpaid_count} Unpaid</strong>
                 </>
               ) : 'Loading squad...'}
             </p>
@@ -781,9 +781,9 @@ export default function AdminPage({ setActiveTab }) {
           <div style={{
             textAlign: 'center',
             padding: '3rem 1.5rem',
-            background: '#f8fafc',
+            background: 'rgba(255, 255, 255, 0.02)',
             borderRadius: 'var(--radius-sm)',
-            border: '1px dashed #cbd5e1',
+            border: '1px dashed var(--border-subtle)',
           }}>
             <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>⚽</div>
             <h4 style={{ fontSize: '1.2rem', marginBottom: '0.4rem', color: 'var(--text-primary)' }}>No Players Selected for This Friday Yet</h4>
@@ -828,20 +828,20 @@ export default function AdminPage({ setActiveTab }) {
                         </div>
                       </td>
                       <td>
-                        <span style={{ color: '#475569', fontWeight: 600 }}>₹{fee}</span>
+                        <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>₹{fee}</span>
                       </td>
                       <td>
-                        <strong style={{ color: paid > 0 ? '#059669' : '#64748b' }}>
+                        <strong style={{ color: paid > 0 ? 'var(--green-400)' : 'var(--text-muted)' }}>
                           ₹{paid}
                         </strong>
                       </td>
                       <td>
                         {balance > 0 ? (
-                          <span style={{ color: '#dc2626', fontWeight: 700, background: '#fef2f2', padding: '0.2rem 0.5rem', borderRadius: '4px', border: '1px solid #fecdd3' }}>
+                          <span style={{ color: 'var(--rose-400)', fontWeight: 700, background: 'rgba(248, 113, 113, 0.12)', padding: '0.2rem 0.5rem', borderRadius: '4px', border: '1px solid rgba(248, 113, 113, 0.3)' }}>
                             ₹{balance} due
                           </span>
                         ) : (
-                          <span style={{ color: '#059669', fontWeight: 600, background: '#ecfdf5', padding: '0.2rem 0.5rem', borderRadius: '4px', border: '1px solid #a7f3d0' }}>
+                          <span style={{ color: 'var(--green-400)', fontWeight: 600, background: 'rgba(34, 197, 94, 0.12)', padding: '0.2rem 0.5rem', borderRadius: '4px', border: '1px solid rgba(34, 197, 94, 0.3)' }}>
                             ₹0 (Clear)
                           </span>
                         )}
@@ -882,9 +882,9 @@ export default function AdminPage({ setActiveTab }) {
                                 gap: '0.35rem',
                                 padding: '0.2rem 0.5rem',
                                 fontSize: '0.75rem',
-                                background: '#eff6ff',
-                                color: '#1d4ed8',
-                                border: '1px solid #bfdbfe',
+                                background: 'rgba(59, 130, 246, 0.12)',
+                                color: 'var(--blue-400)',
+                                border: '1px solid rgba(59, 130, 246, 0.3)',
                                 borderRadius: '4px',
                                 cursor: 'pointer',
                               }}
@@ -989,14 +989,14 @@ export default function AdminPage({ setActiveTab }) {
             </button>
           </div>
           <pre style={{
-            background: '#f8fafc',
+            background: 'var(--bg-layer-1)',
             border: '1px solid var(--border-subtle)',
             padding: '1rem',
             borderRadius: 'var(--radius-sm)',
             fontSize: '0.85rem',
             whiteSpace: 'pre-wrap',
             fontFamily: 'monospace',
-            color: '#1e293b',
+            color: 'var(--text-primary)',
             lineHeight: 1.6,
           }}>
             {rosterData.whatsapp_text}
@@ -1022,8 +1022,8 @@ export default function AdminPage({ setActiveTab }) {
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(15, 23, 42, 0.55)',
-            backdropFilter: 'blur(4px)',
+            background: 'rgba(10, 15, 30, 0.75)',
+            backdropFilter: 'blur(6px)',
             zIndex: 1000,
             display: 'flex',
             alignItems: 'center',
@@ -1038,7 +1038,7 @@ export default function AdminPage({ setActiveTab }) {
               width: '100%',
               padding: '1.5rem',
               textAlign: 'center',
-              background: '#ffffff',
+              background: 'var(--bg-layer-2)',
               border: '1px solid var(--border-subtle)',
               borderRadius: 'var(--radius)',
               boxShadow: 'var(--shadow-lg)',
@@ -1047,7 +1047,7 @@ export default function AdminPage({ setActiveTab }) {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <h4 style={{ margin: 0, fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)' }}>
-                <Eye size={18} color="var(--pitch-green)" /> Payment Screenshot Proof
+                <Eye size={18} color="var(--green-400)" /> Payment Screenshot Proof
               </h4>
               <button
                 type="button"
@@ -1070,7 +1070,7 @@ export default function AdminPage({ setActiveTab }) {
                 overflowY: 'auto',
                 borderRadius: 'var(--radius-sm)',
                 border: '1px solid var(--border-subtle)',
-                background: '#f8fafc',
+                background: 'var(--bg-layer-1)',
                 padding: '0.5rem',
               }}
             >
@@ -1124,9 +1124,9 @@ export default function AdminPage({ setActiveTab }) {
               maxWidth: '650px',
               width: '100%',
               padding: '1.75rem',
-              background: '#ffffff',
+              background: 'linear-gradient(135deg, rgba(20, 29, 53, 0.98) 0%, rgba(15, 22, 41, 0.98) 100%)',
               border: '1px solid var(--border-subtle)',
-              borderRadius: 'var(--radius)',
+              borderRadius: 'var(--radius-lg)',
               boxShadow: 'var(--shadow-lg)',
             }}
             onClick={(e) => e.stopPropagation()}
@@ -1134,7 +1134,7 @@ export default function AdminPage({ setActiveTab }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)' }}>
-                  <DollarSign size={20} color="#b45309" /> Manage Match Fees (Per Match)
+                  <DollarSign size={20} color="var(--amber-400)" /> Manage Match Fees (Per Match)
                 </h3>
                 <p style={{ margin: '0.25rem 0 0', fontSize: '0.825rem', color: 'var(--text-secondary)' }}>
                   Set the match fee for each Friday session. Changes immediately update player dashboards, QR codes, and roster targets.
@@ -1171,11 +1171,11 @@ export default function AdminPage({ setActiveTab }) {
                     const s = item.session;
                     const isSelected = s.id === selectedSessionId;
                     return (
-                      <tr key={s.id} style={{ background: isSelected ? '#ecfdf5' : undefined }}>
+                      <tr key={s.id} style={{ background: isSelected ? 'rgba(34, 197, 94, 0.08)' : undefined }}>
                         <td>
                           <strong style={{ color: 'var(--text-primary)' }}>Friday, {s.session_date}</strong>
                           {isSelected && (
-                            <span style={{ marginLeft: '0.5rem', fontSize: '0.75rem', color: 'var(--pitch-green-dark)', fontWeight: 600 }}>
+                            <span style={{ marginLeft: '0.5rem', fontSize: '0.75rem', color: 'var(--green-400)', fontWeight: 600 }}>
                               (Selected)
                             </span>
                           )}
@@ -1187,7 +1187,7 @@ export default function AdminPage({ setActiveTab }) {
                           {s.start_time || '20:00'} - {s.end_time || '22:00'}
                         </td>
                         <td>
-                          <strong style={{ color: '#b45309', fontSize: '1rem' }}>
+                          <strong style={{ color: 'var(--amber-400)', fontSize: '1rem' }}>
                             ₹{s.cost_per_person || 200}
                           </strong>
                         </td>
@@ -1205,8 +1205,8 @@ export default function AdminPage({ setActiveTab }) {
                                 width: '75px',
                                 padding: '0.25rem 0.4rem',
                                 fontSize: '0.85rem',
-                                background: '#ffffff',
-                                border: '1px solid #cbd5e1',
+                                background: 'var(--bg-layer-1)',
+                                border: '1px solid var(--border-subtle)',
                                 color: 'var(--text-primary)',
                                 borderRadius: '4px',
                               }}
@@ -1252,8 +1252,8 @@ export default function AdminPage({ setActiveTab }) {
           >
             <div className="modal-header">
               <div>
-                <h3 style={{ fontSize: '1.25rem', color: '#0f172a' }}>Update Player Payment</h3>
-                <p style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                <h3 style={{ fontSize: '1.25rem', color: 'var(--text-primary)' }}>Update Player Payment</h3>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                   {targetPlayer.name} • Match #{selectedSessionId}
                 </p>
               </div>
@@ -1270,27 +1270,27 @@ export default function AdminPage({ setActiveTab }) {
                 const balance = Math.max(0, matchFee - enteredAmt);
                 return (
                   <div style={{
-                    background: '#f8fafc',
-                    border: '1px solid #eaecf0',
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    border: '1px solid var(--border-subtle)',
                     borderRadius: '10px',
                     padding: '0.85rem 1rem',
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.35rem' }}>
-                      <span style={{ color: '#64748b' }}>Match Fee (Payable):</span>
-                      <strong style={{ color: '#0f172a' }}>₹{matchFee}</strong>
+                      <span style={{ color: 'var(--text-muted)' }}>Match Fee (Payable):</span>
+                      <strong style={{ color: 'var(--text-primary)' }}>₹{matchFee}</strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.35rem' }}>
-                      <span style={{ color: '#64748b' }}>Amount Paid:</span>
-                      <strong style={{ color: '#059669' }}>₹{enteredAmt}</strong>
+                      <span style={{ color: 'var(--text-muted)' }}>Amount Paid:</span>
+                      <strong style={{ color: 'var(--green-400)' }}>₹{enteredAmt}</strong>
                     </div>
                     <div style={{
                       display: 'flex',
                       justifyContent: 'space-between',
                       fontSize: '0.95rem',
                       fontWeight: 800,
-                      borderTop: '1px dashed #cbd5e1',
+                      borderTop: '1px dashed var(--border-subtle)',
                       paddingTop: '0.4rem',
-                      color: balance > 0 ? '#dc2626' : '#059669',
+                      color: balance > 0 ? 'var(--rose-400)' : 'var(--green-400)',
                     }}>
                       <span>Balance Due:</span>
                       <span>{balance > 0 ? `₹${balance} due` : '₹0 (Fully Paid)'}</span>
@@ -1366,11 +1366,11 @@ export default function AdminPage({ setActiveTab }) {
           >
             <div className="modal-header" style={{ marginBottom: '1rem' }}>
               <div>
-                <h3 style={{ fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.45rem', color: '#0f172a' }}>
-                  <Users size={20} color="#2563eb" />
+                <h3 style={{ fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.45rem', color: 'var(--text-primary)' }}>
+                  <Users size={20} color="var(--blue-400)" />
                   <span>Registered Turf Players</span>
                 </h3>
-                <p style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '0.2rem' }}>
+                <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
                   Manage group members or permanently remove users from the turf system.
                 </p>
               </div>
@@ -1393,7 +1393,7 @@ export default function AdminPage({ setActiveTab }) {
                 <button
                   type="button"
                   className="btn btn-sm btn-primary"
-                  style={{ background: '#2563eb', color: '#ffffff', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
                   onClick={() => {
                     setManagePlayersModalOpen(false);
                     setActiveTab('users');
@@ -1409,10 +1409,10 @@ export default function AdminPage({ setActiveTab }) {
             <div style={{
               flex: 1,
               overflowY: 'auto',
-              border: '1px solid #eaecf0',
+              border: '1px solid var(--border-subtle)',
               borderRadius: '10px',
               padding: '0.5rem',
-              background: '#f8fafc',
+              background: 'var(--bg-layer-1)',
             }}>
               {(() => {
                 const list = (overview?.all_profiles || []).filter((p) =>
@@ -1420,7 +1420,7 @@ export default function AdminPage({ setActiveTab }) {
                 );
                 if (list.length === 0) {
                   return (
-                    <div style={{ textAlign: 'center', padding: '2rem', color: '#64748b', fontSize: '0.85rem' }}>
+                    <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                       No players found matching "{playerSearchQuery}"
                     </div>
                   );
@@ -1436,8 +1436,8 @@ export default function AdminPage({ setActiveTab }) {
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         padding: '0.75rem 0.85rem',
-                        background: '#ffffff',
-                        border: '1px solid #e2e8f0',
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        border: '1px solid var(--border-dim)',
                         borderRadius: '8px',
                         marginBottom: '0.45rem',
                       }}
@@ -1447,8 +1447,8 @@ export default function AdminPage({ setActiveTab }) {
                           width: '34px',
                           height: '34px',
                           borderRadius: '50%',
-                          background: isAdmin ? '#fef3c7' : '#ecfdf5',
-                          color: isAdmin ? '#b45309' : '#059669',
+                          background: isAdmin ? 'rgba(245, 158, 11, 0.15)' : 'rgba(34, 197, 94, 0.12)',
+                          color: isAdmin ? 'var(--amber-400)' : 'var(--green-400)',
                           fontWeight: 700,
                           fontSize: '0.85rem',
                           display: 'flex',
@@ -1458,10 +1458,10 @@ export default function AdminPage({ setActiveTab }) {
                           {(p.name || 'P').charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.9rem' }}>
+                          <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.9rem' }}>
                             {p.name}
                           </div>
-                          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                             {isAdmin ? '🛡️ Turf Administrator' : '⚽ Regular Player'}
                           </div>
                         </div>
@@ -1469,7 +1469,7 @@ export default function AdminPage({ setActiveTab }) {
 
                       <div>
                         {isAdmin ? (
-                          <span style={{ fontSize: '0.72rem', color: '#b45309', background: '#fef3c7', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 600 }}>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--amber-400)', background: 'rgba(245, 158, 11, 0.15)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 600 }}>
                             Admin
                           </span>
                         ) : (
@@ -1477,9 +1477,9 @@ export default function AdminPage({ setActiveTab }) {
                             type="button"
                             className="btn btn-sm"
                             style={{
-                              background: '#fee2e2',
-                              color: '#dc2626',
-                              border: '1px solid #fecdd3',
+                              background: 'rgba(248, 113, 113, 0.12)',
+                              color: 'var(--rose-400)',
+                              border: '1px solid rgba(248, 113, 113, 0.25)',
                               padding: '0.35rem 0.65rem',
                               display: 'inline-flex',
                               alignItems: 'center',
@@ -1530,8 +1530,9 @@ export default function AdminPage({ setActiveTab }) {
                     width: '36px',
                     height: '36px',
                     borderRadius: '10px',
-                    background: '#ecfdf5',
-                    color: '#059669',
+                    background: 'rgba(34, 197, 94, 0.15)',
+                    color: 'var(--green-400)',
+                    border: '1px solid rgba(34, 197, 94, 0.3)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -1540,10 +1541,10 @@ export default function AdminPage({ setActiveTab }) {
                   <Calendar size={20} />
                 </div>
                 <div>
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
                     Add Friday Match / Old Record
                   </h3>
-                  <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '0.15rem' }}>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
                     Record past Friday matches or schedule new match dates
                   </div>
                 </div>
@@ -1551,7 +1552,7 @@ export default function AdminPage({ setActiveTab }) {
               <button
                 type="button"
                 onClick={() => setAddSessionModalOpen(false)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
               >
                 <X size={20} />
               </button>
@@ -1561,10 +1562,10 @@ export default function AdminPage({ setActiveTab }) {
               <div
                 style={{
                   padding: '0.65rem 0.85rem',
-                  background: '#fef2f2',
-                  border: '1px solid #fecdd3',
+                  background: 'rgba(248, 113, 113, 0.12)',
+                  border: '1px solid rgba(248, 113, 113, 0.3)',
                   borderRadius: '8px',
-                  color: '#991b1b',
+                  color: 'var(--rose-400)',
                   fontSize: '0.85rem',
                   marginBottom: '1rem',
                   display: 'flex',
@@ -1579,7 +1580,7 @@ export default function AdminPage({ setActiveTab }) {
 
             {/* Quick Suggestions for Past Fridays */}
             <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#475569', marginBottom: '0.4rem' }}>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>
                 ⚡ Quick Select Recent Past Fridays:
               </label>
               <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
@@ -1592,9 +1593,9 @@ export default function AdminPage({ setActiveTab }) {
                       fontSize: '0.75rem',
                       padding: '0.3rem 0.65rem',
                       borderRadius: '6px',
-                      background: sessionDateInput === item.iso ? '#059669' : '#f1f5f9',
-                      color: sessionDateInput === item.iso ? '#ffffff' : '#334155',
-                      border: sessionDateInput === item.iso ? '1px solid #059669' : '1px solid #cbd5e1',
+                      background: sessionDateInput === item.iso ? 'var(--green-600)' : 'rgba(255, 255, 255, 0.04)',
+                      color: sessionDateInput === item.iso ? '#ffffff' : 'var(--text-primary)',
+                      border: sessionDateInput === item.iso ? '1px solid var(--green-500)' : '1px solid var(--border-subtle)',
                       fontWeight: 600,
                     }}
                     onClick={() => {
@@ -1610,7 +1611,7 @@ export default function AdminPage({ setActiveTab }) {
 
             <form onSubmit={handleCreateSession}>
               <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
                   Match Friday Date *
                 </label>
                 <input
@@ -1620,9 +1621,11 @@ export default function AdminPage({ setActiveTab }) {
                   onChange={(e) => setSessionDateInput(e.target.value)}
                   style={{
                     width: '100%',
-                    padding: '0.6rem 0.85rem',
+                    padding: '0.65rem 0.85rem',
                     borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
+                    border: '1px solid var(--border-subtle)',
+                    background: 'var(--bg-layer-1)',
+                    color: 'var(--text-primary)',
                     fontSize: '0.9rem',
                     outline: 'none',
                   }}
@@ -1631,7 +1634,7 @@ export default function AdminPage({ setActiveTab }) {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
                     Match Fee / Person (₹) *
                   </label>
                   <input
@@ -1642,9 +1645,11 @@ export default function AdminPage({ setActiveTab }) {
                     onChange={(e) => setSessionCostInput(e.target.value)}
                     style={{
                       width: '100%',
-                      padding: '0.6rem 0.85rem',
+                      padding: '0.65rem 0.85rem',
                       borderRadius: '8px',
-                      border: '1px solid #cbd5e1',
+                      border: '1px solid var(--border-subtle)',
+                      background: 'var(--bg-layer-1)',
+                      color: 'var(--text-primary)',
                       fontSize: '0.9rem',
                       outline: 'none',
                     }}
@@ -1652,7 +1657,7 @@ export default function AdminPage({ setActiveTab }) {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
                     Match Status
                   </label>
                   <select
@@ -1660,11 +1665,12 @@ export default function AdminPage({ setActiveTab }) {
                     onChange={(e) => setSessionStatusInput(e.target.value)}
                     style={{
                       width: '100%',
-                      padding: '0.6rem 0.85rem',
+                      padding: '0.65rem 0.85rem',
                       borderRadius: '8px',
-                      border: '1px solid #cbd5e1',
+                      border: '1px solid var(--border-subtle)',
                       fontSize: '0.9rem',
-                      background: '#ffffff',
+                      background: 'var(--bg-layer-1)',
+                      color: 'var(--text-primary)',
                       outline: 'none',
                     }}
                   >
@@ -1676,7 +1682,7 @@ export default function AdminPage({ setActiveTab }) {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
                     Start Time
                   </label>
                   <input
@@ -1685,9 +1691,11 @@ export default function AdminPage({ setActiveTab }) {
                     onChange={(e) => setSessionStartTimeInput(e.target.value)}
                     style={{
                       width: '100%',
-                      padding: '0.6rem 0.85rem',
+                      padding: '0.65rem 0.85rem',
                       borderRadius: '8px',
-                      border: '1px solid #cbd5e1',
+                      border: '1px solid var(--border-subtle)',
+                      background: 'var(--bg-layer-1)',
+                      color: 'var(--text-primary)',
                       fontSize: '0.9rem',
                       outline: 'none',
                     }}
@@ -1695,7 +1703,7 @@ export default function AdminPage({ setActiveTab }) {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
                     End Time
                   </label>
                   <input
@@ -1704,9 +1712,11 @@ export default function AdminPage({ setActiveTab }) {
                     onChange={(e) => setSessionEndTimeInput(e.target.value)}
                     style={{
                       width: '100%',
-                      padding: '0.6rem 0.85rem',
+                      padding: '0.65rem 0.85rem',
                       borderRadius: '8px',
-                      border: '1px solid #cbd5e1',
+                      border: '1px solid var(--border-subtle)',
+                      background: 'var(--bg-layer-1)',
+                      color: 'var(--text-primary)',
                       fontSize: '0.9rem',
                       outline: 'none',
                     }}
@@ -1720,13 +1730,13 @@ export default function AdminPage({ setActiveTab }) {
                     type="checkbox"
                     checked={sessionPopulateSquad}
                     onChange={(e) => setSessionPopulateSquad(e.target.checked)}
-                    style={{ width: '18px', height: '18px', marginTop: '2px', accentColor: '#059669' }}
+                    style={{ width: '18px', height: '18px', marginTop: '2px', accentColor: 'var(--green-500)' }}
                   />
                   <div>
-                    <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a' }}>
+                    <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                       Populate all registered players into this match squad
                     </span>
-                    <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '0.15rem' }}>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
                       Recommended for old matches so you can immediately see the players and record payments/attendance.
                     </div>
                   </div>
@@ -1737,8 +1747,8 @@ export default function AdminPage({ setActiveTab }) {
               <div
                 style={{
                   padding: '0.85rem 1rem',
-                  background: '#f8fafc',
-                  border: '1px solid #e2e8f0',
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid var(--border-subtle)',
                   borderRadius: '10px',
                   marginBottom: '1.5rem',
                   display: 'flex',
@@ -1749,10 +1759,10 @@ export default function AdminPage({ setActiveTab }) {
                 }}
               >
                 <div>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                     Need to add multiple past Fridays?
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                     Auto-creates the last 4 Friday match records with full player rosters.
                   </div>
                 </div>
@@ -1770,7 +1780,7 @@ export default function AdminPage({ setActiveTab }) {
                     gap: '0.35rem',
                   }}
                 >
-                  <PlusCircle size={14} color="#059669" />
+                  <PlusCircle size={14} color="var(--green-400)" />
                   <span>{batchAddingPast ? 'Generating...' : 'Batch Add 4 Past Fridays'}</span>
                 </button>
               </div>
@@ -1789,8 +1799,6 @@ export default function AdminPage({ setActiveTab }) {
                   className="btn btn-primary"
                   disabled={savingSession || batchAddingPast}
                   style={{
-                    background: '#059669',
-                    borderColor: '#059669',
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '0.4rem',
