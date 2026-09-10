@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { api } from '../services/api';
-import { X, Check, Search, Users, Shield, UserCheck, AlertCircle, UserPlus } from 'lucide-react';
+import { X, Users, Search, Calculator, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export default function SquadModal({
   isOpen,
@@ -9,22 +8,20 @@ export default function SquadModal({
   allPlayers = [],
   currentSquadIds = [],
   onSaveSquad,
-  onPlayerCreated,
 }) {
   const dialogRef = useRef(null);
   const [selectedIds, setSelectedIds] = useState(new Set());
-  const [localPlayers, setLocalPlayers] = useState([]);
   const [search, setSearch] = useState('');
+  const [totalTurfCost, setTotalTurfCost] = useState(3800);
   const [saving, setSaving] = useState(false);
-  const [quickAdding, setQuickAdding] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     setSelectedIds(new Set(currentSquadIds));
-    setLocalPlayers(allPlayers);
     setSearch('');
     setError(null);
-  }, [currentSquadIds, allPlayers, isOpen]);
+    setTotalTurfCost(3800);
+  }, [currentSquadIds, isOpen]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -71,11 +68,23 @@ export default function SquadModal({
     setSelectedIds(new Set());
   };
 
+  const count = selectedIds.size;
+  const costNum = Number(totalTurfCost) || 0;
+  const splitPerPlayer = count > 0 ? Math.round(costNum / count) : 0;
+
   const handleSave = async () => {
+    if (count === 0) {
+      setError('Please select at least 1 player for the match squad.');
+      return;
+    }
+    if (costNum <= 0) {
+      setError('Total turf rent must be greater than ₹0.');
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
-      await onSaveSquad(Array.from(selectedIds));
+      await onSaveSquad(Array.from(selectedIds), costNum);
       onClose();
     } catch (err) {
       setError(err.message || 'Failed to update squad');
@@ -84,34 +93,7 @@ export default function SquadModal({
     }
   };
 
-  const handleQuickAddPlayer = async (nameToAdd) => {
-    const clean = (nameToAdd || search).trim();
-    if (!clean) return;
-    setQuickAdding(true);
-    setError(null);
-    try {
-      const res = await api.createPlayerWithoutEmail({ name: clean });
-      if (res.user) {
-        const newP = {
-          id: res.user.id,
-          name: res.user.name,
-          role: res.user.role || 'user',
-        };
-        setLocalPlayers((prev) => [...prev, newP]);
-        setSelectedIds((prev) => new Set([...prev, res.user.id]));
-        setSearch('');
-        if (onPlayerCreated) {
-          onPlayerCreated(newP);
-        }
-      }
-    } catch (err) {
-      setError(err.message || 'Failed to add player');
-    } finally {
-      setQuickAdding(false);
-    }
-  };
-
-  const filteredPlayers = localPlayers.filter((p) =>
+  const filteredPlayers = allPlayers.filter((p) =>
     (p.name || '').toLowerCase().includes(search.toLowerCase())
   );
 
@@ -119,23 +101,23 @@ export default function SquadModal({
     <dialog
       ref={dialogRef}
       className="custom-modal"
-      style={{ maxWidth: '600px', width: '95%' }}
+      style={{ maxWidth: '640px', width: '95%' }}
       closedby="any"
       onClose={onClose}
     >
-      <div className="modal-content" style={{ maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+      <div className="modal-content" style={{ maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
         {/* Header */}
         <div className="modal-header" style={{ marginBottom: '1rem' }}>
           <div>
             <h3 style={{ fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)' }}>
-              <Users size={20} color="var(--pitch-green)" />
-              Select Match Squad
+              <Users size={22} color="var(--pitch-green)" />
+              Confirm Match Squad & Split Turf Rent
             </h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              Friday, {sessionDate} @ Elite Football Turf
+              Friday, {sessionDate || 'Match Day'} • Fixed Turf Booking Fee Split
             </p>
           </div>
-          <button className="btn-close" onClick={onClose}>
+          <button className="btn-close" onClick={onClose} aria-label="Close modal">
             <X size={20} />
           </button>
         </div>
@@ -145,16 +127,92 @@ export default function SquadModal({
             background: '#fff1f2',
             border: '1px solid #fecdd3',
             borderRadius: 'var(--radius-sm)',
-            padding: '0.75rem',
+            padding: '0.75rem 1rem',
             color: '#be123c',
             fontSize: '0.85rem',
             marginBottom: '1rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
           }}>
-            {error}
+            <AlertCircle size={16} />
+            <span>{error}</span>
           </div>
         )}
 
-        {/* Counter and Quick Actions */}
+        {/* Dynamic Split Calculation Banner */}
+        <div style={{
+          background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)',
+          border: '1.5px solid #86efac',
+          borderRadius: '12px',
+          padding: '1rem 1.25rem',
+          marginBottom: '1rem',
+          boxShadow: '0 2px 8px rgba(16, 185, 129, 0.08)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700, color: '#14532d', fontSize: '0.95rem' }}>
+              <Calculator size={18} color="#059669" />
+              <span>Turf Rent Split Calculator</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <label htmlFor="total-cost-input" style={{ fontSize: '0.82rem', color: '#166534', fontWeight: 600 }}>
+                Total Turf Fee (₹):
+              </label>
+              <input
+                id="total-cost-input"
+                type="number"
+                min="0"
+                step="50"
+                value={totalTurfCost}
+                onChange={(e) => setTotalTurfCost(e.target.value)}
+                style={{
+                  width: '105px',
+                  padding: '0.35rem 0.6rem',
+                  fontSize: '0.95rem',
+                  fontWeight: 700,
+                  color: '#0f172a',
+                  background: '#ffffff',
+                  border: '1.5px solid #86efac',
+                  borderRadius: '6px',
+                  textAlign: 'right',
+                }}
+              />
+            </div>
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '0.75rem',
+            textAlign: 'center',
+            background: 'rgba(255, 255, 255, 0.75)',
+            padding: '0.75rem',
+            borderRadius: '8px',
+            border: '1px solid #bbf7d0',
+          }}>
+            <div>
+              <div style={{ fontSize: '0.72rem', color: '#4b5563', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Turf Cost</div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>₹{costNum.toLocaleString()}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.72rem', color: '#4b5563', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Squad Players</div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 800, color: count > 0 ? '#059669' : '#9ca3af' }}>{count}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.72rem', color: '#4b5563', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Split / Player</div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#15803d' }}>
+                ₹{splitPerPlayer}
+              </div>
+            </div>
+          </div>
+          {count > 0 && (
+            <div style={{ fontSize: '0.75rem', color: '#166534', marginTop: '0.5rem', textAlign: 'center', fontWeight: 500 }}>
+              💡 ₹{costNum} ÷ {count} players = ₹{splitPerPlayer} per confirmed player for this match.
+            </div>
+          )}
+        </div>
+
+        {/* Counter and Select All / Clear */}
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
@@ -162,17 +220,17 @@ export default function SquadModal({
           flexWrap: 'wrap',
           gap: '0.75rem',
           background: '#f8fafc',
-          padding: '0.75rem 1rem',
+          padding: '0.65rem 0.85rem',
           borderRadius: 'var(--radius-sm)',
-          marginBottom: '1rem',
+          marginBottom: '0.75rem',
           border: '1px solid var(--border-subtle)',
         }}>
           <div>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Selected Squad: </span>
-            <strong style={{ fontSize: '1.1rem', color: 'var(--pitch-green-dark)' }}>
-              {selectedIds.size}
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Selected: </span>
+            <strong style={{ fontSize: '1.05rem', color: 'var(--pitch-green-dark)' }}>
+              {count}
             </strong>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}> / {localPlayers.length} registered players</span>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}> / {allPlayers.length} approved players</span>
           </div>
 
           <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -193,59 +251,34 @@ export default function SquadModal({
           </div>
         </div>
 
-        {/* Search Bar & Quick Add Player */}
-        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-          <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
-            <Search size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
-            <input
-              type="text"
-              className="form-input"
-              style={{ paddingLeft: '2.5rem', fontSize: '0.9rem' }}
-              placeholder="Search or type player name..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-          {search.trim() && !localPlayers.some((p) => (p.name || '').toLowerCase() === search.trim().toLowerCase()) && (
-            <button
-              type="button"
-              className="btn btn-secondary"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', whiteSpace: 'nowrap', fontSize: '0.82rem', borderColor: '#93c5fd', color: '#1d4ed8', background: '#eff6ff' }}
-              onClick={() => handleQuickAddPlayer(search.trim())}
-              disabled={quickAdding}
-              title={`Register ${search.trim()} without email`}
-            >
-              <UserPlus size={15} color="#2563eb" />
-              <span>{quickAdding ? 'Adding...' : `+ Add "${search.trim()}"`}</span>
-            </button>
-          )}
+        {/* Search Bar */}
+        <div style={{ position: 'relative', marginBottom: '0.75rem' }}>
+          <Search size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
+          <input
+            type="text"
+            className="form-input"
+            style={{ paddingLeft: '2.5rem', fontSize: '0.9rem' }}
+            placeholder="Search approved players..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
 
         {/* Player Checkbox List */}
         <div style={{
           flex: 1,
+          minHeight: '200px',
+          maxHeight: '320px',
           overflowY: 'auto',
           border: '1px solid var(--border-subtle)',
           borderRadius: 'var(--radius-sm)',
           padding: '0.5rem',
           background: '#ffffff',
-          marginBottom: '1.5rem',
+          marginBottom: '1rem',
         }}>
           {filteredPlayers.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--text-muted)' }}>
-              <p style={{ fontSize: '0.9rem', marginBottom: '0.75rem' }}>No players found matching "{search}"</p>
-              {search.trim() && (
-                <button
-                  type="button"
-                  className="btn btn-sm"
-                  style={{ background: '#2563eb', color: '#ffffff', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-                  onClick={() => handleQuickAddPlayer(search.trim())}
-                  disabled={quickAdding}
-                >
-                  <UserPlus size={14} />
-                  <span>{quickAdding ? 'Adding...' : `+ Add "${search.trim()}" (No Email)`}</span>
-                </button>
-              )}
+              <p style={{ fontSize: '0.9rem' }}>No approved players found matching "{search}"</p>
             </div>
           ) : (
             filteredPlayers.map((player) => {
@@ -258,12 +291,12 @@ export default function SquadModal({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    padding: '0.65rem 0.85rem',
+                    padding: '0.6rem 0.85rem',
                     borderRadius: 'var(--radius-sm)',
                     background: isChecked ? '#ecfdf5' : 'transparent',
                     border: isChecked ? '1px solid #a7f3d0' : '1px solid transparent',
                     cursor: 'pointer',
-                    marginBottom: '0.35rem',
+                    marginBottom: '0.3rem',
                     transition: 'all 0.15s ease',
                   }}
                 >
@@ -283,16 +316,21 @@ export default function SquadModal({
                       <strong style={{ color: isChecked ? '#065f46' : 'var(--text-primary)', fontSize: '0.925rem' }}>
                         {player.name}
                       </strong>
-                      <span className={`role-tag ${player.role}`} style={{ marginLeft: '0.5rem', fontSize: '0.65rem' }}>
-                        {player.role}
-                      </span>
+                      {player.role === 'admin' && (
+                        <span className="role-tag admin" style={{ marginLeft: '0.5rem', fontSize: '0.65rem' }}>
+                          Admin
+                        </span>
+                      )}
                     </div>
                   </div>
 
-                  {isChecked && (
-                    <span style={{ fontSize: '0.75rem', color: 'var(--pitch-green-dark)', fontWeight: 600 }}>
-                      ✓ In Squad
-                    </span>
+                  {isChecked ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--pitch-green-dark)', fontSize: '0.8rem', fontWeight: 600 }}>
+                      <CheckCircle2 size={15} />
+                      <span>₹{splitPerPlayer}</span>
+                    </div>
+                  ) : (
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Not in squad</span>
                   )}
                 </div>
               );
@@ -301,11 +339,12 @@ export default function SquadModal({
         </div>
 
         {/* Footer Actions */}
-        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', alignItems: 'center' }}>
           <button
             type="button"
             className="btn btn-secondary"
             onClick={onClose}
+            disabled={saving}
           >
             Cancel
           </button>
@@ -313,9 +352,15 @@ export default function SquadModal({
             type="button"
             className="btn btn-primary"
             onClick={handleSave}
-            disabled={saving}
+            disabled={saving || count === 0}
+            style={{
+              background: '#059669',
+              borderColor: '#059669',
+              minWidth: '220px',
+              justifyContent: 'center',
+            }}
           >
-            {saving ? 'Saving...' : `Confirm & Save Squad (${selectedIds.size} Players)`}
+            {saving ? 'Splitting & Saving...' : `Confirm Squad & Split (₹${splitPerPlayer}/player)`}
           </button>
         </div>
       </div>

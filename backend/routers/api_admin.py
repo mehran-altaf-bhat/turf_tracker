@@ -178,8 +178,8 @@ def get_session_roster(session_id: int, admin: dict = Depends(require_admin)):
         f"⚽ *Elite Football Turf — Match Squad*",
         f"📅 *Date:* {session['session_date']} (Friday)",
         f"⏰ *Slot:* {session.get('start_time', '20:00')} - {session.get('end_time', '22:00')}",
-        f"👥 *Squad:* {len(roster)} Players Selected",
-        f"💰 *Fee:* ₹{session_cost} / player",
+        f"💰 *Total Turf Fee:* ₹3,800",
+        f"👥 *Squad:* {len(roster)} Players (Split: ₹{session_cost}/player)",
         f"📊 *Collected:* ₹{collected:,} / ₹{expected_total:,}",
         "",
         f"✅ *PAID IN FULL ({len(confirmed_players)}):*",
@@ -229,6 +229,7 @@ def get_session_roster(session_id: int, admin: dict = Depends(require_admin)):
 
 class UpdateSquadRequest(BaseModel):
     player_ids: list[str]
+    total_turf_cost: Optional[int] = 3800
 
 
 @router.post("/session/{session_id}/squad")
@@ -237,15 +238,25 @@ def update_session_squad(session_id: int, data: UpdateSquadRequest, admin: dict 
     session_res = db.table("turf_sessions").select("*").eq("id", session_id).single().execute()
     if not session_res.data:
         raise HTTPException(status_code=404, detail="Session not found")
-    cost = session_res.data.get("cost_per_person", 200)
+
+    target_ids = set(data.player_ids)
+    squad_size = len(target_ids)
+    total_turf_cost = data.total_turf_cost if (data.total_turf_cost and data.total_turf_cost > 0) else 3800
+
+    # Calculate split per player: e.g. 3800 / 16 = 238
+    if squad_size > 0:
+        cost = round(total_turf_cost / squad_size)
+    else:
+        cost = session_res.data.get("cost_per_person", 200)
+
+    # Update session's cost_per_person
+    db.table("turf_sessions").update({"cost_per_person": cost}).eq("id", session_id).execute()
 
     # Fetch current payments for this session
     existing = db.table("payments").select("*").eq("session_id", session_id).execute().data
     existing_by_user = {p["user_id"]: p for p in existing}
 
-    target_ids = set(data.player_ids)
-
-    # 1. Add players who are not in this session yet
+    # 1. Add players who are not in this session yet with split fee
     for uid in target_ids:
         if uid not in existing_by_user:
             db.table("payments").insert({
@@ -254,13 +265,21 @@ def update_session_squad(session_id: int, data: UpdateSquadRequest, admin: dict 
                 "amount": cost,
                 "status": "unpaid",
             }).execute()
+        elif existing_by_user[uid].get("status") == "unpaid":
+            # Update unpaid players to new split amount
+            db.table("payments").update({"amount": cost}).eq("id", existing_by_user[uid]["id"]).execute()
 
     # 2. Remove players who were unchecked and have status == 'unpaid'
     for uid, pay in existing_by_user.items():
         if uid not in target_ids and pay.get("status") == "unpaid":
             db.table("payments").delete().eq("id", pay["id"]).execute()
 
-    return {"message": f"Match squad updated! {len(target_ids)} player(s) selected."}
+    return {
+        "message": f"Squad confirmed with {squad_size} players! Turf fee of ₹{total_turf_cost} split to ₹{cost}/player.",
+        "squad_size": squad_size,
+        "total_turf_cost": total_turf_cost,
+        "split_per_player": cost,
+    }
 
 
 @router.post("/session/{session_id}/remove-player/{user_id}")
@@ -463,87 +482,25 @@ def manual_pay_entry(data: ManualPayRequest, admin: dict = Depends(require_admin
     }
 
 
-class CreateUserWithoutEmailRequest(BaseModel):
-    name: str
-    phone: Optional[str] = None
-    role: Optional[str] = "user"
-    add_to_current_squad: Optional[bool] = False
-    session_id: Optional[int] = None
-
-
-@router.post("/users/create")
-def create_user_without_email(data: CreateUserWithoutEmailRequest, admin: dict = Depends(require_admin)):
-    clean_name = (data.name or "").strip()
-    if not clean_name:
-        raise HTTPException(status_code=400, detail="Player name is required")
-
+@router.post("/users/{user_id}/approve")
+def approve_user(user_id: str, admin: dict = Depends(require_admin)):
     db = service_client()
-    import re, uuid
-
-    # Generate an internal safe email handle for auth
-    slug = re.sub(r"[^a-zA-Z0-9]", "_", clean_name.lower())[:15].strip("_") or "player"
-    random_hex = uuid.uuid4().hex[:6]
-    synthetic_email = f"{slug}_{random_hex}@turftracker.local"
-    temp_password = f"Turf@{uuid.uuid4().hex[:8]}"
-
-    user_meta = {
-        "name": clean_name,
-        "created_by_admin": True,
-        "is_no_email_user": True,
-    }
-    if data.phone and data.phone.strip():
-        user_meta["phone"] = data.phone.strip()
-
     try:
-        auth_res = db.auth.admin.create_user({
-            "email": synthetic_email,
-            "password": temp_password,
+        user_res = db.auth.admin.get_user_by_id(user_id)
+        if not user_res or not user_res.user:
+            raise HTTPException(status_code=404, detail="User not found")
+        meta = user_res.user.user_metadata or {}
+        meta["is_approved"] = True
+        db.auth.admin.update_user_by_id(user_id, {
+            "user_metadata": meta,
             "email_confirm": True,
-            "user_metadata": user_meta,
         })
+        player_name = meta.get("name") or "Player"
+        return {"message": f"Account for '{player_name}' approved successfully! They can now log in."}
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to create user in auth system: {str(e)}")
-
-    user_id = auth_res.user.id
-
-    # Upsert profile to ensure correct name and role
-    try:
-        db.table("profiles").upsert({
-            "id": user_id,
-            "name": clean_name,
-            "role": data.role or "user",
-        }).execute()
-    except Exception as e:
-        db.auth.admin.delete_user(user_id)
-        raise HTTPException(status_code=500, detail=f"Failed to create profile: {str(e)}")
-
-    # Optionally add to current match session squad
-    squad_added = False
-    if data.add_to_current_squad and data.session_id:
-        try:
-            session_res = db.table("turf_sessions").select("cost_per_person").eq("id", data.session_id).single().execute()
-            cost = session_res.data.get("cost_per_person", 200) if session_res.data else 200
-            db.table("payments").insert({
-                "user_id": user_id,
-                "session_id": data.session_id,
-                "amount": cost,
-                "status": "unpaid",
-            }).execute()
-            squad_added = True
-        except Exception as e:
-            print("Failed to auto-add to squad:", e)
-
-    return {
-        "message": f"Player '{clean_name}' added successfully without email!" + (" Added to match squad!" if squad_added else ""),
-        "user": {
-            "id": user_id,
-            "name": clean_name,
-            "role": data.role or "user",
-            "email": synthetic_email,
-            "phone": data.phone.strip() if data.phone else None,
-            "squad_added": squad_added,
-        }
-    }
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.delete("/users/{user_id}")
@@ -607,7 +564,7 @@ def get_all_users_detailed(admin: dict = Depends(require_admin)):
     db = service_client()
     profiles = db.table("profiles").select("*").order("name").execute().data
 
-    # Map auth metadata (phone, email, is_no_email_user)
+    # Map auth metadata (phone, email, is_no_email_user, is_approved)
     auth_users_map = {}
     try:
         auth_users = db.auth.admin.list_users()
@@ -617,6 +574,7 @@ def get_all_users_detailed(admin: dict = Depends(require_admin)):
                 "email": getattr(u, "email", None),
                 "phone": meta.get("phone") or getattr(u, "phone", None),
                 "is_no_email_user": meta.get("is_no_email_user") or (getattr(u, "email", "") and "@turftracker.local" in getattr(u, "email", "")),
+                "is_approved": meta.get("is_approved"),
             }
     except Exception as e:
         print("Auth list error:", e)
@@ -636,6 +594,11 @@ def get_all_users_detailed(admin: dict = Depends(require_admin)):
         uid = p["id"]
         auth_info = auth_users_map.get(uid, {})
         stats = user_stats.get(uid, {"total_paid": 0, "matches_count": 0})
+        
+        # Admin is always approved; regular users depend on is_approved in metadata (defaults to False if None)
+        is_admin_user = (p.get("role") == "admin")
+        is_approved = True if is_admin_user else (auth_info.get("is_approved") is True)
+
         result.append({
             "id": uid,
             "name": p.get("name") or "Player",
@@ -644,11 +607,13 @@ def get_all_users_detailed(admin: dict = Depends(require_admin)):
             "email": auth_info.get("email"),
             "phone": auth_info.get("phone"),
             "is_no_email_user": auth_info.get("is_no_email_user", False),
+            "is_approved": is_approved,
             "total_paid": stats["total_paid"],
             "matches_count": stats["matches_count"],
         })
 
-    return {"users": result, "total": len(result)}
+    pending_count = sum(1 for u in result if not u.get("is_approved"))
+    return {"users": result, "total": len(result), "pending_count": pending_count}
 
 
 class UpdateUserRequest(BaseModel):

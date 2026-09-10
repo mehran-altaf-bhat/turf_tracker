@@ -6,6 +6,7 @@ export default function LoginPage({ onLoginSuccess }) {
   const [isLogin, setIsLogin] = useState(true);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -22,10 +23,11 @@ export default function LoginPage({ onLoginSuccess }) {
         const data = await api.login(email.trim(), password);
         onLoginSuccess(data.user);
       } else {
-        const res = await api.signup(name.trim(), email.trim(), password);
-        setSuccessMsg(res.message || 'Account created successfully! Please log in.');
+        const res = await api.signup(name.trim(), email.trim(), password, phone.trim());
+        setSuccessMsg(res.message || 'Registration submitted! Please wait for the admin to approve your account before logging in.');
         setIsLogin(true);
         setPassword('');
+        setPhone('');
       }
     } catch (err) {
       setError(err.message || 'Authentication failed');
@@ -146,18 +148,34 @@ export default function LoginPage({ onLoginSuccess }) {
         {/* Form */}
         <form onSubmit={handleSubmit}>
           {!isLogin && (
-            <div className="form-group">
-              <label className="form-label" htmlFor="user-name">Full Name</label>
-              <input
-                id="user-name"
-                type="text"
-                className="form-input"
-                placeholder="e.g. Mehran Bhat"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
-            </div>
+            <>
+              <div className="form-group">
+                <label className="form-label" htmlFor="user-name">Full Name *</label>
+                <input
+                  id="user-name"
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g. Faisal Rashid"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label" htmlFor="user-phone">Phone Number (WhatsApp)</label>
+                <input
+                  id="user-phone"
+                  type="tel"
+                  className="form-input"
+                  placeholder="e.g. 9876543210"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                />
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem', display: 'block' }}>
+                  Used for match squad rosters and WhatsApp payment reminders
+                </span>
+              </div>
+            </>
           )}
 
           <div className="form-group">

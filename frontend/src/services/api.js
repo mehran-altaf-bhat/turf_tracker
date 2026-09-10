@@ -52,10 +52,10 @@ export const api = {
     return res;
   },
 
-  signup: async (name, email, password) => {
+  signup: async (name, email, password, phone) => {
     return request('/auth/signup', {
       method: 'POST',
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify({ name, email, password, phone }),
     });
   },
 
@@ -184,10 +184,17 @@ export const api = {
     });
   },
 
-  updateSessionSquad: async (sessionId, playerIds) => {
+  resetPassword: async (email, new_password) => {
+    return request('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ email, new_password }),
+    });
+  },
+
+  updateSessionSquad: async (sessionId, playerIds, totalTurfCost = 3800) => {
     return request(`/admin/session/${sessionId}/squad`, {
       method: 'POST',
-      body: JSON.stringify({ player_ids: playerIds }),
+      body: JSON.stringify({ player_ids: playerIds, total_turf_cost: Number(totalTurfCost) }),
     });
   },
 
@@ -210,10 +217,9 @@ export const api = {
     });
   },
 
-  createPlayerWithoutEmail: async ({ name, phone, role, add_to_current_squad, session_id }) => {
-    return request('/admin/users/create', {
+  approveUser: async (userId) => {
+    return request(`/admin/users/${userId}/approve`, {
       method: 'POST',
-      body: JSON.stringify({ name, phone, role, add_to_current_squad, session_id }),
     });
   },
 

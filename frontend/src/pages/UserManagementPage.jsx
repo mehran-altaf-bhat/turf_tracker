@@ -3,7 +3,6 @@ import { api } from '../services/api';
 import {
   Users,
   UserCheck,
-  UserPlus,
   Shield,
   Search,
   Pencil,
@@ -14,19 +13,19 @@ import {
   AlertCircle,
   X,
   RefreshCw,
-  ExternalLink,
   MessageCircle,
   Clock,
-  Sparkles,
-  ShieldAlert,
+  UserX,
+  ShieldCheck,
 } from 'lucide-react';
 
 export default function UserManagementPage({ currentUser }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState('all'); // 'all' | 'admin' | 'user' | 'no_email'
+  const [roleFilter, setRoleFilter] = useState('all'); // 'all' | 'pending' | 'approved' | 'admin'
   const [toast, setToast] = useState(null);
+  const [approvingId, setApprovingId] = useState(null);
 
   // Edit Modal State
   const [editingUser, setEditingUser] = useState(null);
@@ -35,14 +34,6 @@ export default function UserManagementPage({ currentUser }) {
   const [editRole, setEditRole] = useState('user');
   const [savingEdit, setSavingEdit] = useState(false);
   const [editError, setEditError] = useState(null);
-
-  // Add User Modal State
-  const [addModalOpen, setAddModalOpen] = useState(false);
-  const [addName, setAddName] = useState('');
-  const [addPhone, setAddPhone] = useState('');
-  const [addRole, setAddRole] = useState('user');
-  const [savingAdd, setSavingAdd] = useState(false);
-  const [addError, setAddError] = useState(null);
 
   // Delete Modal State
   const [deletingUser, setDeletingUser] = useState(null);
@@ -67,6 +58,20 @@ export default function UserManagementPage({ currentUser }) {
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 4500);
+  };
+
+  // Approve Player Account
+  const handleApproveUser = async (u) => {
+    setApprovingId(u.id);
+    try {
+      const res = await api.approveUser(u.id);
+      showToast(res.message || `Account approved for "${u.name}"! They can now log in.`);
+      await loadUsers();
+    } catch (err) {
+      showToast(err.message || 'Failed to approve account', 'error');
+    } finally {
+      setApprovingId(null);
+    }
   };
 
   // Open Edit Modal
@@ -103,35 +108,6 @@ export default function UserManagementPage({ currentUser }) {
     }
   };
 
-  // Save Add Player
-  const handleSaveAdd = async (e) => {
-    e.preventDefault();
-    if (!addName.trim()) {
-      setAddError('Player name is required');
-      return;
-    }
-    setSavingAdd(true);
-    setAddError(null);
-    try {
-      const res = await api.createPlayerWithoutEmail({
-        name: addName.trim(),
-        phone: addPhone.trim() || undefined,
-        role: addRole,
-        add_to_current_squad: false,
-      });
-      showToast(res.message || 'New player added successfully!');
-      setAddName('');
-      setAddPhone('');
-      setAddRole('user');
-      setAddModalOpen(false);
-      await loadUsers();
-    } catch (err) {
-      setAddError(err.message || 'Failed to add player');
-    } finally {
-      setSavingAdd(false);
-    }
-  };
-
   // Confirm Delete
   const handleConfirmDelete = async () => {
     if (!deletingUser) return;
@@ -143,7 +119,7 @@ export default function UserManagementPage({ currentUser }) {
     setIsDeleting(true);
     try {
       const res = await api.deleteUser(deletingUser.id);
-      showToast(res.message || `Removed ${deletingUser.name} successfully`);
+      showToast(res.message || `Removed "${deletingUser.name}" successfully`);
       setDeletingUser(null);
       await loadUsers();
     } catch (err) {
@@ -152,6 +128,13 @@ export default function UserManagementPage({ currentUser }) {
       setIsDeleting(false);
     }
   };
+
+  // Counts
+  const totalCount = users.length;
+  const pendingUsers = users.filter((u) => !u.is_approved);
+  const pendingCount = pendingUsers.length;
+  const adminCount = users.filter((u) => u.role === 'admin').length;
+  const approvedCount = totalCount - pendingCount;
 
   // Filtering
   const filteredUsers = users.filter((u) => {
@@ -165,18 +148,12 @@ export default function UserManagementPage({ currentUser }) {
 
     if (!matchesQuery) return false;
 
+    if (roleFilter === 'pending') return !u.is_approved;
+    if (roleFilter === 'approved') return u.is_approved;
     if (roleFilter === 'admin') return u.role === 'admin';
-    if (roleFilter === 'user') return u.role !== 'admin';
-    if (roleFilter === 'no_email') return u.is_no_email_user;
 
     return true;
   });
-
-  // Stats
-  const totalCount = users.length;
-  const adminCount = users.filter((u) => u.role === 'admin').length;
-  const regularCount = totalCount - adminCount;
-  const directNoEmailCount = users.filter((u) => u.is_no_email_user).length;
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', paddingBottom: '3rem' }}>
@@ -206,7 +183,7 @@ export default function UserManagementPage({ currentUser }) {
         </div>
       )}
 
-      {/* Top Banner & Action Header */}
+      {/* Top Banner & Header */}
       <div
         className="card"
         style={{
@@ -242,11 +219,11 @@ export default function UserManagementPage({ currentUser }) {
                 <Users size={20} />
               </div>
               <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                User & Player Management
+                Player & User Approvals
               </h2>
             </div>
             <p style={{ margin: 0, color: '#64748b', fontSize: '0.875rem' }}>
-              Add, inspect, edit player profiles, phone numbers, change admin privileges, or remove accounts.
+              Players register with their Name, Email, Phone, and Password. Review and approve their accounts before they can log in.
             </p>
           </div>
 
@@ -265,32 +242,75 @@ export default function UserManagementPage({ currentUser }) {
               }}
             >
               <RefreshCw size={15} className={loading ? 'spin' : ''} />
-              <span>Refresh</span>
-            </button>
-
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => {
-                setAddModalOpen(true);
-                setAddError(null);
-              }}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.45rem',
-                fontSize: '0.875rem',
-                padding: '0.55rem 1.1rem',
-                background: '#059669',
-                borderColor: '#059669',
-              }}
-            >
-              <UserPlus size={16} />
-              <span>Add New Player</span>
+              <span>Refresh Directory</span>
             </button>
           </div>
         </div>
       </div>
+
+      {/* Pending Approvals Alert Banner */}
+      {pendingCount > 0 && (
+        <div
+          style={{
+            background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+            border: '1.5px solid #fcd34d',
+            borderRadius: '12px',
+            padding: '1rem 1.25rem',
+            marginBottom: '1.25rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            boxShadow: '0 2px 8px rgba(217, 119, 6, 0.08)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                background: '#fef08a',
+                color: '#b45309',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 800,
+                fontSize: '1rem',
+                flexShrink: 0,
+              }}
+            >
+              ⏳
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, color: '#92400e', fontSize: '0.95rem' }}>
+                {pendingCount} New Player Registration{pendingCount > 1 ? 's' : ''} Pending Your Approval
+              </div>
+              <div style={{ fontSize: '0.82rem', color: '#b45309' }}>
+                Players cannot log in until you approve them below.
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="btn btn-sm"
+            onClick={() => setRoleFilter('pending')}
+            style={{
+              background: '#d97706',
+              color: '#ffffff',
+              border: 'none',
+              fontWeight: 700,
+              padding: '0.45rem 0.85rem',
+              borderRadius: '6px',
+              cursor: 'pointer',
+            }}
+          >
+            View Pending ({pendingCount})
+          </button>
+        </div>
+      )}
 
       {/* Filter and Search Bar */}
       <div
@@ -354,16 +374,35 @@ export default function UserManagementPage({ currentUser }) {
             style={{ fontSize: '0.78rem', borderRadius: '9999px', padding: '0.35rem 0.85rem' }}
             onClick={() => setRoleFilter('all')}
           >
-            All ({totalCount})
+            All Users ({totalCount})
           </button>
+
           <button
             type="button"
-            className={`btn btn-sm ${roleFilter === 'user' ? 'btn-primary' : 'btn-secondary'}`}
-            style={{ fontSize: '0.78rem', borderRadius: '9999px', padding: '0.35rem 0.85rem' }}
-            onClick={() => setRoleFilter('user')}
+            className={`btn btn-sm ${roleFilter === 'pending' ? 'btn-primary' : 'btn-secondary'}`}
+            style={{
+              fontSize: '0.78rem',
+              borderRadius: '9999px',
+              padding: '0.35rem 0.85rem',
+              background: roleFilter === 'pending' ? '#d97706' : (pendingCount > 0 ? '#fef3c7' : undefined),
+              color: roleFilter === 'pending' ? '#ffffff' : (pendingCount > 0 ? '#92400e' : undefined),
+              borderColor: pendingCount > 0 ? '#fcd34d' : undefined,
+              fontWeight: pendingCount > 0 ? 700 : 500,
+            }}
+            onClick={() => setRoleFilter('pending')}
           >
-            Players ({regularCount})
+            Pending Approval ({pendingCount})
           </button>
+
+          <button
+            type="button"
+            className={`btn btn-sm ${roleFilter === 'approved' ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ fontSize: '0.78rem', borderRadius: '9999px', padding: '0.35rem 0.85rem' }}
+            onClick={() => setRoleFilter('approved')}
+          >
+            Approved ({approvedCount})
+          </button>
+
           <button
             type="button"
             className={`btn btn-sm ${roleFilter === 'admin' ? 'btn-primary' : 'btn-secondary'}`}
@@ -371,14 +410,6 @@ export default function UserManagementPage({ currentUser }) {
             onClick={() => setRoleFilter('admin')}
           >
             Admins ({adminCount})
-          </button>
-          <button
-            type="button"
-            className={`btn btn-sm ${roleFilter === 'no_email' ? 'btn-primary' : 'btn-secondary'}`}
-            style={{ fontSize: '0.78rem', borderRadius: '9999px', padding: '0.35rem 0.85rem' }}
-            onClick={() => setRoleFilter('no_email')}
-          >
-            Direct / No-Email ({directNoEmailCount})
           </button>
         </div>
       </div>
@@ -404,13 +435,16 @@ export default function UserManagementPage({ currentUser }) {
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                   <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>
-                    Player / User
+                    Player Name
                   </th>
                   <th style={{ padding: '0.85rem 1rem', fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>
                     Phone / WhatsApp
                   </th>
                   <th style={{ padding: '0.85rem 1rem', fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>
-                    Account Type
+                    Email
+                  </th>
+                  <th style={{ padding: '0.85rem 1rem', fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>
+                    Approval Status
                   </th>
                   <th style={{ padding: '0.85rem 1rem', fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>
                     Role
@@ -424,16 +458,18 @@ export default function UserManagementPage({ currentUser }) {
                 {filteredUsers.map((u, idx) => {
                   const isCurrentAdmin = currentUser && currentUser.id === u.id;
                   const cleanPhone = (u.phone || '').replace(/[^0-9]/g, '');
+                  const isPending = !u.is_approved;
 
                   return (
                     <tr
                       key={u.id || idx}
                       style={{
                         borderBottom: '1px solid #f1f5f9',
+                        backgroundColor: isPending ? '#fffdf7' : 'transparent',
                         transition: 'background-color 0.15s ease',
                       }}
-                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#fbfcfe')}
-                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = isPending ? '#fefce8' : '#fbfcfe')}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = isPending ? '#fffdf7' : 'transparent')}
                     >
                       {/* Player Avatar & Name */}
                       <td style={{ padding: '1rem 1.25rem' }}>
@@ -443,14 +479,14 @@ export default function UserManagementPage({ currentUser }) {
                               width: '38px',
                               height: '38px',
                               borderRadius: '50%',
-                              background: u.role === 'admin' ? '#fef3c7' : '#ecfdf5',
-                              color: u.role === 'admin' ? '#b45309' : '#047857',
+                              background: u.role === 'admin' ? '#fef3c7' : (isPending ? '#fef08a' : '#ecfdf5'),
+                              color: u.role === 'admin' ? '#b45309' : (isPending ? '#854d0e' : '#047857'),
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
                               fontWeight: 700,
                               fontSize: '0.95rem',
-                              border: u.role === 'admin' ? '1px solid #fde68a' : '1px solid #a7f3d0',
+                              border: u.role === 'admin' ? '1px solid #fde68a' : (isPending ? '1px solid #fef08a' : '1px solid #a7f3d0'),
                               flexShrink: 0,
                             }}
                           >
@@ -528,25 +564,41 @@ export default function UserManagementPage({ currentUser }) {
                         )}
                       </td>
 
-                      {/* Account Type */}
+                      {/* Email */}
                       <td style={{ padding: '1rem 1rem' }}>
-                        {u.is_no_email_user ? (
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.3rem',
+                            fontSize: '0.82rem',
+                            color: '#334155',
+                          }}
+                        >
+                          <Mail size={13} color="#64748b" />
+                          <span>{u.email || '—'}</span>
+                        </span>
+                      </td>
+
+                      {/* Approval Status */}
+                      <td style={{ padding: '1rem 1rem' }}>
+                        {isPending ? (
                           <span
                             style={{
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: '0.3rem',
+                              gap: '0.35rem',
                               fontSize: '0.75rem',
-                              padding: '0.25rem 0.6rem',
+                              padding: '0.25rem 0.65rem',
                               borderRadius: '9999px',
-                              background: '#eff6ff',
-                              color: '#1d4ed8',
-                              fontWeight: 600,
-                              border: '1px solid #bfdbfe',
+                              background: '#fffbeb',
+                              color: '#b45309',
+                              fontWeight: 700,
+                              border: '1.5px solid #fde68a',
                             }}
                           >
-                            <Sparkles size={11} />
-                            <span>Direct Player</span>
+                            <Clock size={12} />
+                            <span>Pending Approval</span>
                           </span>
                         ) : (
                           <span
@@ -555,16 +607,16 @@ export default function UserManagementPage({ currentUser }) {
                               alignItems: 'center',
                               gap: '0.3rem',
                               fontSize: '0.75rem',
-                              padding: '0.25rem 0.6rem',
+                              padding: '0.25rem 0.65rem',
                               borderRadius: '9999px',
-                              background: '#f8fafc',
-                              color: '#475569',
+                              background: '#ecfdf5',
+                              color: '#047857',
                               fontWeight: 600,
-                              border: '1px solid #e2e8f0',
+                              border: '1px solid #a7f3d0',
                             }}
                           >
-                            <Mail size={11} />
-                            <span>{u.email || 'Email Account'}</span>
+                            <ShieldCheck size={12} />
+                            <span>Approved</span>
                           </span>
                         )}
                       </td>
@@ -587,7 +639,7 @@ export default function UserManagementPage({ currentUser }) {
                             }}
                           >
                             <Shield size={12} color="#d97706" />
-                            <span>Administrator</span>
+                            <span>Admin</span>
                           </span>
                         ) : (
                           <span
@@ -598,10 +650,10 @@ export default function UserManagementPage({ currentUser }) {
                               fontSize: '0.75rem',
                               padding: '0.25rem 0.6rem',
                               borderRadius: '9999px',
-                              background: '#ecfdf5',
-                              color: '#047857',
+                              background: '#f1f5f9',
+                              color: '#475569',
                               fontWeight: 600,
-                              border: '1px solid #a7f3d0',
+                              border: '1px solid #e2e8f0',
                             }}
                           >
                             <UserCheck size={12} />
@@ -613,6 +665,30 @@ export default function UserManagementPage({ currentUser }) {
                       {/* Actions */}
                       <td style={{ padding: '1rem 1.25rem', textAlign: 'right' }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}>
+                          {isPending && (
+                            <button
+                              type="button"
+                              className="btn btn-sm"
+                              onClick={() => handleApproveUser(u)}
+                              disabled={approvingId === u.id}
+                              title="Approve this player account"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.3rem',
+                                fontSize: '0.78rem',
+                                padding: '0.35rem 0.75rem',
+                                background: '#059669',
+                                color: '#ffffff',
+                                border: 'none',
+                                fontWeight: 700,
+                              }}
+                            >
+                              {approvingId === u.id ? <RefreshCw size={12} className="spin" /> : <CheckCircle2 size={13} />}
+                              <span>Approve</span>
+                            </button>
+                          )}
+
                           <button
                             type="button"
                             className="btn btn-sm btn-secondary"
@@ -635,7 +711,7 @@ export default function UserManagementPage({ currentUser }) {
                             className="btn btn-sm"
                             disabled={isCurrentAdmin}
                             onClick={() => setDeletingUser(u)}
-                            title={isCurrentAdmin ? 'Cannot delete yourself' : 'Delete Player'}
+                            title={isCurrentAdmin ? 'Cannot delete yourself' : (isPending ? 'Reject & Delete Request' : 'Delete Player')}
                             style={{
                               display: 'inline-flex',
                               alignItems: 'center',
@@ -649,7 +725,7 @@ export default function UserManagementPage({ currentUser }) {
                             }}
                           >
                             <Trash2 size={13} />
-                            <span>Delete</span>
+                            <span>{isPending ? 'Deny' : 'Delete'}</span>
                           </button>
                         </div>
                       </td>
@@ -735,7 +811,7 @@ export default function UserManagementPage({ currentUser }) {
                   required
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  placeholder="e.g. Rayees, Haris..."
+                  placeholder="e.g. Faisal Rashid..."
                   style={{
                     width: '100%',
                     padding: '0.6rem 0.85rem',
@@ -766,7 +842,7 @@ export default function UserManagementPage({ currentUser }) {
                   }}
                 />
                 <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.3rem' }}>
-                  Used for WhatsApp match notifications and payment reminders.
+                  Used for WhatsApp match roster updates.
                 </div>
               </div>
 
@@ -815,177 +891,6 @@ export default function UserManagementPage({ currentUser }) {
                 >
                   {savingEdit ? <RefreshCw size={15} className="spin" /> : <CheckCircle2 size={15} />}
                   <span>{savingEdit ? 'Saving...' : 'Save Changes'}</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ================= ADD PLAYER MODAL ================= */}
-      {addModalOpen && (
-        <div className="modal-backdrop" onClick={() => setAddModalOpen(false)}>
-          <div
-            className="modal-content"
-            style={{ maxWidth: '480px', width: '100%' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <div
-                  style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '8px',
-                    background: '#ecfdf5',
-                    color: '#059669',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <UserPlus size={16} />
-                </div>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                  Add Player (No Email Needed)
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setAddModalOpen(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: '#94a3b8',
-                  padding: '4px',
-                }}
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div
-              style={{
-                padding: '0.75rem',
-                background: '#f8fafc',
-                borderRadius: '8px',
-                border: '1px solid #e2e8f0',
-                fontSize: '0.82rem',
-                color: '#475569',
-                marginBottom: '1.25rem',
-              }}
-            >
-              ⚽ Quick-add a teammate directly using their name and mobile number. No email or password setup required.
-            </div>
-
-            {addError && (
-              <div
-                style={{
-                  padding: '0.65rem 0.85rem',
-                  background: '#fef2f2',
-                  border: '1px solid #fecdd3',
-                  borderRadius: '8px',
-                  color: '#991b1b',
-                  fontSize: '0.85rem',
-                  marginBottom: '1rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                }}
-              >
-                <AlertCircle size={15} />
-                <span>{addError}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleSaveAdd}>
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
-                  Player Full Name *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={addName}
-                  onChange={(e) => setAddName(e.target.value)}
-                  placeholder="e.g. Faizan Mir, Zahid..."
-                  style={{
-                    width: '100%',
-                    padding: '0.6rem 0.85rem',
-                    borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
-                    fontSize: '0.9rem',
-                    outline: 'none',
-                  }}
-                />
-              </div>
-
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
-                  Phone / WhatsApp Number (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={addPhone}
-                  onChange={(e) => setAddPhone(e.target.value)}
-                  placeholder="e.g. 9876543210"
-                  style={{
-                    width: '100%',
-                    padding: '0.6rem 0.85rem',
-                    borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
-                    fontSize: '0.9rem',
-                    outline: 'none',
-                  }}
-                />
-              </div>
-
-              <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
-                  Role
-                </label>
-                <select
-                  value={addRole}
-                  onChange={(e) => setAddRole(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '0.6rem 0.85rem',
-                    borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
-                    fontSize: '0.9rem',
-                    background: '#ffffff',
-                    outline: 'none',
-                  }}
-                >
-                  <option value="user">Regular Player</option>
-                  <option value="admin">Administrator</option>
-                </select>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.65rem' }}>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setAddModalOpen(false)}
-                  disabled={savingAdd}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={savingAdd}
-                  style={{
-                    background: '#059669',
-                    borderColor: '#059669',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.4rem',
-                  }}
-                >
-                  {savingAdd ? <RefreshCw size={15} className="spin" /> : <UserPlus size={15} />}
-                  <span>{savingAdd ? 'Adding...' : 'Add Player'}</span>
                 </button>
               </div>
             </form>

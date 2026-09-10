@@ -4,15 +4,30 @@ from backend.database import anon_client, service_client
 COOKIE_NAME = "access_token"
 
 
-def signup(email: str, password: str, name: str):
-    client = anon_client()
-    result = client.auth.sign_up(
-        {
-            "email": email,
-            "password": password,
-            "options": {"data": {"name": name}},
-        }
-    )
+def signup(email: str, password: str, name: str, phone: str = None):
+    db = service_client()
+    user_data = {"name": name, "is_approved": False}
+    if phone and phone.strip():
+        user_data["phone"] = phone.strip()
+
+    # Use admin.create_user to directly create user with email_confirm=True,
+    # bypassing Supabase public SMTP rate limits, gating login strictly via is_approved=False
+    result = db.auth.admin.create_user({
+        "email": email,
+        "password": password,
+        "user_metadata": user_data,
+        "email_confirm": True,
+    })
+
+    if result and result.user:
+        try:
+            db.table("profiles").upsert({
+                "id": result.user.id,
+                "name": name,
+                "role": "user",
+            }).execute()
+        except Exception as e:
+            print("Profile upsert on signup:", e)
     return result
 
 
