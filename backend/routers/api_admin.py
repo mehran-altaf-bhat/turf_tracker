@@ -72,16 +72,19 @@ def get_admin_overview(admin: dict = Depends(require_admin)):
     upcoming = [sd for sd in sessions_data if sd["session"]["session_date"] >= today_str]
     current_session = upcoming[-1] if upcoming else (sessions_data[0] if sessions_data else None)
 
+    # Filter out the dedicated admin from player counts and lists
+    player_profiles = [p for p in profiles if p.get("role") != "admin"]
+
     return {
         "stats": {
             "total_revenue_collected": total_revenue_collected,
             "total_pending_approvals": total_pending_count,
-            "total_players_registered": len(profiles),
+            "total_players_registered": len(player_profiles),
             "total_sessions_count": len(sessions),
         },
         "sessions": sessions_data,
         "current_session": current_session,
-        "all_profiles": profiles,
+        "all_profiles": player_profiles,
     }
 
 
@@ -94,9 +97,10 @@ def get_session_roster(session_id: int, admin: dict = Depends(require_admin)):
         raise HTTPException(status_code=404, detail="Session not found")
     session = session_res.data
 
-    # All profiles
+    # All profiles (separate players from admin)
     profiles = db.table("profiles").select("*").order("name").execute().data
     profile_map = {p["id"]: p for p in profiles}
+    player_profiles = [p for p in profiles if p.get("role") != "admin"]
 
     # Payments for this session
     payments = (
@@ -108,14 +112,14 @@ def get_session_roster(session_id: int, admin: dict = Depends(require_admin)):
     )
     payments_by_user = {p["user_id"]: p for p in payments}
 
-    # The roster contains players who are in the squad for this session
+    # The roster contains players who are in the squad for this session (Admin is strictly excluded)
     import re
     roster = []
     session_cost = session.get("cost_per_person", 200)
 
     for pay in payments:
         user = profile_map.get(pay["user_id"])
-        if not user:
+        if not user or user.get("role") == "admin":
             continue
         raw_ref = pay.get("upi_ref") or ""
         screenshot_url = None
@@ -153,16 +157,16 @@ def get_session_roster(session_id: int, admin: dict = Depends(require_admin)):
     # Sort roster alphabetically by player name
     roster.sort(key=lambda r: r["name"].lower())
 
-    # All registered players with selection state for admin squad selector
+    # All registered squad players (Admin is strictly excluded from match players list)
     all_registered_players = [
         {
             "id": user["id"],
             "name": user.get("name", "Unknown"),
-            "role": user.get("role", "user"),
+            "role": "user",
             "is_selected": user["id"] in payments_by_user,
             "status": payments_by_user.get(user["id"], {}).get("status", "not_selected"),
         }
-        for user in profiles
+        for user in player_profiles
     ]
 
     # Generate WhatsApp share message for the selected squad
@@ -239,7 +243,10 @@ def update_session_squad(session_id: int, data: UpdateSquadRequest, admin: dict 
     if not session_res.data:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    target_ids = set(data.player_ids)
+    # Ensure admin ID is NEVER included in squad player IDs
+    admin_profiles = db.table("profiles").select("id").eq("role", "admin").execute().data or []
+    admin_ids = {a["id"] for a in admin_profiles}
+    target_ids = {pid for pid in data.player_ids if pid not in admin_ids}
     squad_size = len(target_ids)
     total_turf_cost = data.total_turf_cost if (data.total_turf_cost and data.total_turf_cost > 0) else 3800
 
@@ -627,12 +634,22 @@ def update_user(user_id: str, data: UpdateUserRequest, admin: dict = Depends(req
     db = service_client()
     clean_name = (data.name or "").strip()
 
+    # Verify user exists
+    target_res = db.table("profiles").select("*").eq("id", user_id).single().execute()
+    if not target_res.data:
+        raise HTTPException(status_code=404, detail="User not found")
+    target_profile = target_res.data
+
+    # Admin cannot be user and user cannot be admin: only ONE account will be for the admin separate
+    if data.role == "admin" and target_profile.get("role") != "admin":
+        raise HTTPException(status_code=400, detail="Players cannot be promoted to admin. Only one separate admin account exists.")
+    if data.role == "user" and target_profile.get("role") == "admin":
+        raise HTTPException(status_code=400, detail="The dedicated admin account cannot be demoted to regular user.")
+
     # 1. Update profiles table
     update_data = {}
     if clean_name:
         update_data["name"] = clean_name
-    if data.role and data.role in ["user", "admin"]:
-        update_data["role"] = data.role
 
     if update_data:
         db.table("profiles").update(update_data).eq("id", user_id).execute()

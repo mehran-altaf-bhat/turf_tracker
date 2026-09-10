@@ -97,6 +97,12 @@ def get_my_payment_status(user: dict = Depends(get_current_user)):
     if cur_status == "confirmed" and cur_balance > 0:
         cur_status = "partial"
 
+    if user.get("role") == "admin":
+        cur_status = "admin"
+        cur_balance = 0
+        cur_amount_paid = 0
+        current_payment = None
+
     if current_payment:
         raw_cur_ref = current_payment.get("upi_ref") or ""
         cur_screenshot = None
@@ -133,11 +139,15 @@ def get_my_payment_status(user: dict = Depends(get_current_user)):
             .data
         )
         all_profiles = db.table("profiles").select("id, name, role").execute().data
+        player_profiles = [p for p in all_profiles if p.get("role") != "admin"]
         squad_user_ids = set()
 
         if session_payments:
-            name_map = {p["id"]: p.get("name", "Player") for p in all_profiles}
+            name_map = {p["id"]: p.get("name", "Player") for p in player_profiles}
             for sp in session_payments:
+                # Skip admin payment if one existed
+                if sp["user_id"] not in name_map:
+                    continue
                 squad_user_ids.add(sp["user_id"])
                 sp_status = sp.get("status", "unpaid")
                 sp_amount = sp.get("amount", 0) if sp_status in ["confirmed", "partial", "pending"] else 0
@@ -156,14 +166,15 @@ def get_my_payment_status(user: dict = Depends(get_current_user)):
                 })
             playing_squad.sort(key=lambda x: x["name"].lower())
 
-        is_in_squad = user["id"] in squad_user_ids
+        is_admin_user = (user.get("role") == "admin")
+        is_in_squad = (user["id"] in squad_user_ids) if not is_admin_user else False
 
-        for p in all_profiles:
+        for p in player_profiles:
             if p["id"] not in squad_user_ids:
                 not_playing_squad.append({
                     "user_id": p["id"],
                     "name": p.get("name", "Player"),
-                    "role": p.get("role", "user"),
+                    "role": "user",
                 })
         not_playing_squad.sort(key=lambda x: x["name"].lower())
 

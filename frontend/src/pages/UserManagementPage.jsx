@@ -96,7 +96,6 @@ export default function UserManagementPage({ currentUser }) {
       const res = await api.updateUser(editingUser.id, {
         name: editName.trim(),
         phone: editPhone.trim() || '',
-        role: editRole,
       });
       showToast(res.message || 'Player updated successfully!');
       setEditingUser(null);
@@ -150,7 +149,6 @@ export default function UserManagementPage({ currentUser }) {
 
     if (roleFilter === 'pending') return !u.is_approved;
     if (roleFilter === 'approved') return u.is_approved;
-    if (roleFilter === 'admin') return u.role === 'admin';
 
     return true;
   });
@@ -414,15 +412,6 @@ export default function UserManagementPage({ currentUser }) {
           >
             Approved ({approvedCount})
           </button>
-
-          <button
-            type="button"
-            className={`btn btn-sm ${roleFilter === 'admin' ? 'btn-primary' : 'btn-secondary'}`}
-            style={{ fontSize: '0.78rem', borderRadius: '9999px', padding: '0.35rem 0.85rem' }}
-            onClick={() => setRoleFilter('admin')}
-          >
-            Admins ({adminCount})
-          </button>
         </div>
       </div>
 
@@ -632,7 +621,7 @@ export default function UserManagementPage({ currentUser }) {
                             }}
                           >
                             <Shield size={12} color="var(--amber-400)" />
-                            <span>Admin</span>
+                            <span>System Admin</span>
                           </span>
                         ) : (
                           <span
@@ -643,14 +632,13 @@ export default function UserManagementPage({ currentUser }) {
                               fontSize: '0.75rem',
                               padding: '0.25rem 0.6rem',
                               borderRadius: '9999px',
-                              background: 'rgba(255, 255, 255, 0.05)',
-                              color: 'var(--text-secondary)',
+                              background: 'rgba(34, 197, 94, 0.08)',
+                              color: 'var(--green-400)',
                               fontWeight: 600,
-                              border: '1px solid var(--border-dim)',
+                              border: '1px solid rgba(34, 197, 94, 0.25)',
                             }}
                           >
-                            <UserCheck size={12} />
-                            <span>Player</span>
+                            <span>⚽ Squad Player</span>
                           </span>
                         )}
                       </td>
@@ -842,25 +830,27 @@ export default function UserManagementPage({ currentUser }) {
 
               <div style={{ marginBottom: '1.5rem' }}>
                 <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
-                  Account Role & Permissions
+                  Account Role
                 </label>
-                <select
-                  value={editRole}
-                  onChange={(e) => setEditRole(e.target.value)}
+                <div
                   style={{
                     width: '100%',
                     padding: '0.65rem 0.85rem',
                     borderRadius: '8px',
                     border: '1px solid var(--border-subtle)',
-                    fontSize: '0.9rem',
+                    fontSize: '0.88rem',
                     background: 'var(--bg-layer-1)',
-                    color: 'var(--text-primary)',
-                    outline: 'none',
+                    color: editingUser?.role === 'admin' ? 'var(--amber-400)' : 'var(--green-400)',
+                    fontWeight: 600,
                   }}
                 >
-                  <option value="user">Regular Player (Squad member)</option>
-                  <option value="admin">Administrator (Full admin console & edit access)</option>
-                </select>
+                  {editingUser?.role === 'admin' ? '🛡️ System Administrator (Dedicated)' : '⚽ Squad Player'}
+                </div>
+                <div style={{ fontSize: '0.73rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>
+                  {editingUser?.role === 'admin'
+                    ? 'This is the dedicated system administrator account.'
+                    : 'Players cannot be promoted to admin. Only one separate administrator account exists.'}
+                </div>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.65rem' }}>

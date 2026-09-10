@@ -27,12 +27,19 @@ export default function Sidebar({
     if (onClose) onClose();
   };
 
-  const navItems = [
-    { id: 'dashboard', label: 'Match Hub', icon: ClipboardCheck },
-    { id: 'squad', label: 'Squad & Lineup', icon: Users },
-    { id: 'history', label: 'Payment History', icon: CreditCard },
-    { id: 'schedule', label: 'Match Schedule', icon: Calendar },
-  ];
+  const navItems = isAdmin
+    ? [
+        { id: 'admin', label: 'Admin Command', icon: Shield },
+        { id: 'users', label: 'Player Approvals', icon: UserCheck },
+        { id: 'squad', label: 'Match Squad Roster', icon: Users },
+        { id: 'schedule', label: 'Match Schedule', icon: Calendar },
+      ]
+    : [
+        { id: 'dashboard', label: 'Match Hub', icon: ClipboardCheck },
+        { id: 'squad', label: 'Squad & Lineup', icon: Users },
+        { id: 'history', label: 'Payment History', icon: CreditCard },
+        { id: 'schedule', label: 'Match Schedule', icon: Calendar },
+      ];
 
   return (
     <>
@@ -53,7 +60,7 @@ export default function Sidebar({
             <a
               href="#"
               className="sidebar-brand"
-              onClick={(e) => { e.preventDefault(); handleNavClick('dashboard'); }}
+              onClick={(e) => { e.preventDefault(); handleNavClick(isAdmin ? 'admin' : 'dashboard'); }}
             >
               <img src={aseefLogo} alt="ASEEF XI" style={{ height: '28px', width: 'auto', display: 'block' }} />
               <div>
@@ -85,37 +92,6 @@ export default function Sidebar({
                 <span>{label}</span>
               </button>
             ))}
-
-            {/* Admin-only items */}
-            {isAdmin && (
-              <>
-                <div style={{
-                  height: '1px',
-                  background: 'var(--border-dim)',
-                  margin: '0.5rem 0',
-                }} />
-
-                <button
-                  type="button"
-                  className={`sidebar-nav-item ${activeTab === 'admin' ? 'active' : ''}`}
-                  onClick={() => handleNavClick('admin')}
-                  style={{ color: activeTab === 'admin' ? 'var(--green-400)' : 'var(--amber-400)' }}
-                >
-                  <Shield size={18} color={activeTab === 'admin' ? 'var(--green-400)' : 'var(--amber-400)'} />
-                  <span>Admin Command</span>
-                </button>
-
-                <button
-                  type="button"
-                  className={`sidebar-nav-item ${activeTab === 'users' ? 'active' : ''}`}
-                  onClick={() => handleNavClick('users')}
-                  style={{ color: activeTab === 'users' ? 'var(--green-400)' : 'var(--blue-400)' }}
-                >
-                  <UserCheck size={18} color={activeTab === 'users' ? 'var(--green-400)' : 'var(--blue-400)'} />
-                  <span>User Management</span>
-                </button>
-              </>
-            )}
           </nav>
         </div>
 

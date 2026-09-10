@@ -21,22 +21,33 @@ export default function Navbar({ user, onLogout, activeTab, setActiveTab }) {
         </a>
 
         <div className="nav-actions">
-          <button
-            className={`btn btn-sm ${activeTab === 'dashboard' ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => setActiveTab('dashboard')}
-          >
-            <LayoutDashboard size={15} />
-            <span>Dashboard</span>
-          </button>
+          {!isAdmin && (
+            <button
+              className={`btn btn-sm ${activeTab === 'dashboard' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setActiveTab('dashboard')}
+            >
+              <LayoutDashboard size={15} />
+              <span>Match Hub</span>
+            </button>
+          )}
 
           {isAdmin && (
-            <button
-              className={`btn btn-sm ${activeTab === 'admin' ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => setActiveTab('admin')}
-            >
-              <Shield size={15} />
-              <span>Admin Center</span>
-            </button>
+            <>
+              <button
+                className={`btn btn-sm ${activeTab === 'admin' ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setActiveTab('admin')}
+              >
+                <Shield size={15} />
+                <span>Admin Center</span>
+              </button>
+              <button
+                className={`btn btn-sm ${activeTab === 'users' ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setActiveTab('users')}
+              >
+                <User size={15} />
+                <span>Player Approvals</span>
+              </button>
+            </>
           )}
 
           <div className="nav-user">
