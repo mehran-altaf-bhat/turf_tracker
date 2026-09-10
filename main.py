@@ -58,6 +58,13 @@ if os.path.exists(dist_dir):
     def serve_react_app(path: str = ""):
         return FileResponse(os.path.join(dist_dir, "index.html"))
 
+    @app.get("/aseef-logo.svg", include_in_schema=False)
+    def serve_logo():
+        logo_path = os.path.join(dist_dir, "aseef-logo.svg")
+        if not os.path.exists(logo_path):
+            logo_path = os.path.join(os.path.dirname(__file__), "static", "aseef-logo.svg")
+        return FileResponse(logo_path, media_type="image/svg+xml")
+
     @app.get("/", include_in_schema=False)
     def home(request: Request):
         return FileResponse(os.path.join(dist_dir, "index.html"))

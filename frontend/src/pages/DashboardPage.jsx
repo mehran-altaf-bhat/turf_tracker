@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import aseefLogo from '../assets/aseef-logo.svg';
 import { api } from '../services/api';
 import PaymentModal from '../components/PaymentModal';
 import {
@@ -79,7 +80,7 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
   if (loading && !data) {
     return (
       <div style={{ textAlign: 'center', padding: '5rem 1rem' }}>
-        <img src="/aseef-logo.svg" alt="ASEEF XI" style={{ height: '42px', width: 'auto', marginBottom: '0.75rem' }} />
+        <img src={aseefLogo} alt="ASEEF XI" style={{ height: '42px', width: 'auto', marginBottom: '0.75rem' }} />
         <p style={{ color: '#64748b', fontWeight: 600 }}>Loading ASEEF XI Match Hub...</p>
       </div>
     );

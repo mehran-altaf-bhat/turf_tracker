@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import aseefLogo from './assets/aseef-logo.svg';
 import Sidebar from './components/Sidebar';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
@@ -68,7 +69,7 @@ export default function App() {
         flexDirection: 'column',
         gap: '0.75rem',
       }}>
-        <img src="/aseef-logo.svg" alt="ASEEF XI" style={{ height: '48px', width: 'auto' }} />
+        <img src={aseefLogo} alt="ASEEF XI" style={{ height: '48px', width: 'auto' }} />
         <div style={{ fontSize: '1.05rem', color: '#059669', fontWeight: 700, letterSpacing: '0.02em' }}>
           Loading ASEEF XI...
         </div>

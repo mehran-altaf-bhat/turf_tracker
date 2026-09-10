@@ -1,4 +1,5 @@
 import React from 'react';
+import aseefLogo from '../assets/aseef-logo.svg';
 import {
   ClipboardCheck,
   Users,
@@ -53,7 +54,7 @@ export default function Sidebar({
               style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', textDecoration: 'none' }}
             >
               <img
-                src="/aseef-logo.svg"
+                src={aseefLogo}
                 alt="ASEEF XI"
                 style={{ height: '30px', width: 'auto', display: 'block' }}
               />

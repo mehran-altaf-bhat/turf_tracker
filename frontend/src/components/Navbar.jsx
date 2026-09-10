@@ -1,4 +1,5 @@
 import React from 'react';
+import aseefLogo from '../assets/aseef-logo.svg';
 import { Shield, User, LogOut, Calendar, LayoutDashboard } from 'lucide-react';
 
 export default function Navbar({ user, onLogout, activeTab, setActiveTab }) {
@@ -10,7 +11,7 @@ export default function Navbar({ user, onLogout, activeTab, setActiveTab }) {
     <nav className="navbar">
       <div className="nav-inner">
         <a href="#" className="brand" onClick={(e) => { e.preventDefault(); setActiveTab('dashboard'); }} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-          <img src="/aseef-logo.svg" alt="ASEEF XI" style={{ height: '28px', width: 'auto' }} />
+          <img src={aseefLogo} alt="ASEEF XI" style={{ height: '28px', width: 'auto' }} />
           <div>
             <span style={{ fontWeight: 800, letterSpacing: '-0.02em' }}>ASEEF XI</span>
             <div style={{ fontSize: '0.72rem', color: 'var(--pitch-green-dark)', fontWeight: 700, letterSpacing: '0.04em' }}>

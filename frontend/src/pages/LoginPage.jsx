@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import aseefLogo from '../assets/aseef-logo.svg';
 import { api } from '../services/api';
 import { ShieldCheck, Mail, Lock, User, AlertCircle, ArrowRight } from 'lucide-react';
 
@@ -62,7 +63,7 @@ export default function LoginPage({ onLoginSuccess }) {
             marginBottom: '1rem',
             boxShadow: '0 4px 12px rgba(15, 23, 42, 0.05)',
           }}>
-            <img src="/aseef-logo.svg" alt="ASEEF XI Logo" style={{ height: '38px', width: 'auto' }} />
+            <img src={aseefLogo} alt="ASEEF XI Logo" style={{ height: '38px', width: 'auto' }} />
           </div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.35rem', color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
             ASEEF XI
