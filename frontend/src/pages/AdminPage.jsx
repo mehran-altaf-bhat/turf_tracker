@@ -866,11 +866,29 @@ export default function AdminPage({ setActiveTab }) {
                         )}
                       </td>
                       <td>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', alignItems: 'flex-start' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', alignItems: 'flex-start' }}>
                           {player.upi_ref && (
-                            <span style={{ fontFamily: player.upi_ref?.includes('Screenshot') ? 'inherit' : 'monospace', fontSize: '0.8rem' }}>
-                              {player.upi_ref}
-                            </span>
+                            player.upi_ref.toLowerCase().includes('cash') ? (
+                              <span style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.35rem',
+                                background: 'rgba(34, 197, 94, 0.15)',
+                                color: 'var(--green-400)',
+                                border: '1px solid rgba(34, 197, 94, 0.35)',
+                                padding: '0.2rem 0.55rem',
+                                borderRadius: '6px',
+                                fontSize: '0.78rem',
+                                fontWeight: 700,
+                              }}>
+                                <span>💵</span>
+                                <span>{player.upi_ref}</span>
+                              </span>
+                            ) : (
+                              <span style={{ fontFamily: player.upi_ref?.includes('Screenshot') ? 'inherit' : 'monospace', fontSize: '0.8rem' }}>
+                                {player.upi_ref}
+                              </span>
+                            )
                           )}
                           {player.screenshot_url && (
                             <button
@@ -919,10 +937,15 @@ export default function AdminPage({ setActiveTab }) {
                               <button
                                 className="btn btn-sm btn-primary"
                                 onClick={() => handleConfirm(player.payment.id)}
-                                title="Approve / Confirm Payment"
+                                title={player.upi_ref?.toLowerCase().includes('cash') ? "Confirm Cash Received" : "Approve / Confirm Payment"}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.3rem',
+                                }}
                               >
                                 <CheckCircle size={14} />
-                                <span>Approve</span>
+                                <span>{player.upi_ref?.toLowerCase().includes('cash') ? 'Confirm Cash' : 'Approve'}</span>
                               </button>
                               <button
                                 className="btn btn-sm btn-danger"
