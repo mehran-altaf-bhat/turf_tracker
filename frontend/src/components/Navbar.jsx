@@ -9,12 +9,12 @@ export default function Navbar({ user, onLogout, activeTab, setActiveTab }) {
   return (
     <nav className="navbar">
       <div className="nav-inner">
-        <a href="#" className="brand" onClick={(e) => { e.preventDefault(); setActiveTab('dashboard'); }}>
-          <div className="brand-icon">⚽</div>
+        <a href="#" className="brand" onClick={(e) => { e.preventDefault(); setActiveTab('dashboard'); }} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+          <img src="/aseef-logo.svg" alt="ASEEF XI" style={{ height: '28px', width: 'auto' }} />
           <div>
-            <span>Turf Tracker</span>
-            <div style={{ fontSize: '0.75rem', color: 'var(--pitch-green-dark)', fontWeight: 600, letterSpacing: 'normal' }}>
-              Elite Football Turf (8-10 PM)
+            <span style={{ fontWeight: 800, letterSpacing: '-0.02em' }}>ASEEF XI</span>
+            <div style={{ fontSize: '0.72rem', color: 'var(--pitch-green-dark)', fontWeight: 700, letterSpacing: '0.04em' }}>
+              FRIDAY FOOTBALL (8-10 PM)
             </div>
           </div>
         </a>

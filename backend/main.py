@@ -5,8 +5,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.routers import api_auth, api_sessions, api_payments, api_admin
 
 app = FastAPI(
-    title="Turf Tracker API",
-    description="Backend API for Elite Football Turf payment tracking and roster management",
+    title="ASEEF XI API",
+    description="Backend API for ASEEF XI Friday football payment tracking and match management",
     version="2.0.0",
 )
 

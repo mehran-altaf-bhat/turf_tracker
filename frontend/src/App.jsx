@@ -68,9 +68,9 @@ export default function App() {
         flexDirection: 'column',
         gap: '0.75rem',
       }}>
-        <div style={{ fontSize: '2.5rem' }}>⚽</div>
-        <div style={{ fontSize: '1.05rem', color: '#059669', fontWeight: 700 }}>
-          Loading Elite Turf Tracker...
+        <img src="/aseef-logo.svg" alt="ASEEF XI" style={{ height: '48px', width: 'auto' }} />
+        <div style={{ fontSize: '1.05rem', color: '#059669', fontWeight: 700, letterSpacing: '0.02em' }}>
+          Loading ASEEF XI...
         </div>
       </div>
     );

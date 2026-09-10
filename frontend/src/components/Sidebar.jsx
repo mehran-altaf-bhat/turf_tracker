@@ -50,14 +50,19 @@ export default function Sidebar({
                 e.preventDefault();
                 handleNavClick('dashboard');
               }}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', textDecoration: 'none' }}
             >
-              <div className="sidebar-brand-icon">⚽</div>
+              <img
+                src="/aseef-logo.svg"
+                alt="ASEEF XI"
+                style={{ height: '30px', width: 'auto', display: 'block' }}
+              />
               <div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.2 }}>
-                  TurfTracker
+                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.1, letterSpacing: '-0.02em' }}>
+                  ASEEF XI
                 </div>
-                <div style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 600 }}>
-                  Elite Football Turf
+                <div style={{ fontSize: '0.68rem', color: '#059669', fontWeight: 700, letterSpacing: '0.04em' }}>
+                  FRIDAY FOOTBALL
                 </div>
               </div>
             </a>

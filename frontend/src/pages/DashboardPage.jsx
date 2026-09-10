@@ -79,8 +79,8 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
   if (loading && !data) {
     return (
       <div style={{ textAlign: 'center', padding: '5rem 1rem' }}>
-        <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>⚽</div>
-        <p style={{ color: '#64748b', fontWeight: 500 }}>Loading Elite Turf Tracker & Match Hub...</p>
+        <img src="/aseef-logo.svg" alt="ASEEF XI" style={{ height: '42px', width: 'auto', marginBottom: '0.75rem' }} />
+        <p style={{ color: '#64748b', fontWeight: 600 }}>Loading ASEEF XI Match Hub...</p>
       </div>
     );
   }

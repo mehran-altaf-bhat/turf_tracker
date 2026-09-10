@@ -55,19 +55,20 @@ export default function LoginPage({ onLoginSuccess }) {
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            width: '56px',
-            height: '56px',
-            background: '#ecfdf5',
-            border: '1px solid #a7f3d0',
+            padding: '0.65rem 1.25rem',
+            background: '#ffffff',
+            border: '1.5px solid #e2e8f0',
             borderRadius: '16px',
-            fontSize: '1.75rem',
             marginBottom: '1rem',
+            boxShadow: '0 4px 12px rgba(15, 23, 42, 0.05)',
           }}>
-            ⚽
+            <img src="/aseef-logo.svg" alt="ASEEF XI Logo" style={{ height: '38px', width: 'auto' }} />
           </div>
-          <h1 style={{ fontSize: '1.65rem', marginBottom: '0.35rem', color: 'var(--text-primary)' }}>Elite Turf Tracker</h1>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-            Weekly Friday Football (8:00 PM - 10:00 PM)
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.35rem', color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+            ASEEF XI
+          </h1>
+          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+            Weekly Friday Football (8:00 PM – 10:00 PM)
           </p>
         </div>
 
@@ -212,7 +213,7 @@ export default function LoginPage({ onLoginSuccess }) {
           >
             {loading ? 'Please wait...' : (
               <>
-                <span>{isLogin ? 'Log In to Turf Tracker' : 'Create Player Account'}</span>
+                <span>{isLogin ? 'Log In to ASEEF XI' : 'Register for ASEEF XI'}</span>
                 <ArrowRight size={16} />
               </>
             )}

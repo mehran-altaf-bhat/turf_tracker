@@ -8,7 +8,7 @@ from auth import get_optional_user
 from routers import auth_routes, user_routes, admin_routes
 from backend.routers import api_auth, api_sessions, api_payments, api_admin
 
-app = FastAPI(title="Turf Payment Tracker")
+app = FastAPI(title="ASEEF XI — Friday Football")
 
 # CORS middleware for React frontend
 app.add_middleware(
