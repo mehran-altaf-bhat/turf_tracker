@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import aseefLogo from '../assets/aseef-logo.svg';
 import { api } from '../services/api';
 import PaymentModal from '../components/PaymentModal';
+import SquadModal from '../components/SquadModal';
 import {
   Calendar,
   Clock,
@@ -36,6 +37,34 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
   const [toast, setToast] = useState(null);
   const [squadTab, setSquadTab] = useState('playing'); // 'playing' | 'not_playing'
   const [rsvpLoading, setRsvpLoading] = useState(false);
+
+  // Admin Manage Squad modal state
+  const [squadModalOpen, setSquadModalOpen] = useState(false);
+  const [squadModalSession, setSquadModalSession] = useState(null);
+  const [sessionRosterData, setSessionRosterData] = useState(null);
+  const [loadingSquadSessionId, setLoadingSquadSessionId] = useState(null);
+
+  const handleOpenManageSquad = async (session) => {
+    try {
+      setLoadingSquadSessionId(session.id);
+      const rosterRes = await api.getSessionRoster(session.id);
+      setSessionRosterData(rosterRes);
+      setSquadModalSession(session);
+      setSquadModalOpen(true);
+    } catch (err) {
+      console.error('Failed to load session roster:', err);
+      setToast('Failed to load squad for this match: ' + (err.message || 'Error'));
+    } finally {
+      setLoadingSquadSessionId(null);
+    }
+  };
+
+  const handleSaveSquad = async (selectedPlayerIds, totalTurfCost) => {
+    if (!squadModalSession) return;
+    await api.updateSessionSquad(squadModalSession.id, selectedPlayerIds, totalTurfCost);
+    setToast('Match squad updated successfully!');
+    await loadData();
+  };
 
   const loadData = async () => {
     try {
@@ -499,8 +528,8 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                     )
                   ) : isInSquad ? (
                     currentStatus === 'confirmed' && balanceDue === 0 ? (
-                      <span className="badge badge-paid">
-                        <CheckCircle2 size={13} /> Paid Full ✅
+                      <span className="badge badge-paid" style={{ whiteSpace: 'nowrap' }}>
+                        <CheckCircle2 size={13} /> Paid ✅
                       </span>
                     ) : (currentStatus === 'partial' || balanceDue > 0) ? (
                       <span className="badge badge-pending">
@@ -585,7 +614,7 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                       <button
                         type="button"
                         className="btn btn-primary btn-sm"
-                        onClick={() => setActiveTab && setActiveTab('admin_command')}
+                        onClick={() => setActiveTab && setActiveTab('admin')}
                       >
                         <ShieldCheck size={15} />
                         <span>Admin Command Center</span>
@@ -593,7 +622,7 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                       <button
                         type="button"
                         className="btn btn-secondary btn-sm"
-                        onClick={() => setActiveTab && setActiveTab('user_approvals')}
+                        onClick={() => setActiveTab && setActiveTab('users')}
                       >
                         <Users size={15} />
                         <span>Player Approvals</span>
@@ -861,21 +890,21 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                         </div>
                       </div>
 
-                      <div>
+                      <div style={{ flexShrink: 0 }}>
                         {player.status === 'confirmed' && (
-                          <span className="badge badge-paid" style={{ fontSize: '0.72rem' }}>Paid Full ✅</span>
+                          <span className="badge badge-paid" style={{ fontSize: '0.72rem', whiteSpace: 'nowrap' }}>Paid ✅</span>
                         )}
                         {player.status === 'partial' && (
-                          <span className="badge badge-pending" style={{ fontSize: '0.72rem' }}>Partial ⚠️</span>
+                          <span className="badge badge-pending" style={{ fontSize: '0.72rem', whiteSpace: 'nowrap' }}>Partial ⚠️</span>
                         )}
                         {player.status === 'pending' && (
-                          <span className="badge badge-pending" style={{ fontSize: '0.72rem' }}>Pending ⏳</span>
+                          <span className="badge badge-pending" style={{ fontSize: '0.72rem', whiteSpace: 'nowrap' }}>Pending ⏳</span>
                         )}
                         {player.status === 'rejected' && (
-                          <span className="badge badge-unpaid" style={{ fontSize: '0.72rem' }}>Rejected ❌</span>
+                          <span className="badge badge-unpaid" style={{ fontSize: '0.72rem', whiteSpace: 'nowrap' }}>Rejected ❌</span>
                         )}
                         {player.status === 'unpaid' && (
-                          <span className="badge badge-unpaid" style={{ fontSize: '0.72rem' }}>Unpaid ⚠️</span>
+                          <span className="badge badge-unpaid" style={{ fontSize: '0.72rem', whiteSpace: 'nowrap' }}>Unpaid ❌</span>
                         )}
                       </div>
                     </div>
@@ -1192,19 +1221,22 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                             <button
                               type="button"
                               className="btn btn-sm btn-secondary"
-                              onClick={() => {
-                                if (setActiveTab) setActiveTab('admin_command');
-                                else window.location.href = '/admin';
-                              }}
+                              disabled={loadingSquadSessionId === s.id}
+                              onClick={() => handleOpenManageSquad(s)}
                               style={{
                                 display: 'inline-flex',
                                 alignItems: 'center',
                                 gap: '0.35rem',
                                 fontSize: '0.78rem',
                                 padding: '0.35rem 0.75rem',
+                                whiteSpace: 'nowrap',
                               }}
                             >
-                              <Users size={13} />
+                              {loadingSquadSessionId === s.id ? (
+                                <RefreshCw size={13} className="spin" />
+                              ) : (
+                                <Users size={13} />
+                              )}
                               <span>Manage Squad</span>
                             </button>
                           </td>
@@ -1214,11 +1246,11 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                         <>
                           <td>₹{costPerPlayer}</td>
                           <td>
-                            {status === 'confirmed' && <span className="badge badge-paid">Paid ✅</span>}
-                            {status === 'partial' && <span className="badge badge-pending">Partial ⚠️</span>}
-                            {status === 'pending' && <span className="badge badge-pending">Pending ⏳</span>}
-                            {status === 'rejected' && <span className="badge badge-unpaid">Rejected ❌</span>}
-                            {status === 'unpaid' && <span className="badge badge-unpaid">Unpaid</span>}
+                            {status === 'confirmed' && <span className="badge badge-paid" style={{ whiteSpace: 'nowrap' }}>Paid ✅</span>}
+                            {status === 'partial' && <span className="badge badge-pending" style={{ whiteSpace: 'nowrap' }}>Partial ⚠️</span>}
+                            {status === 'pending' && <span className="badge badge-pending" style={{ whiteSpace: 'nowrap' }}>Pending ⏳</span>}
+                            {status === 'rejected' && <span className="badge badge-unpaid" style={{ whiteSpace: 'nowrap' }}>Rejected ❌</span>}
+                            {status === 'unpaid' && <span className="badge badge-unpaid" style={{ whiteSpace: 'nowrap' }}>Unpaid ❌</span>}
                           </td>
                           <td>
                             {(status === 'unpaid' || status === 'rejected' || status === 'partial') ? (
@@ -1258,6 +1290,22 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
         currentSession={currentSession}
         upcomingSessions={upcomingSessions}
       />
+
+      {/* Squad Management Modal for Admin */}
+      {isAdmin && (
+        <SquadModal
+          isOpen={squadModalOpen}
+          onClose={() => {
+            setSquadModalOpen(false);
+            setSquadModalSession(null);
+            setSessionRosterData(null);
+          }}
+          sessionDate={squadModalSession?.session_date}
+          allPlayers={sessionRosterData?.all_registered_players || []}
+          currentSquadIds={sessionRosterData?.roster?.map((r) => r.user_id) || []}
+          onSaveSquad={handleSaveSquad}
+        />
+      )}
     </div>
   );
 }

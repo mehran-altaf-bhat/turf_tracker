@@ -101,11 +101,13 @@ export default function App() {
   const getPageHeader = () => {
     switch (activeTab) {
       case 'admin':
+      case 'admin_command':
         return {
           title: 'Admin Command Center',
           subtitle: 'Manage turf sessions, verify player payments, and curate match squads',
         };
       case 'users':
+      case 'user_approvals':
         return {
           title: 'User & Player Management',
           subtitle: 'Directory of registered players, contact numbers, roles, and match contributions',
@@ -202,9 +204,9 @@ export default function App() {
 
         {/* Content Body */}
         <main className="content-body">
-          {activeTab === 'admin' && user.role === 'admin' ? (
+          {(activeTab === 'admin' || activeTab === 'admin_command') && user.role === 'admin' ? (
             <AdminPage setActiveTab={setActiveTab} />
-          ) : activeTab === 'users' && user.role === 'admin' ? (
+          ) : (activeTab === 'users' || activeTab === 'user_approvals') && user.role === 'admin' ? (
             <UserManagementPage currentUser={user} />
           ) : (
             <DashboardPage

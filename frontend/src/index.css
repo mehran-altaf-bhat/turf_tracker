@@ -566,6 +566,8 @@ a:hover {
   border-radius: var(--radius-full);
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .badge-paid {

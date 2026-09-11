@@ -848,7 +848,7 @@ export default function AdminPage({ setActiveTab }) {
                       </td>
                       <td>
                         {player.status === 'confirmed' && (
-                          <span className="badge badge-paid">Paid Full ✅</span>
+                          <span className="badge badge-paid">Paid ✅</span>
                         )}
                         {player.status === 'partial' && (
                           <span className="badge badge-pending">Partial ⚠️</span>
@@ -862,7 +862,7 @@ export default function AdminPage({ setActiveTab }) {
                           </span>
                         )}
                         {player.status === 'unpaid' && (
-                          <span className="badge badge-unpaid">Unpaid ⚠️</span>
+                          <span className="badge badge-unpaid">Unpaid ❌</span>
                         )}
                       </td>
                       <td>
