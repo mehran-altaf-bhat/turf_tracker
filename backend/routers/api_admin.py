@@ -138,6 +138,10 @@ def get_session_roster(session_id: int, admin: dict = Depends(require_admin)):
         if p_status == "confirmed" and balance > 0:
             display_status = "partial"
 
+        # Sanitize any legacy auto-generated partial balance calculation note if balance is now cleared
+        if balance == 0 and clean_ref and ("(Balance:" in clean_ref or "(Balance Cleared)" in clean_ref):
+            clean_ref = "Paid in Full"
+
         roster.append({
             "user_id": user["id"],
             "name": user.get("name", "Unknown"),
@@ -340,9 +344,12 @@ def clear_payment_balance(payment_id: int, admin: dict = Depends(require_admin))
     session_cost = session_res.data.get("cost_per_person", 200) if session_res.data else 200
 
     prev_ref = pay.get("upi_ref") or ""
-    new_ref = prev_ref
-    if "Balance Cleared" not in prev_ref:
-        new_ref = f"{prev_ref} (Balance Cleared)".strip() if prev_ref else "Paid in Full (Balance Cleared)"
+    if "(Balance:" in prev_ref or "Paid ₹" in prev_ref:
+        new_ref = "Paid in Full"
+    elif "Balance Cleared" not in prev_ref:
+        new_ref = f"{prev_ref} (Balance Cleared)".strip() if prev_ref else "Paid in Full"
+    else:
+        new_ref = prev_ref
 
     res = (
         db.table("payments")
@@ -398,7 +405,15 @@ def update_payment_amount(payment_id: int, data: UpdatePaymentAmountRequest, adm
         else:
             target_status = "unpaid"
 
-    ref = data.note or (f"Paid ₹{amount} / ₹{session_cost} (Balance: ₹{balance})" if amount > 0 else None)
+    if data.note:
+        ref = data.note
+    elif balance == 0:
+        existing_ref = pay.get("upi_ref") or ""
+        ref = "Paid in Full" if ("(Balance:" in existing_ref or "Paid ₹" in existing_ref or not existing_ref) else existing_ref
+    elif amount > 0:
+        ref = f"Partial: Paid ₹{amount} (Balance: ₹{balance})"
+    else:
+        ref = None
 
     update_payload = {
         "amount": amount,
