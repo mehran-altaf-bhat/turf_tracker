@@ -176,6 +176,19 @@ a:hover {
   text-decoration: none;
 }
 
+.sidebar-brand img,
+.brand img,
+.login-logo-wrap img {
+  filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.55)) drop-shadow(0 0 2px rgba(255, 255, 255, 0.8));
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.sidebar-brand:hover img,
+.brand:hover img {
+  transform: scale(1.04);
+  filter: drop-shadow(0 0 14px rgba(34, 197, 94, 0.85)) drop-shadow(0 0 4px rgba(255, 255, 255, 0.95));
+}
+
 .sidebar-brand-text-main {
   font-family: var(--font-heading);
   font-size: 1.2rem;

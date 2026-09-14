@@ -497,15 +497,6 @@ export default function AdminPage({ setActiveTab }) {
           </button>
 
           <button
-            className="btn btn-whatsapp"
-            onClick={copyWhatsAppText}
-            disabled={!rosterData}
-          >
-            {copied ? <Check size={18} /> : <Share2 size={18} />}
-            <span>{copied ? 'Copied to Clipboard!' : 'Copy WhatsApp Match List'}</span>
-          </button>
-
-          <button
             type="button"
             className="btn btn-sm"
             style={{
@@ -560,13 +551,6 @@ export default function AdminPage({ setActiveTab }) {
             {stats.total_players_registered || 0}
           </div>
         </div>
-
-        <div className="stat-box">
-          <div className="stat-label">Total Sessions</div>
-          <div className="stat-val" style={{ color: 'var(--text-primary)' }}>
-            {stats.total_sessions_count || 0}
-          </div>
-        </div>
       </div>
 
       {/* Match Session Selector Bar */}
@@ -582,16 +566,11 @@ export default function AdminPage({ setActiveTab }) {
                 value={selectedSessionId || ''}
                 onChange={(e) => setSelectedSessionId(Number(e.target.value))}
               >
-                {sessions.map((item) => {
-                  const todayStr = new Date().toISOString().split('T')[0];
-                  const isPast = item.session.session_date < todayStr;
-                  return (
-                    <option key={item.session.id} value={item.session.id}>
-                      {isPast ? '⏪ [Past Match] ' : '⚽ [Upcoming] '}
-                      Friday, {item.session.session_date} — Fee: ₹{item.session.cost_per_person || 200} ({item.confirmed_count} Paid, ₹{item.collected_amount})
-                    </option>
-                  );
-                })}
+                {sessions.map((item) => (
+                  <option key={item.session.id} value={item.session.id}>
+                    Friday, {item.session.session_date}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -762,13 +741,6 @@ export default function AdminPage({ setActiveTab }) {
             >
               <Users size={15} />
               <span>Select / Edit Squad</span>
-            </button>
-            <button
-              className="btn btn-sm btn-whatsapp"
-              onClick={copyWhatsAppText}
-            >
-              <Copy size={15} />
-              <span>Copy WhatsApp List</span>
             </button>
           </div>
         </div>
