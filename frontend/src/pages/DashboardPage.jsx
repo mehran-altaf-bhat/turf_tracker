@@ -783,8 +783,8 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
         </div>
       )}
 
-      {/* SQUAD SECTION: Both Playing and Not Playing lists */}
-      {(activeTab === 'dashboard' || activeTab === 'squad' || activeTab === 'all') && (
+      {/* SQUAD SECTION: Dedicated to Squad & Lineup tab */}
+      {(activeTab === 'squad' || activeTab === 'all') && (
         <div className="clokin-card" style={{ marginBottom: '2rem' }}>
           <div style={{
             display: 'flex',
@@ -987,8 +987,8 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
         </div>
       )}
 
-      {/* PAYMENT HISTORY: ONLY confirmed (done), partial, or rejected */}
-      {(activeTab === 'dashboard' || activeTab === 'history' || activeTab === 'all') && (
+      {/* PAYMENT HISTORY: Dedicated to Payment History tab */}
+      {(activeTab === 'history' || activeTab === 'all') && (
         <div className="clokin-card" style={{ marginBottom: '2rem' }}>
           <div style={{
             display: 'flex',

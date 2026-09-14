@@ -39,7 +39,7 @@ def get_admin_overview(admin: dict = Depends(require_admin)):
         payments_by_session.setdefault(p["session_id"], []).append(p)
 
     total_revenue_collected = sum(
-        p["amount"] for p in payments if p.get("status") == "confirmed"
+        p["amount"] for p in payments if p.get("status") in ["confirmed", "partial"]
     )
     total_pending_count = sum(
         1 for p in payments if p.get("status") == "pending"
@@ -48,7 +48,7 @@ def get_admin_overview(admin: dict = Depends(require_admin)):
     sessions_data = []
     for s in sessions:
         s_payments = payments_by_session.get(s["id"], [])
-        confirmed = [p for p in s_payments if p.get("status") == "confirmed"]
+        confirmed = [p for p in s_payments if p.get("status") in ["confirmed", "partial"]]
         pending = [p for p in s_payments if p.get("status") == "pending"]
         rejected = [p for p in s_payments if p.get("status") == "rejected"]
 
