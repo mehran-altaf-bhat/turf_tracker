@@ -59,18 +59,23 @@ def health_check():
     }
 
 # Static SPA fallback for Vercel and production deployments
-frontend_dist = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend", "dist")
-if os.path.exists(frontend_dist):
-    assets_dir = os.path.join(frontend_dist, "assets")
+root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+public_dir = os.path.join(root_dir, "public")
+frontend_dist = os.path.join(root_dir, "frontend", "dist")
+static_dir = public_dir if os.path.exists(public_dir) else frontend_dist
+
+if os.path.exists(static_dir):
+    assets_dir = os.path.join(static_dir, "assets")
     if os.path.exists(assets_dir):
         app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
 
     @app.get("/{full_path:path}", include_in_schema=False)
     async def serve_spa(full_path: str):
-        file_path = os.path.join(frontend_dist, full_path)
+        file_path = os.path.join(static_dir, full_path)
         if full_path and os.path.isfile(file_path):
             return FileResponse(file_path)
-        index_path = os.path.join(frontend_dist, "index.html")
+        index_path = os.path.join(static_dir, "index.html")
         if os.path.exists(index_path):
             return FileResponse(index_path)
         return {"status": "healthy", "app": "Turf Tracker API"}
+
