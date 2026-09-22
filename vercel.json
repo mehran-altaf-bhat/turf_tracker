@@ -3,11 +3,11 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api/index.py"
+      "destination": "/api/index.py?__path__=/api/$1"
     },
     {
       "source": "/uploads/(.*)",
-      "destination": "/api/index.py"
+      "destination": "/api/index.py?__path__=/uploads/$1"
     },
     {
       "source": "/((?!api/|uploads/|assets/|[^/]+\\.[^/]+$).*)",

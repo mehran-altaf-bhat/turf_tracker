@@ -17,28 +17,14 @@ app = FastAPI(
 )
 
 @app.middleware("http")
-async def debug_all_requests(request: Request, call_next):
-    if "debug" in request.url.path:
-        return JSONResponse({
-            "url": str(request.url),
-            "path": request.url.path,
-            "scope_path": request.scope.get("path"),
-            "scope_root_path": request.scope.get("root_path"),
-            "headers": dict(request.headers),
-            "all_routes": [getattr(r, "path", str(r)) for r in request.app.routes],
-        })
+async def restore_path_middleware(request: Request, call_next):
+    # If routed by Vercel rewrite with __path__, restore the original path into ASGI scope
+    real_path = request.query_params.get("__path__")
+    if real_path:
+        request.scope["path"] = real_path
+        request.scope["raw_path"] = real_path.encode()
     return await call_next(request)
 
-@app.api_route("/api/index.py", methods=["GET", "POST"])
-@app.api_route("/index.py", methods=["GET", "POST"])
-def handle_index_py_fallback(request: Request):
-    return JSONResponse({
-        "status": "matched_index_py",
-        "url": str(request.url),
-        "path": request.url.path,
-        "query": str(request.query_params),
-        "headers": dict(request.headers),
-    })
 
 
 # Ensure uploads directory exists (use /tmp on Vercel serverless where /var/task is read-only)
