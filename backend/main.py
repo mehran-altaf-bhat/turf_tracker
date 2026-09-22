@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from backend.routers import api_auth, api_sessions, api_payments, api_admin
 
 app = FastAPI(
@@ -11,10 +12,17 @@ app = FastAPI(
     version="2.0.0",
 )
 
-# Ensure uploads directory exists
-UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
-os.makedirs(os.path.join(UPLOAD_DIR, "turf_screenshots"), exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
+# Ensure uploads directory exists (use /tmp on Vercel serverless where /var/task is read-only)
+if os.environ.get("VERCEL") or not os.access(os.path.dirname(__file__), os.W_OK):
+    UPLOAD_DIR = "/tmp/uploads"
+else:
+    UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
+
+try:
+    os.makedirs(os.path.join(UPLOAD_DIR, "turf_screenshots"), exist_ok=True)
+    app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
+except Exception as e:
+    print("Warning: could not mount uploads static files:", e)
 
 # Allow CORS for local frontend development and production
 origins = [
@@ -49,3 +57,20 @@ def health_check():
         "version": "2.0.0",
         "turf": "Elite Football Turf",
     }
+
+# Static SPA fallback for Vercel and production deployments
+frontend_dist = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend", "dist")
+if os.path.exists(frontend_dist):
+    assets_dir = os.path.join(frontend_dist, "assets")
+    if os.path.exists(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def serve_spa(full_path: str):
+        file_path = os.path.join(frontend_dist, full_path)
+        if full_path and os.path.isfile(file_path):
+            return FileResponse(file_path)
+        index_path = os.path.join(frontend_dist, "index.html")
+        if os.path.exists(index_path):
+            return FileResponse(index_path)
+        return {"status": "healthy", "app": "Turf Tracker API"}

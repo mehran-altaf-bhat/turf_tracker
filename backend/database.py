@@ -592,9 +592,16 @@ class LocalStorageBucket:
     def __init__(self, bucket_name: str, base_dir: str):
         self.bucket_name = bucket_name
         self.bucket_dir = os.path.join(base_dir, bucket_name)
-        os.makedirs(self.bucket_dir, exist_ok=True)
+        try:
+            os.makedirs(self.bucket_dir, exist_ok=True)
+        except Exception:
+            pass
 
     def upload(self, filename: str, content: bytes, file_options: dict = None):
+        try:
+            os.makedirs(self.bucket_dir, exist_ok=True)
+        except Exception:
+            pass
         target_path = os.path.join(self.bucket_dir, filename)
         with open(target_path, "wb") as f:
             f.write(content)
@@ -627,9 +634,15 @@ class LocalStorageBucket:
 class LocalStorage:
     def __init__(self, base_dir: str = None):
         if not base_dir:
-            base_dir = os.path.join(os.path.dirname(__file__), "uploads")
+            if os.environ.get("VERCEL") or not os.access(os.path.dirname(__file__), os.W_OK):
+                base_dir = "/tmp/uploads"
+            else:
+                base_dir = os.path.join(os.path.dirname(__file__), "uploads")
         self.base_dir = base_dir
-        os.makedirs(self.base_dir, exist_ok=True)
+        try:
+            os.makedirs(self.base_dir, exist_ok=True)
+        except Exception:
+            pass
 
     def from_(self, bucket_name: str) -> LocalStorageBucket:
         return LocalStorageBucket(bucket_name, self.base_dir)
@@ -642,33 +655,9 @@ class PostgresClient:
         self.user = DB_USER
         self.password = DB_PASSWORD
         self.dbname = DB_NAME
-        self._pool = psycopg2.pool.ThreadedConnectionPool(
-            1, 10,
-            host=self.host,
-            port=self.port,
-            user=self.user,
-            password=self.password,
-            dbname=self.dbname,
-            connect_timeout=10,
-        )
-        self.auth = PostgresAuth(self)
-        self.storage = LocalStorage()
-
-    def get_connection(self):
         try:
-            conn = self._pool.getconn()
-            if conn.closed:
-                conn = psycopg2.connect(
-                    host=self.host,
-                    port=self.port,
-                    user=self.user,
-                    password=self.password,
-                    dbname=self.dbname,
-                    connect_timeout=10,
-                )
-            return conn
-        except Exception:
-            return psycopg2.connect(
+            self._pool = psycopg2.pool.ThreadedConnectionPool(
+                1, 10,
                 host=self.host,
                 port=self.port,
                 user=self.user,
@@ -676,15 +665,40 @@ class PostgresClient:
                 dbname=self.dbname,
                 connect_timeout=10,
             )
+        except Exception as e:
+            print("Warning: Connection pool init deferred:", e)
+            self._pool = None
+        self.auth = PostgresAuth(self)
+        self.storage = LocalStorage()
 
-    def release_connection(self, conn):
-        try:
-            self._pool.putconn(conn)
-        except Exception:
+    def get_connection(self):
+        if self._pool:
             try:
-                conn.close()
+                conn = self._pool.getconn()
+                if not conn.closed:
+                    return conn
             except Exception:
                 pass
+        return psycopg2.connect(
+            host=self.host,
+            port=self.port,
+            user=self.user,
+            password=self.password,
+            dbname=self.dbname,
+            connect_timeout=10,
+        )
+
+    def release_connection(self, conn):
+        if self._pool:
+            try:
+                self._pool.putconn(conn)
+                return
+            except Exception:
+                pass
+        try:
+            conn.close()
+        except Exception:
+            pass
 
     def table(self, table_name: str):
         return QueryBuilder(self, table_name)
