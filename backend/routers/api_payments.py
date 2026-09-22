@@ -9,7 +9,7 @@ from backend.database import service_client, UPI_VPA, UPI_NAME
 from backend.routers.api_sessions import ensure_upcoming_sessions
 from backend.squad_service import recalculate_session_squad_split
 
-router = APIRouter(prefix="/api/payments", tags=["payments"])
+router = APIRouter(prefix="/payments", tags=["payments"])
 
 
 @router.get("/config")

@@ -42,14 +42,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include API routers
-app.include_router(api_auth.router)
-app.include_router(api_sessions.router)
-app.include_router(api_payments.router)
-app.include_router(api_admin.router)
+# Include API routers with both /api and without /api prefixes
+# so routes work whether deployed on Vercel (which may strip /api) or locally
+for pfx in ["/api", ""]:
+    app.include_router(api_auth.router, prefix=pfx)
+    app.include_router(api_sessions.router, prefix=pfx)
+    app.include_router(api_payments.router, prefix=pfx)
+    app.include_router(api_admin.router, prefix=pfx)
 
 
 @app.get("/api/health")
+@app.get("/health")
 def health_check():
     return {
         "status": "healthy",

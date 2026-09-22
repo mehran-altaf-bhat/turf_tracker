@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from backend import auth
 from backend.email_service import send_admin_new_user_notification
 
-router = APIRouter(prefix="/api/auth", tags=["auth"])
+router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 class SignupRequest(BaseModel):

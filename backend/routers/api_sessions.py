@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from backend.auth import require_admin
 from backend.database import service_client
 
-router = APIRouter(prefix="/api/sessions", tags=["sessions"])
+router = APIRouter(prefix="/sessions", tags=["sessions"])
 
 
 def get_upcoming_friday_dates(count: int = 5) -> list[date]:

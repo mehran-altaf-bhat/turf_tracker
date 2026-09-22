@@ -9,7 +9,7 @@ from backend.routers.api_sessions import ensure_upcoming_sessions
 from backend.email_service import send_player_approved_notification
 from backend.squad_service import recalculate_session_squad_split
 
-router = APIRouter(prefix="/api/admin", tags=["admin"])
+router = APIRouter(prefix="/admin", tags=["admin"])
 
 
 @router.get("/overview")
