@@ -20,13 +20,18 @@ if env_path:
 else:
     load_dotenv(Path(__file__).parent.parent / ".env")
 
-# PostgreSQL credentials
-DB_HOST = os.environ.get("DB_HOST", "88.222.215.30")
-DB_PORT = int(os.environ.get("DB_PORT", 5432))
-DB_USER = os.environ.get("DB_USER", "dbuser")
-DB_PASSWORD = os.environ.get("DB_PASSWORD", "Classic@123")
-DB_NAME = os.environ.get("DB_NAME", "turf_tracking")
-JWT_SECRET = os.environ.get("JWT_SECRET_KEY", "turf_tracker_secret_super_secure_jwt_key_2026_x!9")
+# PostgreSQL credentials with safe defaults if empty or missing
+DB_HOST = (os.environ.get("DB_HOST") or "88.222.215.30").strip()
+try:
+    _port_val = str(os.environ.get("DB_PORT") or "").strip()
+    DB_PORT = int(_port_val) if _port_val else 5432
+except Exception:
+    DB_PORT = 5432
+
+DB_USER = (os.environ.get("DB_USER") or "dbuser").strip()
+DB_PASSWORD = os.environ.get("DB_PASSWORD") or "Classic@123"
+DB_NAME = (os.environ.get("DB_NAME") or "turf_tracking").strip()
+JWT_SECRET = os.environ.get("JWT_SECRET_KEY") or "turf_tracker_secret_super_secure_jwt_key_2026_x!9"
 
 # UPI settings
 UPI_VPA = os.environ.get("UPI_VPA", "7006869014@hdfc")

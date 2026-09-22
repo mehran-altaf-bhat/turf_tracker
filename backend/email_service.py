@@ -15,7 +15,11 @@ else:
     load_dotenv(Path(__file__).parent.parent / ".env")
 
 SMTP_HOST = os.environ.get("SMTP_HOST", "").strip()
-SMTP_PORT = int(os.environ.get("SMTP_PORT", 587))
+try:
+    _smtp_val = str(os.environ.get("SMTP_PORT") or "").strip()
+    SMTP_PORT = int(_smtp_val) if _smtp_val else 587
+except Exception:
+    SMTP_PORT = 587
 SMTP_USER = os.environ.get("SMTP_USER", "").strip()
 SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "").strip()
 ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "mehranbhat010@gmail.com").strip()
