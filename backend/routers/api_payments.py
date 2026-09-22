@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from backend.auth import get_current_user
 from backend.database import service_client, UPI_VPA, UPI_NAME
 from backend.routers.api_sessions import ensure_upcoming_sessions
+from backend.squad_service import recalculate_session_squad_split
 
 router = APIRouter(prefix="/api/payments", tags=["payments"])
 
@@ -86,9 +87,27 @@ def get_my_payment_status(user: dict = Depends(get_current_user)):
 
     # Current session is the nearest upcoming
     current_session = upcoming[0] if upcoming else None
+    
+    # Recalculate squad split for current session (default ₹3,800 turf fee)
+    total_turf_target = 3800
+    if current_session:
+        split_info = recalculate_session_squad_split(current_session["id"], total_turf_target)
+        current_cost = split_info["split_cost"]
+        current_session["cost_per_person"] = current_cost
+    else:
+        current_cost = total_turf_target
+
+    # Re-fetch payments for this user so updated split amounts are used
+    payments = (
+        db.table("payments")
+        .select("*")
+        .eq("user_id", user_id)
+        .execute()
+        .data
+    )
+    payments_by_session = {p["session_id"]: p for p in payments}
     current_payment = payments_by_session.get(current_session["id"]) if current_session else None
     
-    current_cost = current_session.get("cost_per_person", 200) if current_session else 200
     cur_status = current_payment.get("status", "unpaid") if current_payment else "unpaid"
     cur_amount_paid = current_payment.get("amount", 0) if (current_payment and cur_status in ["confirmed", "partial", "pending"]) else 0
     cur_balance = max(0, current_cost - cur_amount_paid) if cur_status in ["partial", "confirmed"] else current_cost
@@ -260,7 +279,12 @@ def get_my_payment_status(user: dict = Depends(get_current_user)):
         p_for_user = payments_by_session.get(sid)
         user_st = p_for_user.get("status", "unpaid") if p_for_user else "unpaid"
         user_amt = p_for_user.get("amount", 0) if (p_for_user and user_st in ["confirmed", "partial"]) else 0
-        per_person = s.get("cost_per_person", 1900)
+        sess_squad_payments = [
+            p for p in all_upcoming_payments 
+            if p.get("session_id") == sid and p.get("user_id") in squad_user_ids
+        ]
+        s_squad_count = len(sess_squad_payments)
+        per_person = round(turf_target / s_squad_count) if s_squad_count > 0 else s.get("cost_per_person", turf_target)
 
         upcoming_sessions_list.append({
             "session": s,
@@ -269,6 +293,7 @@ def get_my_payment_status(user: dict = Depends(get_current_user)):
             "amount_paid": user_amt,
             "balance": max(0, per_person - user_amt),
             "cost_per_player": per_person,
+            "squad_count": s_squad_count,
             "collected_amount": sess_collected,
             "total_turf_target": turf_target,
             "is_turf_paid": is_paid,
@@ -428,7 +453,7 @@ def rsvp_session(session_id: int, data: RsvpRequest, user: dict = Depends(get_cu
     if not session_res.data:
         raise HTTPException(status_code=404, detail="Session not found")
     session = session_res.data
-    cost = session.get("cost_per_person", 200)
+    total_turf_cost = 3800
 
     existing = db.table("payments").select("*").eq("session_id", session_id).eq("user_id", user_id).execute().data
 
@@ -480,6 +505,9 @@ def rsvp_session(session_id: int, data: RsvpRequest, user: dict = Depends(get_cu
                     # Remove user from current session squad
                     db.table("payments").delete().eq("id", pay["id"]).execute()
 
+                    # Recalculate split for remaining squad players in current session
+                    recalculate_session_squad_split(session_id, total_turf_cost)
+
                     balance_due = max(0, next_cost - pay_amount)
                     return {
                         "message": f"You opted out of {session['session_date']}. Your payment of ₹{pay_amount} has been shifted to the next match on {next_session['session_date']}! Next match fee: ₹{next_cost}, Balance due: ₹{balance_due}.",
@@ -493,9 +521,16 @@ def rsvp_session(session_id: int, data: RsvpRequest, user: dict = Depends(get_cu
             # If user was unpaid or rejected, simply remove from match squad
             db.table("payments").delete().eq("id", pay["id"]).execute()
 
+        # Recalculate split for remaining squad members
+        split_info = recalculate_session_squad_split(session_id, total_turf_cost)
+        remaining_count = split_info["squad_count"]
+        rem_split = split_info["split_cost"]
+
         return {
-            "message": "You have marked yourself as NOT PLAYING. You have been removed from the match squad.",
+            "message": f"You have marked yourself as NOT PLAYING. You have been removed from the match squad. Remaining squad: {remaining_count} players (₹{rem_split}/player).",
             "attending": False,
+            "remaining_squad": remaining_count,
+            "split_cost": rem_split,
         }
     else:
         # User is opting in / playing
@@ -503,11 +538,19 @@ def rsvp_session(session_id: int, data: RsvpRequest, user: dict = Depends(get_cu
             db.table("payments").insert({
                 "user_id": user_id,
                 "session_id": session_id,
-                "amount": cost,
+                "amount": 0,
                 "status": "unpaid",
             }).execute()
+
+        # Recalculate equal split across all active players in this squad
+        split_info = recalculate_session_squad_split(session_id, total_turf_cost)
+        squad_count = split_info["squad_count"]
+        split_cost = split_info["split_cost"]
+
         return {
-            "message": "You are now added to the Playing squad for this match!",
+            "message": f"You have joined the match squad! Total turf fee ₹{total_turf_cost} is divided equally: ₹{split_cost}/player ({squad_count} players).",
             "attending": True,
+            "squad_count": squad_count,
+            "split_cost": split_cost,
         }
 

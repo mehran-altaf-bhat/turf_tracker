@@ -18,6 +18,7 @@ export default function Sidebar({
   onLogout,
   mobileOpen = false,
   onClose,
+  pendingCount = 0,
 }) {
   if (!user) return null;
   const isAdmin = user.role === 'admin';
@@ -81,17 +82,46 @@ export default function Sidebar({
 
           {/* Nav Items */}
           <nav className="sidebar-nav">
-            {navItems.map(({ id, label, icon: Icon }) => (
-              <button
-                key={id}
-                type="button"
-                className={`sidebar-nav-item ${activeTab === id ? 'active' : ''}`}
-                onClick={() => handleNavClick(id)}
-              >
-                <Icon size={18} />
-                <span>{label}</span>
-              </button>
-            ))}
+            {navItems.map(({ id, label, icon: Icon }) => {
+              const hasBadge = id === 'users' && pendingCount > 0;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  className={`sidebar-nav-item ${activeTab === id ? 'active' : ''}`}
+                  onClick={() => handleNavClick(id)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <Icon size={18} />
+                    <span>{label}</span>
+                  </div>
+
+                  {hasBadge && (
+                    <span
+                      style={{
+                        background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                        color: '#ffffff',
+                        fontSize: '0.72rem',
+                        fontWeight: 800,
+                        padding: '0.15rem 0.55rem',
+                        borderRadius: '9999px',
+                        boxShadow: '0 2px 8px rgba(245, 158, 11, 0.4)',
+                        letterSpacing: '0.3px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                      }}
+                    >
+                      ({pendingCount})
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </nav>
         </div>
 

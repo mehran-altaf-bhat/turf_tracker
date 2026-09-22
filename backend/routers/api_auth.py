@@ -2,6 +2,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Depends, Request, Response
 from pydantic import BaseModel
 from backend import auth
+from backend.email_service import send_admin_new_user_notification
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -22,6 +23,12 @@ class LoginRequest(BaseModel):
 def signup_endpoint(data: SignupRequest):
     try:
         res = auth.signup(email=data.email, password=data.password, name=data.name, phone=data.phone)
+        # Notify admin of new registration asynchronously
+        send_admin_new_user_notification(
+            player_name=data.name,
+            player_email=data.email,
+            player_phone=data.phone
+        )
         return {
             "message": "Account created successfully! Your account is pending admin approval. You will be able to log in once approved by the turf admin.",
             "user": {

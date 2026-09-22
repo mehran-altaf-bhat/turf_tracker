@@ -7,7 +7,7 @@ import {
   XCircle,
   Clock,
   Calendar,
-  DollarSign,
+  IndianRupee,
   Users,
   Share2,
   Copy,
@@ -588,7 +588,7 @@ export default function AdminPage({ setActiveTab }) {
               }}
               title="View and edit fee for every match session"
             >
-              <DollarSign size={16} color="#fbbf24" />
+              <IndianRupee size={16} color="#fbbf24" style={{ strokeWidth: 2.5 }} />
               <span>Edit Match Fees</span>
             </button>
 
@@ -1129,7 +1129,7 @@ export default function AdminPage({ setActiveTab }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)' }}>
-                  <DollarSign size={20} color="var(--amber-400)" /> Manage Match Fees (Per Match)
+                  <IndianRupee size={20} color="#fbbf24" style={{ strokeWidth: 2.5 }} /> Manage Match Fees (Per Match)
                 </h3>
                 <p style={{ margin: '0.25rem 0 0', fontSize: '0.825rem', color: 'var(--text-secondary)' }}>
                   Set the match fee for each Friday session. Changes immediately update player dashboards, QR codes, and roster targets.

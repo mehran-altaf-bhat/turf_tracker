@@ -6,6 +6,8 @@ from pydantic import BaseModel
 from backend.auth import require_admin
 from backend.database import service_client
 from backend.routers.api_sessions import ensure_upcoming_sessions
+from backend.email_service import send_player_approved_notification
+from backend.squad_service import recalculate_session_squad_split
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -100,9 +102,14 @@ def get_session_roster(session_id: int, admin: dict = Depends(require_admin)):
     # All profiles (separate players from admin)
     profiles = db.table("profiles").select("*").order("name").execute().data
     profile_map = {p["id"]: p for p in profiles}
-    player_profiles = [p for p in profiles if p.get("role") != "admin"]
+    # Only approved players are eligible for squad roster
+    player_profiles = [p for p in profiles if p.get("role") != "admin" and p.get("is_approved") is True]
 
-    # Payments for this session
+    # Recalculate dynamic equal split for this squad (₹3,800 / players)
+    split_info = recalculate_session_squad_split(session_id, 3800)
+    session_cost = split_info["split_cost"]
+
+    # Payments for this session (queried after recalculation to get updated amounts)
     payments = (
         db.table("payments")
         .select("*")
@@ -115,7 +122,6 @@ def get_session_roster(session_id: int, admin: dict = Depends(require_admin)):
     # The roster contains players who are in the squad for this session (Admin is strictly excluded)
     import re
     roster = []
-    session_cost = session.get("cost_per_person", 200)
 
     for pay in payments:
         user = profile_map.get(pay["user_id"])
@@ -254,40 +260,33 @@ def update_session_squad(session_id: int, data: UpdateSquadRequest, admin: dict 
     squad_size = len(target_ids)
     total_turf_cost = data.total_turf_cost if (data.total_turf_cost and data.total_turf_cost > 0) else 3800
 
-    # Calculate split per player: e.g. 3800 / 16 = 238
-    if squad_size > 0:
-        cost = round(total_turf_cost / squad_size)
-    else:
-        cost = session_res.data.get("cost_per_person", 200)
-
-    # Update session's cost_per_person
-    db.table("turf_sessions").update({"cost_per_person": cost}).eq("id", session_id).execute()
-
     # Fetch current payments for this session
     existing = db.table("payments").select("*").eq("session_id", session_id).execute().data
     existing_by_user = {p["user_id"]: p for p in existing}
 
-    # 1. Add players who are not in this session yet with split fee
+    # 1. Add players who are not in this session yet
     for uid in target_ids:
         if uid not in existing_by_user:
             db.table("payments").insert({
                 "user_id": uid,
                 "session_id": session_id,
-                "amount": cost,
+                "amount": 0,
                 "status": "unpaid",
             }).execute()
-        elif existing_by_user[uid].get("status") == "unpaid":
-            # Update unpaid players to new split amount
-            db.table("payments").update({"amount": cost}).eq("id", existing_by_user[uid]["id"]).execute()
 
     # 2. Remove players who were unchecked and have status == 'unpaid'
     for uid, pay in existing_by_user.items():
         if uid not in target_ids and pay.get("status") == "unpaid":
             db.table("payments").delete().eq("id", pay["id"]).execute()
 
+    # 3. Recalculate dynamic split across active squad players
+    split_info = recalculate_session_squad_split(session_id, total_turf_cost)
+    cost = split_info["split_cost"]
+    active_count = split_info["squad_count"]
+
     return {
-        "message": f"Squad confirmed with {squad_size} players! Turf fee of ₹{total_turf_cost} split to ₹{cost}/player.",
-        "squad_size": squad_size,
+        "message": f"Squad confirmed with {active_count} players! Turf fee of ₹{total_turf_cost} split to ₹{cost}/player.",
+        "squad_size": active_count,
         "total_turf_cost": total_turf_cost,
         "split_per_player": cost,
     }
@@ -297,7 +296,11 @@ def update_session_squad(session_id: int, data: UpdateSquadRequest, admin: dict 
 def remove_player_from_squad(session_id: int, user_id: str, admin: dict = Depends(require_admin)):
     db = service_client()
     res = db.table("payments").delete().eq("session_id", session_id).eq("user_id", user_id).execute()
-    return {"message": "Player removed from match squad"}
+    split_info = recalculate_session_squad_split(session_id, 3800)
+    return {
+        "message": f"Player removed from match squad. Remaining squad: {split_info['squad_count']} players (₹{split_info['split_cost']}/player).",
+        "split_info": split_info,
+    }
 
 
 @router.post("/payments/{payment_id}/confirm")
@@ -518,6 +521,9 @@ def approve_user(user_id: str, admin: dict = Depends(require_admin)):
             "email_confirm": True,
         })
         player_name = meta.get("name") or "Player"
+        player_email = user_res.user.email
+        if player_email:
+            send_player_approved_notification(player_name=player_name, player_email=player_email)
         return {"message": f"Account for '{player_name}' approved successfully! They can now log in."}
     except HTTPException:
         raise

@@ -13,6 +13,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [pendingApprovalsCount, setPendingApprovalsCount] = useState(0);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -40,6 +41,30 @@ export default function App() {
 
     checkAuth();
   }, []);
+
+  // Poll for pending player approvals if current user is admin
+  useEffect(() => {
+    if (!user || user.role !== 'admin') return;
+
+    let isMounted = true;
+    const fetchPendingCount = async () => {
+      try {
+        const res = await api.getUsers();
+        if (isMounted && res && typeof res.pending_count === 'number') {
+          setPendingApprovalsCount(res.pending_count);
+        }
+      } catch (err) {
+        // Silently continue if network fails
+      }
+    };
+
+    fetchPendingCount();
+    const interval = setInterval(fetchPendingCount, 12000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [user, activeTab]);
 
   const handleLogout = async () => {
     await api.logout();
@@ -148,6 +173,7 @@ export default function App() {
         onLogout={handleLogout}
         mobileOpen={mobileMenuOpen}
         onClose={() => setMobileMenuOpen(false)}
+        pendingCount={pendingApprovalsCount}
       />
 
       {/* Main Content Area */}

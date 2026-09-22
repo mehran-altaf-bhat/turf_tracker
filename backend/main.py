@@ -2,6 +2,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from fastapi.staticfiles import StaticFiles
 from backend.routers import api_auth, api_sessions, api_payments, api_admin
 
 app = FastAPI(
@@ -9,6 +10,11 @@ app = FastAPI(
     description="Backend API for ASEEF XI Friday football payment tracking and match management",
     version="2.0.0",
 )
+
+# Ensure uploads directory exists
+UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
+os.makedirs(os.path.join(UPLOAD_DIR, "turf_screenshots"), exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 # Allow CORS for local frontend development and production
 origins = [

@@ -797,11 +797,27 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
             paddingBottom: '1rem',
           }}>
             <div>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Users size={20} color="var(--green-400)" />
-                Friday Match Squad
-              </h3>
-              <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Users size={20} color="var(--green-400)" />
+                  Friday Match Squad
+                </h3>
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '0.2rem 0.65rem',
+                  borderRadius: '9999px',
+                  background: 'rgba(34, 197, 94, 0.12)',
+                  color: 'var(--green-400)',
+                  border: '1px solid rgba(34, 197, 94, 0.3)',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                }}>
+                  💰 Total Turf Slot: ₹3,800 • {playingSquad.length} Playing • ₹{payableAmount}/player
+                </span>
+              </div>
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
                 Friday, {currentSession?.session_date || 'Upcoming'} @ Elite Football Turf (8:00 PM – 10:00 PM)
               </p>
             </div>
@@ -882,11 +898,14 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                           }}>
                             {player.name} {isMe && <span style={{ color: 'var(--green-400)', fontSize: '0.75rem', fontWeight: 800 }}>(You)</span>}
                           </div>
-                          {player.status === 'partial' && player.balance > 0 && (
-                            <div style={{ fontSize: '0.72rem', color: 'var(--amber-400)' }}>
-                              Paid ₹{player.amount} • ₹{player.balance} due
-                            </div>
-                          )}
+                          <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', display: 'flex', gap: '0.4rem', alignItems: 'center', marginTop: '0.1rem' }}>
+                            <span>Fee: <strong style={{ color: 'var(--text-primary)' }}>₹{player.payable || payableAmount}</strong></span>
+                            {player.status === 'partial' && player.balance > 0 && (
+                              <span style={{ color: 'var(--amber-400)' }}>
+                                • Paid ₹{player.amount} (₹{player.balance} due)
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
 

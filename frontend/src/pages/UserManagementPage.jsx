@@ -799,64 +799,94 @@ export default function UserManagementPage({ currentUser }) {
                       {/* Actions */}
                       <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}>
-                          {isPending && (
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-primary"
-                              onClick={() => handleApproveUser(u)}
-                              disabled={approvingId === u.id}
-                              title="Approve this player account"
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '0.3rem',
-                                fontSize: '0.78rem',
-                                padding: '0.35rem 0.75rem',
-                              }}
-                            >
-                              {approvingId === u.id ? <RefreshCw size={12} className="spin" /> : <CheckCircle2 size={13} />}
-                              <span>Approve</span>
-                            </button>
+                          {isPending ? (
+                            <>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-primary"
+                                onClick={() => handleApproveUser(u)}
+                                disabled={approvingId === u.id}
+                                title="Approve this player account"
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.35rem',
+                                  fontSize: '0.78rem',
+                                  fontWeight: 700,
+                                  padding: '0.4rem 0.85rem',
+                                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                  border: 'none',
+                                  boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)',
+                                }}
+                              >
+                                {approvingId === u.id ? <RefreshCw size={12} className="spin" /> : <CheckCircle2 size={13} />}
+                                <span>Approve</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                className="btn btn-sm"
+                                onClick={() => setDeletingUser(u)}
+                                title="Deny & Reject Registration Request"
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.35rem',
+                                  fontSize: '0.78rem',
+                                  fontWeight: 700,
+                                  padding: '0.4rem 0.85rem',
+                                  background: 'rgba(239, 68, 68, 0.12)',
+                                  color: '#f87171',
+                                  border: '1px solid rgba(239, 68, 68, 0.35)',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                <X size={13} />
+                                <span>Deny</span>
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-secondary"
+                                onClick={() => handleOpenEdit(u)}
+                                title="Edit Player"
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.3rem',
+                                  fontSize: '0.78rem',
+                                  padding: '0.35rem 0.7rem',
+                                }}
+                              >
+                                <Pencil size={13} />
+                                <span>Edit</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                className="btn btn-sm"
+                                disabled={isCurrentAdmin}
+                                onClick={() => setDeletingUser(u)}
+                                title={isCurrentAdmin ? 'Cannot delete yourself' : 'Delete Player'}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.3rem',
+                                  fontSize: '0.78rem',
+                                  padding: '0.35rem 0.7rem',
+                                  background: isCurrentAdmin ? 'rgba(255,255,255,0.03)' : 'rgba(248, 113, 113, 0.1)',
+                                  color: isCurrentAdmin ? 'var(--text-muted)' : 'var(--rose-400)',
+                                  border: isCurrentAdmin ? '1px solid var(--border-dim)' : '1px solid rgba(248, 113, 113, 0.25)',
+                                  cursor: isCurrentAdmin ? 'not-allowed' : 'pointer',
+                                }}
+                              >
+                                <Trash2 size={13} />
+                                <span>Delete</span>
+                              </button>
+                            </>
                           )}
-
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-secondary"
-                            onClick={() => handleOpenEdit(u)}
-                            title="Edit Player"
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '0.3rem',
-                              fontSize: '0.78rem',
-                              padding: '0.35rem 0.7rem',
-                            }}
-                          >
-                            <Pencil size={13} />
-                            <span>Edit</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            className="btn btn-sm"
-                            disabled={isCurrentAdmin}
-                            onClick={() => setDeletingUser(u)}
-                            title={isCurrentAdmin ? 'Cannot delete yourself' : (isPending ? 'Reject & Delete Request' : 'Delete Player')}
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '0.3rem',
-                              fontSize: '0.78rem',
-                              padding: '0.35rem 0.7rem',
-                              background: isCurrentAdmin ? 'rgba(255,255,255,0.03)' : 'rgba(248, 113, 113, 0.1)',
-                              color: isCurrentAdmin ? 'var(--text-muted)' : 'var(--rose-400)',
-                              border: isCurrentAdmin ? '1px solid var(--border-dim)' : '1px solid rgba(248, 113, 113, 0.25)',
-                              cursor: isCurrentAdmin ? 'not-allowed' : 'pointer',
-                            }}
-                          >
-                            <Trash2 size={13} />
-                            <span>{isPending ? 'Deny' : 'Delete'}</span>
-                          </button>
                         </div>
                       </td>
                     </tr>
@@ -1060,12 +1090,21 @@ export default function UserManagementPage({ currentUser }) {
             </div>
 
             <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-              Remove {deletingUser.name}?
+              {!deletingUser.is_approved ? `Deny Registration for ${deletingUser.name}?` : `Remove ${deletingUser.name}?`}
             </h3>
 
             <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '1.5rem', lineHeight: 1.5 }}>
-              Are you sure you want to permanently remove <strong style={{ color: 'var(--text-primary)' }}>{deletingUser.name}</strong>?
-              All associated match payment records for this player will also be cleaned up.
+              {!deletingUser.is_approved ? (
+                <>
+                  Are you sure you want to deny <strong style={{ color: 'var(--text-primary)' }}>{deletingUser.name}</strong>'s registration request?
+                  They will not be granted access to the system or Friday match squads.
+                </>
+              ) : (
+                <>
+                  Are you sure you want to permanently remove <strong style={{ color: 'var(--text-primary)' }}>{deletingUser.name}</strong>?
+                  All associated match payment records for this player will also be cleaned up.
+                </>
+              )}
             </p>
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
@@ -1088,16 +1127,17 @@ export default function UserManagementPage({ currentUser }) {
                   background: 'linear-gradient(135deg, #ef4444, #dc2626)',
                   color: '#ffffff',
                   border: 'none',
+                  boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
+                  cursor: isDeleting ? 'not-allowed' : 'pointer',
                   fontWeight: 700,
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '0.4rem',
-                  boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
+                  gap: '0.35rem',
                 }}
               >
-                {isDeleting ? <RefreshCw size={15} className="spin" /> : <Trash2 size={15} />}
-                <span>{isDeleting ? 'Deleting...' : 'Yes, Remove'}</span>
+                {isDeleting ? <RefreshCw size={14} className="spin" /> : <Trash2 size={14} />}
+                <span>{!deletingUser.is_approved ? 'Deny Request' : 'Yes, Delete'}</span>
               </button>
             </div>
           </div>
