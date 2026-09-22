@@ -6,11 +6,40 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from backend.routers import api_auth, api_sessions, api_payments, api_admin
 
+from fastapi import Request
+from fastapi.responses import JSONResponse
+
 app = FastAPI(
     title="ASEEF XI API",
     description="Backend API for ASEEF XI Friday football payment tracking and match management",
     version="2.0.0",
+    redirect_slashes=False,
 )
+
+@app.middleware("http")
+async def debug_all_requests(request: Request, call_next):
+    if "debug" in request.url.path:
+        return JSONResponse({
+            "url": str(request.url),
+            "path": request.url.path,
+            "scope_path": request.scope.get("path"),
+            "scope_root_path": request.scope.get("root_path"),
+            "headers": dict(request.headers),
+            "all_routes": [getattr(r, "path", str(r)) for r in request.app.routes],
+        })
+    return await call_next(request)
+
+@app.api_route("/api/index.py", methods=["GET", "POST"])
+@app.api_route("/index.py", methods=["GET", "POST"])
+def handle_index_py_fallback(request: Request):
+    return JSONResponse({
+        "status": "matched_index_py",
+        "url": str(request.url),
+        "path": request.url.path,
+        "query": str(request.query_params),
+        "headers": dict(request.headers),
+    })
+
 
 # Ensure uploads directory exists (use /tmp on Vercel serverless where /var/task is read-only)
 if os.environ.get("VERCEL") or not os.access(os.path.dirname(__file__), os.W_OK):
