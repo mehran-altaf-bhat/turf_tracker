@@ -13,6 +13,19 @@ if backend_dir not in sys.path:
 
 try:
     from backend.main import app
+    from fastapi import Request
+    from fastapi.responses import JSONResponse
+
+    @app.middleware("http")
+    async def debug_middleware(request: Request, call_next):
+        if request.url.path in ["/api/debug", "/debug"]:
+            return JSONResponse({
+                "received_path": request.url.path,
+                "scope_path": request.scope.get("path"),
+                "root_path": request.scope.get("root_path"),
+                "routes": [getattr(r, "path", str(r)) for r in app.routes],
+            })
+        return await call_next(request)
 except Exception as e:
     from fastapi import FastAPI
     from fastapi.responses import JSONResponse
