@@ -5,6 +5,7 @@ export default function SquadModal({
   isOpen,
   onClose,
   sessionDate,
+  sessionObj,
   allPlayers = [],
   currentSquadIds = [],
   onSaveSquad,
@@ -20,8 +21,10 @@ export default function SquadModal({
     setSelectedIds(new Set(currentSquadIds));
     setSearch('');
     setError(null);
-    setTotalTurfCost(3800);
-  }, [currentSquadIds, isOpen]);
+    const initialTotal = sessionObj?.total_turf_cost
+      || (sessionObj?.cost_per_person && currentSquadIds.length > 0 ? sessionObj.cost_per_person * currentSquadIds.length : 3800);
+    setTotalTurfCost(initialTotal);
+  }, [currentSquadIds, isOpen, sessionObj]);
 
   useEffect(() => {
     const dialog = dialogRef.current;

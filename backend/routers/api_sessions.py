@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 from backend.auth import require_admin
 from backend.database import service_client
+from backend.squad_service import recalculate_session_squad_split
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
@@ -182,6 +183,7 @@ class UpdateSessionRequest(BaseModel):
     start_time: Optional[str] = None
     end_time: Optional[str] = None
     cost_per_person: Optional[int] = None
+    total_turf_cost: Optional[int] = None
     status: Optional[str] = None
 
 
@@ -192,13 +194,33 @@ def update_session(session_id: int, data: UpdateSessionRequest, admin: dict = De
     if not update_data:
         raise HTTPException(status_code=400, detail="No fields to update")
 
-    res = db.table("turf_sessions").update(update_data).eq("id", session_id).execute()
-    if "cost_per_person" in update_data:
-        try:
-            db.table("payments").update({"amount": update_data["cost_per_person"]}).eq("session_id", session_id).eq("status", "unpaid").execute()
-        except Exception:
-            pass
+    # If total_turf_cost is explicitly provided, recalculate squad split with it
+    if "total_turf_cost" in update_data and update_data["total_turf_cost"] is not None:
+        cost_val = int(update_data["total_turf_cost"])
+        split_info = recalculate_session_squad_split(session_id, total_turf_cost=cost_val)
+        other_fields = {k: v for k, v in update_data.items() if k not in ["cost_per_person", "total_turf_cost"]}
+        if other_fields:
+            db.table("turf_sessions").update(other_fields).eq("id", session_id).execute()
+        res = db.table("turf_sessions").select("*").eq("id", session_id).single().execute()
+        return {"message": "Session updated", "session": res.data}
 
+    # If cost_per_person is updated, recalculate total_turf_cost and synchronize payments
+    if "cost_per_person" in update_data and update_data["cost_per_person"] is not None:
+        admin_profiles = db.table("profiles").select("id").eq("role", "admin").execute().data or []
+        admin_ids = {a["id"] for a in admin_profiles}
+        payments = db.table("payments").select("id, user_id").eq("session_id", session_id).execute().data or []
+        squad_count = len([p for p in payments if p["user_id"] not in admin_ids])
+        new_cost = int(update_data["cost_per_person"])
+        computed_total = new_cost * max(1, squad_count)
+        split_info = recalculate_session_squad_split(session_id, total_turf_cost=computed_total)
+
+        other_fields = {k: v for k, v in update_data.items() if k != "cost_per_person"}
+        if other_fields:
+            db.table("turf_sessions").update(other_fields).eq("id", session_id).execute()
+        res = db.table("turf_sessions").select("*").eq("id", session_id).single().execute()
+        return {"message": "Session updated", "session": res.data}
+
+    res = db.table("turf_sessions").update(update_data).eq("id", session_id).execute()
     return {"message": "Session updated", "session": res.data[0] if res.data else None}
 
 

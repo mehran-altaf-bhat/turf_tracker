@@ -22,6 +22,8 @@ import {
   Phone,
   X,
   Trash2,
+  Mail,
+  Send,
 } from 'lucide-react';
 
 export default function AdminPage({ setActiveTab }) {
@@ -40,6 +42,11 @@ export default function AdminPage({ setActiveTab }) {
   const [rowFeeInputs, setRowFeeInputs] = useState({});
   const [savingMatchId, setSavingMatchId] = useState(null);
   const [previewScreenshot, setPreviewScreenshot] = useState(null);
+
+  // Email System Diagnostic State
+  const [emailStatus, setEmailStatus] = useState(null);
+  const [testingEmail, setTestingEmail] = useState(false);
+  const [emailTestResult, setEmailTestResult] = useState(null);
 
   // Screenshot preview lightbox
 
@@ -263,8 +270,35 @@ export default function AdminPage({ setActiveTab }) {
     }
   };
 
+  const loadEmailStatus = async () => {
+    try {
+      const res = await api.getEmailStatus();
+      setEmailStatus(res);
+    } catch (e) {
+      console.error('Failed to load email status:', e);
+    }
+  };
+
+  const handleTestEmail = async () => {
+    setTestingEmail(true);
+    setEmailTestResult(null);
+    try {
+      const res = await api.testEmail();
+      setEmailTestResult(res);
+      if (res.success) {
+        setToast('Test email sent successfully! Check your inbox.');
+        setTimeout(() => setToast(null), 5000);
+      }
+    } catch (err) {
+      setEmailTestResult({ success: false, message: err.message || 'Test failed' });
+    } finally {
+      setTestingEmail(false);
+    }
+  };
+
   useEffect(() => {
     loadOverview();
+    loadEmailStatus();
   }, []);
 
   useEffect(() => {
@@ -343,11 +377,10 @@ export default function AdminPage({ setActiveTab }) {
     try {
       setSavingFee(true);
       await api.updateSessionFee(selectedSessionId, feeNum);
-      setToast(`Match fee updated to ₹${feeNum} per player!`);
+      setToast(`Match fee updated to ₹${feeNum}!`);
       setTimeout(() => setToast(null), 4000);
       setEditingFee(false);
-      loadOverview();
-      loadRoster(selectedSessionId);
+      await Promise.all([loadOverview(), loadRoster(selectedSessionId)]);
     } catch (err) {
       alert(err.message || 'Failed to update match fee');
     } finally {
@@ -377,7 +410,7 @@ export default function AdminPage({ setActiveTab }) {
     }
   };
 
-  const handleSaveSquad = async (playerIds, totalTurfCost = 3800) => {
+  const handleSaveSquad = async (playerIds, totalTurfCost) => {
     try {
       const res = await api.updateSessionSquad(selectedSessionId, playerIds, totalTurfCost);
       setToast(res.message || `Match squad updated! ${playerIds.length} player(s) confirmed.`);
@@ -999,11 +1032,86 @@ export default function AdminPage({ setActiveTab }) {
         </div>
       )}
 
+      {/* Automated Email Notifications & Diagnostics Card */}
+      <div className="card" style={{ marginTop: '2rem', border: '1px solid rgba(16, 185, 129, 0.25)', background: 'linear-gradient(180deg, rgba(16, 185, 129, 0.04) 0%, rgba(15, 23, 42, 0.6) 100%)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Mail size={20} color="var(--pitch-green-light)" />
+            </div>
+            <div>
+              <h4 style={{ fontSize: '1.05rem', margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                Automated Email Notification System
+                {emailStatus?.configured ? (
+                  <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.55rem', borderRadius: '999px', background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.3)', fontWeight: 600 }}>
+                    Active &bull; Gmail Connected
+                  </span>
+                ) : (
+                  <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.55rem', borderRadius: '999px', background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.3)', fontWeight: 600 }}>
+                    Setup Required &bull; Mock Mode
+                  </span>
+                )}
+              </h4>
+              <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.2rem 0 0 0;">
+                Sender: <strong>{emailStatus?.smtp_user || 'Not Configured'}</strong> &bull; Admin Alerts To: <strong>{emailStatus?.admin_email || 'mehranbhat010@gmail.com'}</strong>
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.55rem 0.9rem' }}
+            onClick={handleTestEmail}
+            disabled={testingEmail}
+            title="Send a live test verification email to admin"
+          >
+            <Send size={14} color="#34d399" />
+            <span>{testingEmail ? 'Sending Test...' : 'Send Test Email'}</span>
+          </button>
+        </div>
+
+        {emailTestResult && (
+          <div style={{
+            padding: '0.75rem 1rem',
+            borderRadius: '8px',
+            marginBottom: '1rem',
+            fontSize: '0.85rem',
+            background: emailTestResult.success ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+            border: `1px solid ${emailTestResult.success ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+            color: emailTestResult.success ? '#34d399' : '#f87171',
+          }}>
+            <strong>{emailTestResult.success ? '✅ Success:' : '⚠️ Notice:'}</strong> {emailTestResult.message}
+          </div>
+        )}
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', marginTop: '0.5rem' }}>
+          <div style={{ background: 'var(--bg-layer-1)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+            <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <span>⚡</span> Player Signup Alert
+            </div>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
+              Automatically sent to <strong>{emailStatus?.admin_email || 'mehranbhat010@gmail.com'}</strong> whenever a player registers and waits for approval.
+            </p>
+          </div>
+
+          <div style={{ background: 'var(--bg-layer-1)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+            <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <span>⚽</span> Player Approved Alert
+            </div>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
+              Automatically sent to the player's email address with match schedules and instructions as soon as the admin clicks <strong>Approve</strong>.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Match Squad Selector Modal with Dynamic Split */}
       <SquadModal
         isOpen={squadModalOpen}
         onClose={() => setSquadModalOpen(false)}
         sessionDate={currentSessionObj?.session_date}
+        sessionObj={currentSessionObj}
         allPlayers={rosterData?.all_registered_players || []}
         currentSquadIds={rosterData?.roster?.map((r) => r.user_id) || []}
         onSaveSquad={handleSaveSquad}

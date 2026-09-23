@@ -88,14 +88,16 @@ def get_my_payment_status(user: dict = Depends(get_current_user)):
     # Current session is the nearest upcoming
     current_session = upcoming[0] if upcoming else None
     
-    # Recalculate squad split for current session (default ₹3,800 turf fee)
-    total_turf_target = 3800
+    # Recalculate squad split for current session using dynamic total turf fee
     if current_session:
-        split_info = recalculate_session_squad_split(current_session["id"], total_turf_target)
+        split_info = recalculate_session_squad_split(current_session["id"])
         current_cost = split_info["split_cost"]
+        total_turf_target = split_info["total_turf_cost"]
         current_session["cost_per_person"] = current_cost
+        current_session["total_turf_cost"] = total_turf_target
     else:
-        current_cost = total_turf_target
+        total_turf_target = 3800
+        current_cost = 3800
 
     # Re-fetch payments for this user so updated split amounts are used
     payments = (
@@ -453,7 +455,7 @@ def rsvp_session(session_id: int, data: RsvpRequest, user: dict = Depends(get_cu
     if not session_res.data:
         raise HTTPException(status_code=404, detail="Session not found")
     session = session_res.data
-    total_turf_cost = 3800
+    total_turf_cost = session.get("total_turf_cost") if session.get("total_turf_cost") else 3800
 
     existing = db.table("payments").select("*").eq("session_id", session_id).eq("user_id", user_id).execute().data
 
@@ -546,9 +548,10 @@ def rsvp_session(session_id: int, data: RsvpRequest, user: dict = Depends(get_cu
         split_info = recalculate_session_squad_split(session_id, total_turf_cost)
         squad_count = split_info["squad_count"]
         split_cost = split_info["split_cost"]
+        effective_turf_fee = split_info["total_turf_cost"]
 
         return {
-            "message": f"You have joined the match squad! Total turf fee ₹{total_turf_cost} is divided equally: ₹{split_cost}/player ({squad_count} players).",
+            "message": f"You have joined the match squad! Total turf fee ₹{effective_turf_fee} is divided equally: ₹{split_cost}/player ({squad_count} players).",
             "attending": True,
             "squad_count": squad_count,
             "split_cost": split_cost,

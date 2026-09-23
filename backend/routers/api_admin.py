@@ -6,7 +6,11 @@ from pydantic import BaseModel
 from backend.auth import require_admin
 from backend.database import service_client
 from backend.routers.api_sessions import ensure_upcoming_sessions
-from backend.email_service import send_player_approved_notification
+from backend.email_service import (
+    send_player_approved_notification,
+    get_smtp_config,
+    test_smtp_connection,
+)
 from backend.squad_service import recalculate_session_squad_split
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -105,9 +109,11 @@ def get_session_roster(session_id: int, admin: dict = Depends(require_admin)):
     # Only approved players are eligible for squad roster
     player_profiles = [p for p in profiles if p.get("role") != "admin" and p.get("is_approved") is True]
 
-    # Recalculate dynamic equal split for this squad (₹3,800 / players)
-    split_info = recalculate_session_squad_split(session_id, 3800)
+    # Recalculate dynamic equal split for this squad (using persisted total turf cost)
+    split_info = recalculate_session_squad_split(session_id)
     session_cost = split_info["split_cost"]
+    session["cost_per_person"] = session_cost
+    session["total_turf_cost"] = split_info["total_turf_cost"]
 
     # Payments for this session (queried after recalculation to get updated amounts)
     payments = (
@@ -186,13 +192,13 @@ def get_session_roster(session_id: int, admin: dict = Depends(require_admin)):
     unpaid_players = [r["name"] for r in roster if r["status"] in ["unpaid", "rejected"]]
 
     collected = sum(r["amount_paid"] for r in roster if r["status"] in ["confirmed", "partial"])
-    expected_total = len(roster) * session_cost
+    expected_total = split_info["total_turf_cost"] if split_info.get("total_turf_cost") else (len(roster) * session_cost)
 
     wa_lines = [
         f"⚽ *Elite Football Turf — Match Squad*",
         f"📅 *Date:* {session['session_date']} (Friday)",
         f"⏰ *Slot:* {session.get('start_time', '20:00')} - {session.get('end_time', '22:00')}",
-        f"💰 *Total Turf Fee:* ₹3,800",
+        f"💰 *Total Turf Fee:* ₹{split_info['total_turf_cost']:,}",
         f"👥 *Squad:* {len(roster)} Players (Split: ₹{session_cost}/player)",
         f"📊 *Collected:* ₹{collected:,} / ₹{expected_total:,}",
         "",
@@ -243,7 +249,7 @@ def get_session_roster(session_id: int, admin: dict = Depends(require_admin)):
 
 class UpdateSquadRequest(BaseModel):
     player_ids: list[str]
-    total_turf_cost: Optional[int] = 3800
+    total_turf_cost: Optional[int] = None
 
 
 @router.post("/session/{session_id}/squad")
@@ -258,7 +264,7 @@ def update_session_squad(session_id: int, data: UpdateSquadRequest, admin: dict 
     admin_ids = {a["id"] for a in admin_profiles}
     target_ids = {pid for pid in data.player_ids if pid not in admin_ids}
     squad_size = len(target_ids)
-    total_turf_cost = data.total_turf_cost if (data.total_turf_cost and data.total_turf_cost > 0) else 3800
+    custom_cost = data.total_turf_cost if (data.total_turf_cost and data.total_turf_cost > 0) else None
 
     # Fetch current payments for this session
     existing = db.table("payments").select("*").eq("session_id", session_id).execute().data
@@ -280,9 +286,10 @@ def update_session_squad(session_id: int, data: UpdateSquadRequest, admin: dict 
             db.table("payments").delete().eq("id", pay["id"]).execute()
 
     # 3. Recalculate dynamic split across active squad players
-    split_info = recalculate_session_squad_split(session_id, total_turf_cost)
+    split_info = recalculate_session_squad_split(session_id, custom_cost)
     cost = split_info["split_cost"]
     active_count = split_info["squad_count"]
+    total_turf_cost = split_info["total_turf_cost"]
 
     return {
         "message": f"Squad confirmed with {active_count} players! Turf fee of ₹{total_turf_cost} split to ₹{cost}/player.",
@@ -296,7 +303,7 @@ def update_session_squad(session_id: int, data: UpdateSquadRequest, admin: dict 
 def remove_player_from_squad(session_id: int, user_id: str, admin: dict = Depends(require_admin)):
     db = service_client()
     res = db.table("payments").delete().eq("session_id", session_id).eq("user_id", user_id).execute()
-    split_info = recalculate_session_squad_split(session_id, 3800)
+    split_info = recalculate_session_squad_split(session_id)
     return {
         "message": f"Player removed from match squad. Remaining squad: {split_info['squad_count']} players (₹{split_info['split_cost']}/player).",
         "split_info": split_info,
@@ -756,6 +763,29 @@ def update_admin_profile(data: UpdateAdminProfileRequest, admin: dict = Depends(
             "role": "admin",
         },
     }
+
+
+class TestEmailRequest(BaseModel):
+    target_email: Optional[str] = None
+
+
+@router.get("/email-status")
+def get_email_status(admin: dict = Depends(require_admin)):
+    cfg = get_smtp_config()
+    return {
+        "configured": cfg["configured"],
+        "smtp_user": cfg["user"],
+        "smtp_host": cfg["host"],
+        "smtp_port": cfg["port"],
+        "admin_email": cfg["admin_email"],
+    }
+
+
+@router.post("/test-email")
+def test_email_endpoint(data: TestEmailRequest = TestEmailRequest(), admin: dict = Depends(require_admin)):
+    res = test_smtp_connection(data.target_email)
+    return res
+
 
 
 

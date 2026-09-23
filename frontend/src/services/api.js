@@ -129,10 +129,13 @@ export const api = {
     });
   },
 
-  updateSessionFee: async (sessionId, costPerPerson) => {
+  updateSessionFee: async (sessionId, costPerPerson, totalTurfCost) => {
+    const payload = {};
+    if (costPerPerson !== undefined && costPerPerson !== null) payload.cost_per_person = Number(costPerPerson);
+    if (totalTurfCost !== undefined && totalTurfCost !== null) payload.total_turf_cost = Number(totalTurfCost);
     return request(`/sessions/${sessionId}`, {
       method: 'PATCH',
-      body: JSON.stringify({ cost_per_person: Number(costPerPerson) }),
+      body: JSON.stringify(payload),
     });
   },
 
@@ -191,10 +194,14 @@ export const api = {
     });
   },
 
-  updateSessionSquad: async (sessionId, playerIds, totalTurfCost = 3800) => {
+  updateSessionSquad: async (sessionId, playerIds, totalTurfCost) => {
+    const payload = { player_ids: playerIds };
+    if (totalTurfCost !== undefined && totalTurfCost !== null) {
+      payload.total_turf_cost = Number(totalTurfCost);
+    }
     return request(`/admin/session/${sessionId}/squad`, {
       method: 'POST',
-      body: JSON.stringify({ player_ids: playerIds, total_turf_cost: Number(totalTurfCost) }),
+      body: JSON.stringify(payload),
     });
   },
 
@@ -257,6 +264,17 @@ export const api = {
   clearAllData: async () => {
     return request('/admin/clear-all-data', {
       method: 'POST',
+    });
+  },
+
+  getEmailStatus: async () => {
+    return request('/admin/email-status');
+  },
+
+  testEmail: async (targetEmail) => {
+    return request('/admin/test-email', {
+      method: 'POST',
+      body: JSON.stringify({ target_email: targetEmail || null }),
     });
   },
 };

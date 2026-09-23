@@ -7,6 +7,8 @@ from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv, find_dotenv
 
+from typing import Optional
+
 # Load .env
 env_path = find_dotenv(usecwd=True)
 if env_path:
@@ -14,52 +16,160 @@ if env_path:
 else:
     load_dotenv(Path(__file__).parent.parent / ".env")
 
-SMTP_HOST = os.environ.get("SMTP_HOST", "").strip()
-try:
-    _smtp_val = str(os.environ.get("SMTP_PORT") or "").strip()
-    SMTP_PORT = int(_smtp_val) if _smtp_val else 587
-except Exception:
-    SMTP_PORT = 587
-SMTP_USER = os.environ.get("SMTP_USER", "").strip()
-SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "").strip()
-ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "mehranbhat010@gmail.com").strip()
-SMTP_FROM_NAME = os.environ.get("SMTP_FROM_NAME", "ASEEF XI — Friday Football").strip()
-APP_URL = os.environ.get("APP_URL", "http://localhost:5173").strip()
+
+def get_smtp_config() -> dict:
+    # Refresh env from file if possible
+    env_file = find_dotenv(usecwd=True)
+    if env_file:
+        load_dotenv(env_file, override=False)
+    
+    user = os.environ.get("SMTP_USER", "").strip()
+    raw_pwd = os.environ.get("SMTP_PASSWORD", "").strip()
+    # Google App Passwords often have spaces: 'abcd efgh ijkl mnop' -> strip all spaces
+    pwd = raw_pwd.replace(" ", "")
+    
+    host = os.environ.get("SMTP_HOST", "").strip()
+    if not host and "@gmail.com" in user.lower():
+        host = "smtp.gmail.com"
+        
+    port_str = str(os.environ.get("SMTP_PORT") or "").strip()
+    try:
+        port = int(port_str) if port_str else 587
+    except Exception:
+        port = 587
+        
+    admin_email = os.environ.get("ADMIN_EMAIL", "mehranbhat010@gmail.com").strip()
+    from_name = os.environ.get("SMTP_FROM_NAME", "ASEEF XI — Friday Football").strip()
+    app_url = os.environ.get("APP_URL", "https://turf-tracker.vercel.app").strip()
+    
+    return {
+        "user": user,
+        "password": pwd,
+        "host": host,
+        "port": port,
+        "admin_email": admin_email,
+        "from_name": from_name,
+        "app_url": app_url,
+        "configured": bool(host and user and pwd),
+    }
 
 
 def is_smtp_configured() -> bool:
-    return bool(SMTP_HOST and SMTP_USER and SMTP_PASSWORD)
+    return get_smtp_config()["configured"]
 
 
 def _send_email_sync(to_email: str, subject: str, html_content: str, text_content: str = ""):
+    cfg = get_smtp_config()
     safe_subject = subject.encode("ascii", "replace").decode("ascii")
-    if not is_smtp_configured():
+    if not cfg["configured"]:
         print(f"[EMAIL SERVICE] (Mock / Unconfigured SMTP) To: {to_email} | Subject: {safe_subject}")
         return
 
     try:
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
-        msg["From"] = f"{SMTP_FROM_NAME} <{SMTP_USER}>"
+        msg["From"] = f"{cfg['from_name']} <{cfg['user']}>"
         msg["To"] = to_email
 
         if text_content:
             msg.attach(MIMEText(text_content, "plain", "utf-8"))
         msg.attach(MIMEText(html_content, "html", "utf-8"))
 
-        if SMTP_PORT == 465:
-            with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=15) as server:
-                server.login(SMTP_USER, SMTP_PASSWORD)
-                server.sendmail(SMTP_USER, [to_email], msg.as_string())
+        if cfg["port"] == 465:
+            with smtplib.SMTP_SSL(cfg["host"], cfg["port"], timeout=15) as server:
+                server.login(cfg["user"], cfg["password"])
+                server.sendmail(cfg["user"], [to_email], msg.as_string())
         else:
-            with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as server:
+            with smtplib.SMTP(cfg["host"], cfg["port"], timeout=15) as server:
                 server.starttls()
-                server.login(SMTP_USER, SMTP_PASSWORD)
-                server.sendmail(SMTP_USER, [to_email], msg.as_string())
+                server.login(cfg["user"], cfg["password"])
+                server.sendmail(cfg["user"], [to_email], msg.as_string())
 
         print(f"[EMAIL SERVICE] Email sent successfully to {to_email}: '{safe_subject}'")
     except Exception as e:
         print(f"[EMAIL SERVICE ERROR] Failed sending to {to_email}: {e}")
+
+
+def test_smtp_connection(target_email: Optional[str] = None) -> dict:
+    """
+    Tests SMTP connection and sends a test verification email.
+    """
+    cfg = get_smtp_config()
+    if not cfg["configured"]:
+        missing = []
+        if not cfg["user"]:
+            missing.append("SMTP_USER")
+        if not cfg["password"]:
+            missing.append("SMTP_PASSWORD")
+        if not cfg["host"]:
+            missing.append("SMTP_HOST")
+        return {
+            "success": False,
+            "configured": False,
+            "message": f"SMTP is not configured. Missing environment variables: {', '.join(missing)}.",
+            "details": {
+                "smtp_user": cfg["user"] or "Not Set",
+                "smtp_host": cfg["host"] or "Not Set",
+                "smtp_port": cfg["port"],
+                "admin_email": cfg["admin_email"],
+            },
+        }
+
+    dest = target_email or cfg["admin_email"]
+    test_subject = "⚡ ASEEF XI — SMTP Email Verification Test"
+    test_html = f"""
+    <div style="font-family:sans-serif; background:#0f172a; color:#f8fafc; padding:24px; border-radius:12px;">
+        <h2 style="color:#10b981; margin-top:0;">⚽ Turf Tracker Email System Connected!</h2>
+        <p>This is a test verification email from <strong>ASEEF XI Turf Tracker</strong>.</p>
+        <p>Your Gmail SMTP credentials are configured and working properly!</p>
+        <hr style="border-color:#334155; margin:16px 0;" />
+        <p style="font-size:13px; color:#94a3b8;">
+            Host: <code>{cfg['host']}</code> | Port: <code>{cfg['port']}</code> | Sender: <code>{cfg['user']}</code>
+        </p>
+    </div>
+    """
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = test_subject
+        msg["From"] = f"{cfg['from_name']} <{cfg['user']}>"
+        msg["To"] = dest
+        msg.attach(MIMEText("Test email from Turf Tracker", "plain", "utf-8"))
+        msg.attach(MIMEText(test_html, "html", "utf-8"))
+
+        if cfg["port"] == 465:
+            with smtplib.SMTP_SSL(cfg["host"], cfg["port"], timeout=15) as server:
+                server.login(cfg["user"], cfg["password"])
+                server.sendmail(cfg["user"], [dest], msg.as_string())
+        else:
+            with smtplib.SMTP(cfg["host"], cfg["port"], timeout=15) as server:
+                server.starttls()
+                server.login(cfg["user"], cfg["password"])
+                server.sendmail(cfg["user"], [dest], msg.as_string())
+
+        return {
+            "success": True,
+            "configured": True,
+            "message": f"Test email sent successfully to {dest}!",
+            "details": {
+                "recipient": dest,
+                "smtp_user": cfg["user"],
+                "smtp_host": cfg["host"],
+                "smtp_port": cfg["port"],
+            },
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "configured": True,
+            "message": f"SMTP Authentication or Connection failed: {str(e)}",
+            "details": {
+                "error": str(e),
+                "smtp_user": cfg["user"],
+                "smtp_host": cfg["host"],
+                "smtp_port": cfg["port"],
+            },
+        }
+
 
 
 def _dispatch_async(func, *args):
@@ -71,6 +181,7 @@ def send_admin_new_user_notification(player_name: str, player_email: str, player
     """
     Sends an immediate notification to the turf administrator when a new player signs up.
     """
+    cfg = get_smtp_config()
     timestamp = datetime.now().strftime("%d %b %Y, %I:%M %p")
     phone_display = player_phone.strip() if player_phone and player_phone.strip() else "Not provided"
 
@@ -85,7 +196,7 @@ Phone: {phone_display}
 Registered At: {timestamp}
 
 This player is currently pending your approval before they can log in or join match squads.
-Review and approve them here: {APP_URL}/app
+Review and approve them here: {cfg['app_url']}/app
 """
 
     html_content = f"""<!DOCTYPE html>
@@ -154,7 +265,7 @@ Review and approve them here: {APP_URL}/app
               <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-bottom:24px;">
                 <tr>
                   <td align="center">
-                    <a href="{APP_URL}/app" style="display:inline-block; background:linear-gradient(135deg, #10b981 0%, #059669 100%); color:#ffffff; text-decoration:none; font-size:15px; font-weight:700; padding:14px 34px; border-radius:10px; box-shadow:0 8px 20px rgba(16,185,129,0.35); text-transform:none;">
+                    <a href="{cfg['app_url']}/app" style="display:inline-block; background:linear-gradient(135deg, #10b981 0%, #059669 100%); color:#ffffff; text-decoration:none; font-size:15px; font-weight:700; padding:14px 34px; border-radius:10px; box-shadow:0 8px 20px rgba(16,185,129,0.35); text-transform:none;">
                       Review & Approve in Admin Command →
                     </a>
                   </td>
@@ -183,13 +294,14 @@ Review and approve them here: {APP_URL}/app
 </body>
 </html>
 """
-    _dispatch_async(_send_email_sync, ADMIN_EMAIL, subject, html_content, text_content)
+    _dispatch_async(_send_email_sync, cfg["admin_email"], subject, html_content, text_content)
 
 
 def send_player_approved_notification(player_name: str, player_email: str):
     """
     Sends a high-aesthetic celebration email to the player when the admin approves their account.
     """
+    cfg = get_smtp_config()
     subject = f"⚽ You're Cleared for the Pitch! Account Approved — ASEEF XI"
 
     text_content = f"""
@@ -204,7 +316,7 @@ You now have full access to:
 
 Match Schedule: Every Friday Night (8:00 PM – 10:00 PM) at Elite Football Turf
 
-Log in to your dashboard here: {APP_URL}/app
+Log in to your dashboard here: {cfg['app_url']}/app
 """
 
     html_content = f"""<!DOCTYPE html>
@@ -290,7 +402,7 @@ Log in to your dashboard here: {APP_URL}/app
               <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-bottom:28px;">
                 <tr>
                   <td align="center">
-                    <a href="{APP_URL}/app" style="display:inline-block; background:linear-gradient(135deg, #10b981 0%, #047857 100%); color:#ffffff; text-decoration:none; font-size:16px; font-weight:800; padding:15px 40px; border-radius:12px; box-shadow:0 10px 25px rgba(16,185,129,0.4); letter-spacing:0.2px;">
+                    <a href="{cfg['app_url']}/app" style="display:inline-block; background:linear-gradient(135deg, #10b981 0%, #047857 100%); color:#ffffff; text-decoration:none; font-size:16px; font-weight:800; padding:15px 40px; border-radius:12px; box-shadow:0 10px 25px rgba(16,185,129,0.4); letter-spacing:0.2px;">
                       Enter Match Hub & Squad →
                     </a>
                   </td>

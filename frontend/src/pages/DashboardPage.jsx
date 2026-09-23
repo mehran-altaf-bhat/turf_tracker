@@ -1320,6 +1320,7 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
             setSessionRosterData(null);
           }}
           sessionDate={squadModalSession?.session_date}
+          sessionObj={squadModalSession}
           allPlayers={sessionRosterData?.all_registered_players || []}
           currentSquadIds={sessionRosterData?.roster?.map((r) => r.user_id) || []}
           onSaveSquad={handleSaveSquad}
