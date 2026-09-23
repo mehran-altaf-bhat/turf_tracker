@@ -139,10 +139,17 @@ export const api = {
     });
   },
 
-  createSession: async ({ session_date, start_time, end_time, cost_per_person, status, populate_all_players }) => {
+  updateSession: async (sessionId, data) => {
+    return request(`/sessions/${sessionId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+
+  createSession: async ({ session_date, ground_name, start_time, end_time, cost_per_person, status, populate_all_players }) => {
     return request('/sessions', {
       method: 'POST',
-      body: JSON.stringify({ session_date, start_time, end_time, cost_per_person, status, populate_all_players }),
+      body: JSON.stringify({ session_date, ground_name, start_time, end_time, cost_per_person, status, populate_all_players }),
     });
   },
 

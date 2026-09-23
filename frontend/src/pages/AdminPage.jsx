@@ -27,6 +27,7 @@ import {
   Settings,
   Key,
   ExternalLink,
+  MapPin,
 } from 'lucide-react';
 
 export default function AdminPage({ setActiveTab }) {
@@ -71,9 +72,18 @@ export default function AdminPage({ setActiveTab }) {
   const [paymentNoteInput, setPaymentNoteInput] = useState('');
   const [savingPayment, setSavingPayment] = useState(false);
 
+  // Edit Match Ground & Timing state
+  const [editGroundModalOpen, setEditGroundModalOpen] = useState(false);
+  const [groundInput, setGroundInput] = useState('Elite Football Turf');
+  const [startTimeInput, setStartTimeInput] = useState('20:00');
+  const [endTimeInput, setEndTimeInput] = useState('22:00');
+  const [saveAsDefault, setSaveAsDefault] = useState(false);
+  const [savingGroundTiming, setSavingGroundTiming] = useState(false);
+
   // Add Match Session / Old Friday state
   const [addSessionModalOpen, setAddSessionModalOpen] = useState(false);
   const [sessionDateInput, setSessionDateInput] = useState('');
+  const [sessionGroundInput, setSessionGroundInput] = useState('Elite Football Turf');
   const [sessionCostInput, setSessionCostInput] = useState('200');
   const [sessionStartTimeInput, setSessionStartTimeInput] = useState('20:00');
   const [sessionEndTimeInput, setSessionEndTimeInput] = useState('22:00');
@@ -82,6 +92,39 @@ export default function AdminPage({ setActiveTab }) {
   const [savingSession, setSavingSession] = useState(false);
   const [sessionError, setSessionError] = useState(null);
   const [batchAddingPast, setBatchAddingPast] = useState(false);
+
+  const openEditGroundModal = () => {
+    setGroundInput(currentSessionObj?.ground_name || 'Elite Football Turf');
+    setStartTimeInput(currentSessionObj?.start_time || '20:00');
+    setEndTimeInput(currentSessionObj?.end_time || '22:00');
+    setSaveAsDefault(false);
+    setEditGroundModalOpen(true);
+  };
+
+  const handleSaveGroundTiming = async (e) => {
+    if (e) e.preventDefault();
+    if (!groundInput.trim()) {
+      alert('Please enter a ground designation or venue name.');
+      return;
+    }
+    setSavingGroundTiming(true);
+    try {
+      await api.updateSession(selectedSessionId, {
+        ground_name: groundInput.trim(),
+        start_time: startTimeInput.trim() || '20:00',
+        end_time: endTimeInput.trim() || '22:00',
+        save_as_default: saveAsDefault,
+      });
+      setToast('Ground designation & match timing updated successfully!');
+      setTimeout(() => setToast(null), 4000);
+      setEditGroundModalOpen(false);
+      await Promise.all([loadOverview(), loadRoster(selectedSessionId)]);
+    } catch (err) {
+      alert(err.message || 'Failed to update match ground and timings');
+    } finally {
+      setSavingGroundTiming(false);
+    }
+  };
 
   const getSuggestedPastFridays = () => {
     const today = new Date();
@@ -111,6 +154,7 @@ export default function AdminPage({ setActiveTab }) {
     try {
       const res = await api.createSession({
         session_date: sessionDateInput,
+        ground_name: sessionGroundInput.trim() || 'Elite Football Turf',
         start_time: sessionStartTimeInput,
         end_time: sessionEndTimeInput,
         cost_per_person: Number(sessionCostInput) || 200,
@@ -651,6 +695,17 @@ export default function AdminPage({ setActiveTab }) {
               type="button"
               className="btn btn-secondary"
               style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.65rem 1rem' }}
+              onClick={openEditGroundModal}
+              title="Change ground designation and timings for this match"
+            >
+              <MapPin size={16} color="var(--green-400)" />
+              <span>Edit Ground & Timing</span>
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.65rem 1rem' }}
               onClick={() => {
                 const initialMap = {};
                 sessions.forEach((s) => {
@@ -671,6 +726,7 @@ export default function AdminPage({ setActiveTab }) {
               style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.65rem 0.95rem' }}
               onClick={() => {
                 setSessionError(null);
+                setSessionGroundInput(currentSessionObj?.ground_name || 'Elite Football Turf');
                 setAddSessionModalOpen(true);
               }}
               title="Add past Friday match records or schedule new games"
@@ -704,8 +760,38 @@ export default function AdminPage({ setActiveTab }) {
 
           {currentSessionObj && (
             <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center', flexWrap: 'wrap', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-              <div>
-                Slot: <strong style={{ color: 'var(--text-primary)' }}>{currentSessionObj.start_time || '20:00'} - {currentSessionObj.end_time || '22:00'}</strong>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                <MapPin size={14} color="var(--green-400)" />
+                <span>Ground:</span>
+                <strong style={{ color: 'var(--text-primary)' }}>{currentSessionObj.ground_name || 'Elite Football Turf'}</strong>
+              </div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                <Clock size={14} color="var(--blue-400)" />
+                <span>Timing:</span>
+                <strong style={{ color: 'var(--text-primary)' }}>{currentSessionObj.start_time || '20:00'} – {currentSessionObj.end_time || '22:00'}</strong>
+                <button
+                  onClick={openEditGroundModal}
+                  type="button"
+                  className="btn-ghost"
+                  style={{
+                    padding: '0.15rem 0.45rem',
+                    fontSize: '0.72rem',
+                    color: 'var(--green-400)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.2rem',
+                    border: '1px solid rgba(34, 197, 94, 0.3)',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    background: 'rgba(34, 197, 94, 0.08)',
+                    marginLeft: '0.25rem',
+                    fontWeight: 600,
+                  }}
+                  title="Admin: Change Ground & Timing"
+                >
+                  <Pencil size={11} />
+                  <span>Edit</span>
+                </button>
               </div>
               <div>
                 Squad Size: <strong style={{ color: 'var(--blue-400)' }}>{currentSquadCount} Players</strong>
@@ -1830,6 +1916,175 @@ export default function AdminPage({ setActiveTab }) {
         </div>
       )}
 
+      {/* ================= EDIT MATCH GROUND DESIGNATION & TIMINGS MODAL ================= */}
+      {editGroundModalOpen && (
+        <div className="modal-backdrop" onClick={() => !savingGroundTiming && setEditGroundModalOpen(false)}>
+          <div
+            className="modal-content"
+            style={{ maxWidth: '500px', width: '95%' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <div
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '10px',
+                    background: 'rgba(34, 197, 94, 0.15)',
+                    color: 'var(--green-400)',
+                    border: '1px solid rgba(34, 197, 94, 0.3)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <MapPin size={20} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                    Ground & Match Timing
+                  </h3>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
+                    Match: <strong>Friday, {currentSessionObj?.session_date}</strong>
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditGroundModalOpen(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveGroundTiming}>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
+                  Ground / Venue Designation *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={groundInput}
+                  onChange={(e) => setGroundInput(e.target.value)}
+                  placeholder="e.g. Elite Football Turf / Ground A / Sanat Nagar Ground"
+                  style={{
+                    width: '100%',
+                    padding: '0.65rem 0.85rem',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-subtle)',
+                    background: 'var(--bg-layer-1)',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.9rem',
+                    outline: 'none',
+                  }}
+                />
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                  Displayed to players on dashboard, payment screens, and WhatsApp squad share.
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.2rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
+                    Match Start Time *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={startTimeInput}
+                    onChange={(e) => setStartTimeInput(e.target.value)}
+                    placeholder="e.g. 20:00"
+                    style={{
+                      width: '100%',
+                      padding: '0.65rem 0.85rem',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-subtle)',
+                      background: 'var(--bg-layer-1)',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.9rem',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
+                    Match End Time *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={endTimeInput}
+                    onChange={(e) => setEndTimeInput(e.target.value)}
+                    placeholder="e.g. 22:00"
+                    style={{
+                      width: '100%',
+                      padding: '0.65rem 0.85rem',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-subtle)',
+                      background: 'var(--bg-layer-1)',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.9rem',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{
+                marginBottom: '1.25rem',
+                background: 'rgba(255, 255, 255, 0.03)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: '8px',
+                padding: '0.75rem 0.9rem',
+              }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', cursor: 'pointer', margin: 0 }}>
+                  <input
+                    type="checkbox"
+                    checked={saveAsDefault}
+                    onChange={(e) => setSaveAsDefault(e.target.checked)}
+                    style={{ width: '16px', height: '16px', accentColor: 'var(--green-500)', cursor: 'pointer' }}
+                  />
+                  <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                    Also save as default ground and timing for future automatic matches
+                  </span>
+                </label>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.65rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setEditGroundModalOpen(false)}
+                  disabled={savingGroundTiming}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={savingGroundTiming}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    minWidth: '130px',
+                    justifyContent: 'center',
+                    fontWeight: 700,
+                  }}
+                >
+                  {savingGroundTiming ? <Clock size={16} className="spin" /> : <CheckCircle size={16} />}
+                  <span>{savingGroundTiming ? 'Saving...' : 'Save Changes'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* ================= ADD FRIDAY MATCH / OLD RECORD MODAL ================= */}
       {addSessionModalOpen && (
         <div className="modal-backdrop" onClick={() => !savingSession && !batchAddingPast && setAddSessionModalOpen(false)}>
@@ -1934,6 +2189,29 @@ export default function AdminPage({ setActiveTab }) {
                   required
                   value={sessionDateInput}
                   onChange={(e) => setSessionDateInput(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '0.65rem 0.85rem',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-subtle)',
+                    background: 'var(--bg-layer-1)',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.9rem',
+                    outline: 'none',
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
+                  Ground / Venue Designation *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={sessionGroundInput}
+                  onChange={(e) => setSessionGroundInput(e.target.value)}
+                  placeholder="e.g. Elite Football Turf"
                   style={{
                     width: '100%',
                     padding: '0.65rem 0.85rem',

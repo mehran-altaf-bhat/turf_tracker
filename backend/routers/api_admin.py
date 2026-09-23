@@ -195,8 +195,9 @@ def get_session_roster(session_id: int, admin: dict = Depends(require_admin)):
     collected = sum(r["amount_paid"] for r in roster if r["status"] in ["confirmed", "partial"])
     expected_total = split_info["total_turf_cost"] if split_info.get("total_turf_cost") else (len(roster) * session_cost)
 
+    ground_label = session.get("ground_name") or "Elite Football Turf"
     wa_lines = [
-        f"⚽ *Elite Football Turf — Match Squad*",
+        f"⚽ *{ground_label} — Match Squad*",
         f"📅 *Date:* {session['session_date']} (Friday)",
         f"⏰ *Slot:* {session.get('start_time', '20:00')} - {session.get('end_time', '22:00')}",
         f"💰 *Total Turf Fee:* ₹{split_info['total_turf_cost']:,}",

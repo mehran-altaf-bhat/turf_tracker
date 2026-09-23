@@ -224,7 +224,7 @@ export default function PaymentModal({
             </h3>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem', margin: '0.2rem 0 0' }}>
               <Calendar size={13} color="var(--green-400)" />
-              <span>Elite Football Turf • Friday 8:00 PM – 10:00 PM</span>
+              <span>{config?.ground_name || currentSession?.ground_name || config?.turf_name || 'Elite Football Turf'} • {currentSession?.start_time ? `Friday ${currentSession.start_time} – ${currentSession.end_time}` : (config?.turf_slot || 'Friday 8:00 PM – 10:00 PM')}</span>
             </p>
           </div>
           <button className="btn-close" onClick={onClose} aria-label="Close dialog">

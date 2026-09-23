@@ -19,7 +19,7 @@ def get_payment_config():
     today_str = date.today().isoformat()
     session = (
         db.table("turf_sessions")
-        .select("cost_per_person")
+        .select("cost_per_person, ground_name, start_time, end_time")
         .gte("session_date", today_str)
         .order("session_date", desc=False)
         .limit(1)
@@ -27,12 +27,19 @@ def get_payment_config():
         .data
     )
     cost = session[0]["cost_per_person"] if session else 200
+    ground_name = (session[0].get("ground_name") if session else None) or "Elite Football Turf"
+    start_time = (session[0].get("start_time") if session else None) or "20:00"
+    end_time = (session[0].get("end_time") if session else None) or "22:00"
+
     return {
         "vpa": UPI_VPA,
         "name": UPI_NAME,
         "cost_per_person": cost,
-        "turf_name": "Elite Football Turf",
-        "turf_slot": "Friday 8:00 PM - 10:00 PM",
+        "turf_name": ground_name,
+        "ground_name": ground_name,
+        "start_time": start_time,
+        "end_time": end_time,
+        "turf_slot": f"Friday {start_time} – {end_time}",
     }
 
 

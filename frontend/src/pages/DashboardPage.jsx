@@ -413,7 +413,7 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                       Friday Turf Match Slot
                     </div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      Elite Football Turf • 8:00 PM – 10:00 PM
+                      {currentSession?.ground_name || config?.ground_name || 'Elite Football Turf'} • {currentSession?.start_time ? `${currentSession.start_time} – ${currentSession.end_time}` : (config?.turf_slot || '8:00 PM – 10:00 PM')}
                     </div>
                   </div>
                 </div>
@@ -464,7 +464,7 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                   </div>
                   <div>
                     <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.95rem' }}>
-                      Elite Football Turf Ground
+                      {currentSession?.ground_name || config?.ground_name || 'Elite Football Turf'}
                     </div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                       Official match fee: ₹{payableAmount} / player
@@ -568,7 +568,7 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                       Turf Booking & Financial Command
                     </div>
                     <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '1.1rem' }}>
-                      Friday {currentSession?.session_date} • Elite Football Turf
+                      Friday {currentSession?.session_date} • {currentSession?.ground_name || config?.ground_name || 'Elite Football Turf'}
                     </div>
 
                     {/* Financial Breakdown Chips */}
@@ -818,7 +818,7 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                 </span>
               </div>
               <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-                Friday, {currentSession?.session_date || 'Upcoming'} @ Elite Football Turf (8:00 PM – 10:00 PM)
+                Friday, {currentSession?.session_date || 'Upcoming'} @ {currentSession?.ground_name || config?.ground_name || 'Elite Football Turf'} ({currentSession?.start_time ? `${currentSession.start_time} – ${currentSession.end_time}` : (config?.turf_slot || '8:00 PM – 10:00 PM')})
               </p>
             </div>
 
@@ -1138,7 +1138,7 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
             Upcoming Friday Matches
           </h3>
           <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
-            Schedule of forthcoming sessions at Elite Football Turf (8:00 PM – 10:00 PM)
+            Schedule of forthcoming sessions at {currentSession?.ground_name || config?.ground_name || 'Elite Football Turf'} ({currentSession?.start_time ? `${currentSession.start_time} – ${currentSession.end_time}` : (config?.turf_slot || '8:00 PM – 10:00 PM')})
           </p>
 
           <div className="table-wrap">

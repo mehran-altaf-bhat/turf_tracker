@@ -32,14 +32,31 @@ def ensure_upcoming_sessions(count: int = 4):
     existing = db.table("turf_sessions").select("session_date").execute().data
     existing_dates = {s["session_date"] for s in existing}
 
+    # Fetch default ground name and timing from system_settings if configured
+    def_ground = "Elite Football Turf"
+    def_start = "20:00"
+    def_end = "22:00"
+    try:
+        settings_res = db.table("system_settings").select("key, value").execute().data or []
+        settings_dict = {row["key"]: row["value"] for row in settings_res}
+        if settings_dict.get("default_ground_name"):
+            def_ground = settings_dict["default_ground_name"]
+        if settings_dict.get("default_start_time"):
+            def_start = settings_dict["default_start_time"]
+        if settings_dict.get("default_end_time"):
+            def_end = settings_dict["default_end_time"]
+    except Exception:
+        pass
+
     for f_date in dates:
         f_str = f_date.isoformat()
         if f_str not in existing_dates:
             try:
                 db.table("turf_sessions").insert({
                     "session_date": f_str,
-                    "start_time": "20:00",
-                    "end_time": "22:00",
+                    "ground_name": def_ground,
+                    "start_time": def_start,
+                    "end_time": def_end,
                     "cost_per_person": 200,
                     "status": "open",
                 }).execute()
@@ -74,6 +91,7 @@ def list_sessions():
 
 class CreateSessionRequest(BaseModel):
     session_date: str
+    ground_name: Optional[str] = "Elite Football Turf"
     start_time: str = "20:00"
     end_time: str = "22:00"
     cost_per_person: int = 200
@@ -94,6 +112,7 @@ def create_session(data: CreateSessionRequest, admin: dict = Depends(require_adm
             db.table("turf_sessions")
             .insert({
                 "session_date": data.session_date,
+                "ground_name": (data.ground_name or "Elite Football Turf").strip(),
                 "start_time": data.start_time,
                 "end_time": data.end_time,
                 "cost_per_person": data.cost_per_person,
@@ -180,11 +199,13 @@ def add_past_fridays(data: AddPastFridaysRequest, admin: dict = Depends(require_
 
 
 class UpdateSessionRequest(BaseModel):
+    ground_name: Optional[str] = None
     start_time: Optional[str] = None
     end_time: Optional[str] = None
     cost_per_person: Optional[int] = None
     total_turf_cost: Optional[int] = None
     status: Optional[str] = None
+    save_as_default: Optional[bool] = False
 
 
 @router.patch("/{session_id}")
@@ -193,6 +214,20 @@ def update_session(session_id: int, data: UpdateSessionRequest, admin: dict = De
     update_data = {k: v for k, v in data.model_dump().items() if v is not None}
     if not update_data:
         raise HTTPException(status_code=400, detail="No fields to update")
+
+    save_as_default = update_data.pop("save_as_default", False)
+
+    # If save_as_default is set, persist ground_name and timing into system_settings
+    if save_as_default:
+        try:
+            if "ground_name" in update_data and update_data["ground_name"]:
+                db.table("system_settings").upsert({"key": "default_ground_name", "value": update_data["ground_name"].strip()}, on_conflict="key").execute()
+            if "start_time" in update_data and update_data["start_time"]:
+                db.table("system_settings").upsert({"key": "default_start_time", "value": update_data["start_time"].strip()}, on_conflict="key").execute()
+            if "end_time" in update_data and update_data["end_time"]:
+                db.table("system_settings").upsert({"key": "default_end_time", "value": update_data["end_time"].strip()}, on_conflict="key").execute()
+        except Exception as e:
+            print("Failed to save default ground/timing settings:", e)
 
     # If total_turf_cost is explicitly provided, recalculate squad split with it
     if "total_turf_cost" in update_data and update_data["total_turf_cost"] is not None:
