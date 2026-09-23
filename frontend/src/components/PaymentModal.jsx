@@ -9,10 +9,8 @@ import {
   Copy,
   Check,
   Calendar,
-  ExternalLink,
   Smartphone,
   Banknote,
-  Info,
   CheckCircle,
 } from 'lucide-react';
 
@@ -33,11 +31,9 @@ export default function PaymentModal({
   const [paymentMethod, setPaymentMethod] = useState('upi');
 
   // UPI Form State
-  const [upiRef, setUpiRef] = useState('');
   const [screenshotFile, setScreenshotFile] = useState(null);
   const [screenshotPreview, setScreenshotPreview] = useState(null);
   const [copiedUpi, setCopiedUpi] = useState(false);
-  const [desktopNotice, setDesktopNotice] = useState(false);
 
   // Cash Form State
   const [cashNote, setCashNote] = useState('');
@@ -76,11 +72,8 @@ export default function PaymentModal({
     ? `Turf Balance (₹${totalAmount}) - ${currentDateLabel}`
     : `Turf Match Fee (₹${totalAmount}) - ${currentDateLabel}`;
 
-  // UPI URIs
+  // UPI URI for QR Code
   const genericUpiUrl = `upi://pay?pa=${encodeURIComponent(vpa)}&pn=${encodeURIComponent(payeeName)}&am=${totalAmount}&cu=INR&tn=${encodeURIComponent(upiNote)}`;
-  const gpayUrl = `tez://upi/pay?pa=${encodeURIComponent(vpa)}&pn=${encodeURIComponent(payeeName)}&am=${totalAmount}&cu=INR&tn=${encodeURIComponent(upiNote)}`;
-  const phonepeUrl = `phonepe://pay?pa=${encodeURIComponent(vpa)}&pn=${encodeURIComponent(payeeName)}&am=${totalAmount}&cu=INR&tn=${encodeURIComponent(upiNote)}`;
-  const paytmUrl = `paytmmp://pay?pa=${encodeURIComponent(vpa)}&pn=${encodeURIComponent(payeeName)}&am=${totalAmount}&cu=INR&tn=${encodeURIComponent(upiNote)}`;
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -121,15 +114,6 @@ export default function PaymentModal({
     setTimeout(() => setCopiedUpi(false), 2500);
   };
 
-  const handleLaunchUpi = (url) => {
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    window.location.href = url;
-    if (!isMobile) {
-      setDesktopNotice(true);
-      setTimeout(() => setDesktopNotice(false), 6000);
-    }
-  };
-
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -160,10 +144,9 @@ export default function PaymentModal({
   // Submit UPI Payment
   const handleSubmitUpi = async (e) => {
     e.preventDefault();
-    const cleanRef = upiRef.trim();
 
-    if (!cleanRef && !screenshotFile) {
-      setError('Please upload a payment screenshot OR enter your 12-digit UPI UTR number.');
+    if (!screenshotFile) {
+      setError('Please upload your payment screenshot after completing the payment.');
       return;
     }
 
@@ -171,24 +154,19 @@ export default function PaymentModal({
     setError(null);
 
     try {
-      let screenshot_url = null;
-
-      if (screenshotFile) {
-        setUploadStatus('Uploading screenshot proof...');
-        const uploadRes = await api.uploadScreenshot(screenshotFile);
-        screenshot_url = uploadRes.screenshot_url;
-      }
+      setUploadStatus('Uploading screenshot proof...');
+      const uploadRes = await api.uploadScreenshot(screenshotFile);
+      const screenshot_url = uploadRes?.screenshot_url || null;
 
       setUploadStatus('Recording payment...');
       await onPaymentSuccess({
         weeks_count: 1,
-        upi_ref: cleanRef || null,
+        upi_ref: null,
         screenshot_url: screenshot_url,
         amount: totalAmount,
       });
 
       // Reset
-      setUpiRef('');
       setScreenshotFile(null);
       setScreenshotPreview(null);
       onClose();
@@ -349,85 +327,6 @@ export default function PaymentModal({
         {/* TAB 1: UPI PAYMENT MODE */}
         {paymentMethod === 'upi' && (
           <div>
-            {/* Desktop Notice if triggered */}
-            {desktopNotice && (
-              <div style={{
-                background: 'rgba(96, 165, 250, 0.12)',
-                border: '1px solid rgba(96, 165, 250, 0.3)',
-                borderRadius: '8px',
-                padding: '0.6rem 0.85rem',
-                color: 'var(--blue-400)',
-                fontSize: '0.78rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.45rem',
-                marginBottom: '0.85rem',
-              }}>
-                <Info size={15} style={{ flexShrink: 0 }} />
-                <span>UPI apps open directly on mobile phones. On computer, please scan the QR code using your phone camera or GPay/PhonePe/Paytm app.</span>
-              </div>
-            )}
-
-            {/* Quick App Launcher Buttons */}
-            <div style={{ marginBottom: '0.85rem' }}>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.35rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Open in Your Mobile UPI App:
-              </div>
-
-              {/* Primary "Any UPI App" Button */}
-              <button
-                type="button"
-                onClick={() => handleLaunchUpi(genericUpiUrl)}
-                className="btn btn-primary"
-                style={{
-                  width: '100%',
-                  justifyContent: 'center',
-                  fontSize: '0.84rem',
-                  fontWeight: 700,
-                  padding: '0.55rem',
-                  marginBottom: '0.45rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                  boxShadow: '0 2px 8px rgba(34, 197, 94, 0.25)',
-                }}
-              >
-                <ExternalLink size={15} />
-                <span>Pay via Any UPI App (Mobile)</span>
-              </button>
-
-              {/* Individual App Shortcuts */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.35rem' }}>
-                <button
-                  type="button"
-                  onClick={() => handleLaunchUpi(gpayUrl)}
-                  className="btn btn-sm btn-secondary"
-                  style={{ fontSize: '0.75rem', padding: '0.35rem 0.4rem', justifyContent: 'center' }}
-                  title="Open Google Pay"
-                >
-                  <span>Google Pay</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleLaunchUpi(phonepeUrl)}
-                  className="btn btn-sm btn-secondary"
-                  style={{ fontSize: '0.75rem', padding: '0.35rem 0.4rem', justifyContent: 'center' }}
-                  title="Open PhonePe"
-                >
-                  <span>PhonePe</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleLaunchUpi(paytmUrl)}
-                  className="btn btn-sm btn-secondary"
-                  style={{ fontSize: '0.75rem', padding: '0.35rem 0.4rem', justifyContent: 'center' }}
-                  title="Open Paytm"
-                >
-                  <span>Paytm</span>
-                </button>
-              </div>
-            </div>
-
             {/* Side-by-Side QR & Copy UPI Section */}
             <div style={{
               display: 'flex',
@@ -436,24 +335,24 @@ export default function PaymentModal({
               background: 'rgba(255, 255, 255, 0.02)',
               border: '1px solid var(--border-dim)',
               borderRadius: '10px',
-              padding: '0.75rem',
-              marginBottom: '0.85rem',
+              padding: '0.85rem',
+              marginBottom: '1rem',
             }}>
               {/* QR Code */}
               <div style={{
                 background: '#ffffff',
-                padding: '5px',
+                padding: '6px',
                 borderRadius: '8px',
                 display: 'inline-flex',
                 flexShrink: 0,
                 boxShadow: '0 2px 8px rgba(0, 0, 0, 0.25)',
               }}>
-                <QRCodeSVG value={genericUpiUrl} size={105} level="M" />
+                <QRCodeSVG value={genericUpiUrl} size={115} level="M" />
               </div>
 
               {/* Copy UPI Box */}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.2rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   Or enter UPI ID manually:
                 </div>
                 <div style={{
@@ -463,8 +362,8 @@ export default function PaymentModal({
                   background: 'var(--bg-layer-1)',
                   border: '1px solid var(--border-subtle)',
                   borderRadius: '6px',
-                  padding: '0.4rem 0.55rem',
-                  marginBottom: '0.4rem',
+                  padding: '0.45rem 0.6rem',
+                  marginBottom: '0.45rem',
                 }}>
                   <span style={{ fontFamily: 'monospace', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {vpa}
@@ -490,7 +389,7 @@ export default function PaymentModal({
                     <span>{copiedUpi ? 'Copied' : 'Copy'}</span>
                   </button>
                 </div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
                   Scan with your phone camera or copy ID into any UPI app.
                 </div>
               </div>
@@ -499,7 +398,7 @@ export default function PaymentModal({
             {/* UPI Verification Form */}
             <form onSubmit={handleSubmitUpi}>
               {/* Screenshot Upload Bar */}
-              <div style={{ marginBottom: '0.55rem' }}>
+              <div style={{ marginBottom: '1.15rem' }}>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -513,17 +412,19 @@ export default function PaymentModal({
                     onClick={() => fileInputRef.current?.click()}
                     style={{
                       display: 'flex',
+                      flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '0.45rem',
-                      border: '1px dashed var(--border-subtle)',
-                      borderRadius: '8px',
-                      padding: '0.6rem 0.85rem',
+                      gap: '0.4rem',
+                      border: '1.5px dashed var(--border-subtle)',
+                      borderRadius: '10px',
+                      padding: '1rem',
                       background: 'rgba(255, 255, 255, 0.02)',
                       cursor: 'pointer',
                       color: 'var(--text-secondary)',
-                      fontSize: '0.8rem',
+                      fontSize: '0.85rem',
                       transition: 'all 0.15s ease',
+                      textAlign: 'center',
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.borderColor = 'var(--green-500)';
@@ -534,8 +435,13 @@ export default function PaymentModal({
                       e.currentTarget.style.color = 'var(--text-secondary)';
                     }}
                   >
-                    <Upload size={15} color="var(--green-400)" />
-                    <span>Upload Payment Screenshot (Recommended)</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                      <Upload size={17} color="var(--green-400)" />
+                      <span>Upload Payment Screenshot</span>
+                    </div>
+                    <span style={{ fontSize: '0.73rem', color: 'var(--text-muted)' }}>
+                      Tap here to attach payment confirmation receipt / screenshot
+                    </span>
                   </div>
                 ) : (
                   <div style={{
@@ -545,42 +451,28 @@ export default function PaymentModal({
                     background: 'rgba(34, 197, 94, 0.08)',
                     border: '1px solid rgba(34, 197, 94, 0.3)',
                     borderRadius: '8px',
-                    padding: '0.4rem 0.75rem',
+                    padding: '0.6rem 0.85rem',
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', overflow: 'hidden' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', overflow: 'hidden' }}>
                       <img
                         src={screenshotPreview}
                         alt="Proof"
-                        style={{ width: '30px', height: '30px', objectFit: 'cover', borderRadius: '4px' }}
+                        style={{ width: '36px', height: '36px', objectFit: 'cover', borderRadius: '4px' }}
                       />
-                      <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--green-400)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--green-400)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {screenshotFile?.name || 'Screenshot attached'}
                       </span>
                     </div>
                     <button
                       type="button"
                       onClick={handleRemoveScreenshot}
-                      style={{ background: 'none', border: 'none', color: 'var(--rose-400)', cursor: 'pointer', padding: '2px' }}
+                      style={{ background: 'none', border: 'none', color: 'var(--rose-400)', cursor: 'pointer', padding: '4px' }}
                       title="Remove screenshot"
                     >
-                      <Trash2 size={15} />
+                      <Trash2 size={16} />
                     </button>
                   </div>
                 )}
-              </div>
-
-              {/* UPI Reference Input */}
-              <div style={{ marginBottom: '1rem' }}>
-                <input
-                  id="upi-ref"
-                  type="text"
-                  className="form-input"
-                  placeholder="Or enter 12-digit UPI Ref / UTR Number"
-                  value={upiRef}
-                  onChange={(e) => setUpiRef(e.target.value)}
-                  maxLength={30}
-                  style={{ fontSize: '0.82rem', padding: '0.5rem 0.75rem' }}
-                />
               </div>
 
               {/* Action Buttons */}
