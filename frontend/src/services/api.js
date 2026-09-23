@@ -277,5 +277,12 @@ export const api = {
       body: JSON.stringify({ target_email: targetEmail || null }),
     });
   },
+
+  saveEmailSettings: async ({ smtp_user, smtp_password, admin_email }) => {
+    return request('/admin/save-email-settings', {
+      method: 'POST',
+      body: JSON.stringify({ smtp_user, smtp_password, admin_email }),
+    });
+  },
 };
 

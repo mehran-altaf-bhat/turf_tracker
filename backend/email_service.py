@@ -18,30 +18,36 @@ else:
 
 
 def get_smtp_config() -> dict:
-    # Refresh env from file if possible
-    env_file = find_dotenv(usecwd=True)
-    if env_file:
-        load_dotenv(env_file, override=False)
-    
-    user = os.environ.get("SMTP_USER", "").strip()
-    raw_pwd = os.environ.get("SMTP_PASSWORD", "").strip()
-    # Google App Passwords often have spaces: 'abcd efgh ijkl mnop' -> strip all spaces
+    db_settings = {}
+    try:
+        try:
+            from backend.database import service_client
+        except ImportError:
+            from database import service_client
+        db = service_client()
+        res = db.table("system_settings").select("key, value").execute().data or []
+        db_settings = {row["key"]: row["value"] for row in res}
+    except Exception as e:
+        pass
+
+    user = (db_settings.get("SMTP_USER") or os.environ.get("SMTP_USER", "")).strip()
+    raw_pwd = (db_settings.get("SMTP_PASSWORD") or os.environ.get("SMTP_PASSWORD", "")).strip()
     pwd = raw_pwd.replace(" ", "")
-    
-    host = os.environ.get("SMTP_HOST", "").strip()
+
+    host = (db_settings.get("SMTP_HOST") or os.environ.get("SMTP_HOST", "")).strip()
     if not host and "@gmail.com" in user.lower():
         host = "smtp.gmail.com"
-        
-    port_str = str(os.environ.get("SMTP_PORT") or "").strip()
+
+    port_str = str(db_settings.get("SMTP_PORT") or os.environ.get("SMTP_PORT") or "").strip()
     try:
         port = int(port_str) if port_str else 587
     except Exception:
         port = 587
-        
-    admin_email = os.environ.get("ADMIN_EMAIL", "mehranbhat010@gmail.com").strip()
-    from_name = os.environ.get("SMTP_FROM_NAME", "ASEEF XI — Friday Football").strip()
-    app_url = os.environ.get("APP_URL", "https://turf-tracker.vercel.app").strip()
-    
+
+    admin_email = (db_settings.get("ADMIN_EMAIL") or os.environ.get("ADMIN_EMAIL", "mehranbhat010@gmail.com")).strip()
+    from_name = (db_settings.get("SMTP_FROM_NAME") or os.environ.get("SMTP_FROM_NAME", "ASEEF XI — Friday Football")).strip()
+    app_url = (db_settings.get("APP_URL") or os.environ.get("APP_URL", "https://turf-tracker.vercel.app")).strip()
+
     return {
         "user": user,
         "password": pwd,
@@ -52,6 +58,31 @@ def get_smtp_config() -> dict:
         "app_url": app_url,
         "configured": bool(host and user and pwd),
     }
+
+
+def save_smtp_config(user: str, password: str, admin_email: Optional[str] = None, host: Optional[str] = None, port: Optional[int] = None) -> dict:
+    try:
+        from backend.database import service_client
+    except ImportError:
+        from database import service_client
+    db = service_client()
+    clean_user = user.strip()
+    clean_pwd = password.strip().replace(" ", "")
+    clean_admin = (admin_email or clean_user).strip()
+    clean_host = (host or ("smtp.gmail.com" if "@gmail.com" in clean_user.lower() else "")).strip()
+    clean_port = str(port or 587)
+
+    settings = [
+        ("SMTP_USER", clean_user),
+        ("SMTP_PASSWORD", clean_pwd),
+        ("ADMIN_EMAIL", clean_admin),
+        ("SMTP_HOST", clean_host),
+        ("SMTP_PORT", clean_port),
+    ]
+    for k, v in settings:
+        db.table("system_settings").upsert({"key": k, "value": v}, on_conflict="key").execute()
+
+    return get_smtp_config()
 
 
 def is_smtp_configured() -> bool:

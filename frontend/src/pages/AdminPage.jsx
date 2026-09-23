@@ -24,6 +24,9 @@ import {
   Trash2,
   Mail,
   Send,
+  Settings,
+  Key,
+  ExternalLink,
 } from 'lucide-react';
 
 export default function AdminPage({ setActiveTab }) {
@@ -43,10 +46,16 @@ export default function AdminPage({ setActiveTab }) {
   const [savingMatchId, setSavingMatchId] = useState(null);
   const [previewScreenshot, setPreviewScreenshot] = useState(null);
 
-  // Email System Diagnostic State
+  // Email System Diagnostic & Setup State
   const [emailStatus, setEmailStatus] = useState(null);
   const [testingEmail, setTestingEmail] = useState(false);
   const [emailTestResult, setEmailTestResult] = useState(null);
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [emailFormUser, setEmailFormUser] = useState('mehranbhat010@gmail.com');
+  const [emailFormPassword, setEmailFormPassword] = useState('');
+  const [emailFormAdmin, setEmailFormAdmin] = useState('mehranbhat010@gmail.com');
+  const [savingEmailConfig, setSavingEmailConfig] = useState(false);
+  const [emailConfigError, setEmailConfigError] = useState(null);
 
   // Screenshot preview lightbox
 
@@ -293,6 +302,37 @@ export default function AdminPage({ setActiveTab }) {
       setEmailTestResult({ success: false, message: err.message || 'Test failed' });
     } finally {
       setTestingEmail(false);
+    }
+  };
+
+  const handleSaveEmailConfig = async (e) => {
+    if (e) e.preventDefault();
+    if (!emailFormUser.trim() || !emailFormPassword.trim()) {
+      setEmailConfigError('Please provide both your Gmail address and Google App Password.');
+      return;
+    }
+    setSavingEmailConfig(true);
+    setEmailConfigError(null);
+    try {
+      const res = await api.saveEmailSettings({
+        smtp_user: emailFormUser.trim(),
+        smtp_password: emailFormPassword.trim(),
+        admin_email: emailFormAdmin.trim() || emailFormUser.trim(),
+      });
+      setEmailStatus(res.config);
+      setEmailTestResult(res.test_result);
+      if (res.test_result?.success) {
+        setToast('Gmail connected & test email delivered successfully!');
+        setTimeout(() => setToast(null), 5000);
+        setEmailModalOpen(false);
+        setEmailFormPassword('');
+      } else {
+        setEmailConfigError(res.test_result?.message || 'Connection test failed. Please verify your 16-character App Password.');
+      }
+    } catch (err) {
+      setEmailConfigError(err.message || 'Failed to save email settings');
+    } finally {
+      setSavingEmailConfig(false);
     }
   };
 
@@ -1058,17 +1098,35 @@ export default function AdminPage({ setActiveTab }) {
             </div>
           </div>
 
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.55rem 0.9rem' }}
-            onClick={handleTestEmail}
-            disabled={testingEmail}
-            title="Send a live test verification email to admin"
-          >
-            <Send size={14} color="#34d399" />
-            <span>{testingEmail ? 'Sending Test...' : 'Send Test Email'}</span>
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.55rem 0.9rem', background: '#059669', borderColor: '#059669' }}
+              onClick={() => {
+                if (emailStatus?.smtp_user) setEmailFormUser(emailStatus.smtp_user);
+                if (emailStatus?.admin_email) setEmailFormAdmin(emailStatus.admin_email);
+                setEmailConfigError(null);
+                setEmailModalOpen(true);
+              }}
+              title="Connect Gmail App Password to enable live email delivery"
+            >
+              <Key size={14} />
+              <span>{emailStatus?.configured ? 'Update Email Keys' : '⚙️ Connect Gmail'}</span>
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.55rem 0.9rem' }}
+              onClick={handleTestEmail}
+              disabled={testingEmail}
+              title="Send a live test verification email to admin"
+            >
+              <Send size={14} color="#34d399" />
+              <span>{testingEmail ? 'Sending...' : 'Test Send'}</span>
+            </button>
+          </div>
         </div>
 
         {emailTestResult && (
@@ -1116,6 +1174,160 @@ export default function AdminPage({ setActiveTab }) {
         currentSquadIds={rosterData?.roster?.map((r) => r.user_id) || []}
         onSaveSquad={handleSaveSquad}
       />
+
+      {/* Gmail SMTP Credentials Setup Modal */}
+      {emailModalOpen && (
+        <div
+          className="modal-backdrop"
+          onClick={() => setEmailModalOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(10, 15, 30, 0.8)',
+            backdropFilter: 'blur(6px)',
+            zIndex: 1100,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+          }}
+        >
+          <div
+            className="card"
+            style={{
+              maxWidth: '560px',
+              width: '100%',
+              padding: '1.75rem',
+              background: 'var(--bg-layer-2)',
+              border: '1px solid rgba(16, 185, 129, 0.35)',
+              borderRadius: 'var(--radius)',
+              boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Mail size={18} color="var(--pitch-green-light)" />
+                </div>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--text-primary)' }}>
+                  Connect Gmail Email Delivery
+                </h3>
+              </div>
+              <button
+                className="btn-ghost"
+                onClick={() => setEmailModalOpen(false)}
+                style={{ padding: '0.3rem', color: 'var(--text-muted)' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Step-by-Step Instructions */}
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.03)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: '8px',
+              padding: '0.85rem 1rem',
+              marginBottom: '1.25rem',
+              fontSize: '0.82rem',
+              lineHeight: 1.5,
+              color: 'var(--text-secondary)',
+            }}>
+              <strong style={{ color: 'var(--text-primary)', display: 'block', marginBottom: '0.25rem' }}>
+                🔑 How to get your 16-character Google App Password (in 60 seconds):
+              </strong>
+              <ol style={{ margin: '0.25rem 0 0.5rem 1.25rem', padding: 0 }}>
+                <li>Open your <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer" style={{ color: '#34d399', textDecoration: 'underline', fontWeight: 600 }}>Google App Passwords <ExternalLink size={11} style={{ display: 'inline' }} /></a> page (with 2-Step Verification ON).</li>
+                <li>Enter App name: <code>Turf Tracker</code> and click <strong>Create</strong>.</li>
+                <li>Copy the 16-character code (e.g. <code>abcd efgh ijkl mnop</code>) and paste it below.</li>
+              </ol>
+            </div>
+
+            {emailConfigError && (
+              <div style={{
+                background: 'rgba(239, 68, 68, 0.12)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                borderRadius: '6px',
+                padding: '0.65rem 0.85rem',
+                color: '#f87171',
+                fontSize: '0.82rem',
+                marginBottom: '1rem',
+              }}>
+                {emailConfigError}
+              </div>
+            )}
+
+            <form onSubmit={handleSaveEmailConfig}>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
+                  Sender Gmail Address:
+                </label>
+                <input
+                  type="email"
+                  className="form-input"
+                  style={{ width: '100%', fontSize: '0.9rem' }}
+                  placeholder="e.g. mehranbhat010@gmail.com"
+                  value={emailFormUser}
+                  onChange={(e) => setEmailFormUser(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
+                  Google 16-Character App Password:
+                </label>
+                <input
+                  type="password"
+                  className="form-input"
+                  style={{ width: '100%', fontSize: '0.95rem', letterSpacing: '0.1em' }}
+                  placeholder="e.g. abcd efgh ijkl mnop"
+                  value={emailFormPassword}
+                  onChange={(e) => setEmailFormPassword(e.target.value)}
+                  required
+                  autoFocus
+                />
+              </div>
+
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
+                  Admin Notification Email (Receive Signup Alerts):
+                </label>
+                <input
+                  type="email"
+                  className="form-input"
+                  style={{ width: '100%', fontSize: '0.9rem' }}
+                  placeholder="mehranbhat010@gmail.com"
+                  value={emailFormAdmin}
+                  onChange={(e) => setEmailFormAdmin(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setEmailModalOpen(false)}
+                  disabled={savingEmailConfig}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{ background: '#059669', borderColor: '#059669', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                  disabled={savingEmailConfig}
+                >
+                  <Check size={16} />
+                  <span>{savingEmailConfig ? 'Connecting & Testing...' : 'Save & Connect Gmail'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Screenshot Lightbox Modal */}
       {previewScreenshot && (

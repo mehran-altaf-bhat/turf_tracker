@@ -9,6 +9,7 @@ from backend.routers.api_sessions import ensure_upcoming_sessions
 from backend.email_service import (
     send_player_approved_notification,
     get_smtp_config,
+    save_smtp_config,
     test_smtp_connection,
 )
 from backend.squad_service import recalculate_session_squad_split
@@ -785,6 +786,34 @@ def get_email_status(admin: dict = Depends(require_admin)):
 def test_email_endpoint(data: TestEmailRequest = TestEmailRequest(), admin: dict = Depends(require_admin)):
     res = test_smtp_connection(data.target_email)
     return res
+
+
+class SaveEmailSettingsRequest(BaseModel):
+    smtp_user: str
+    smtp_password: str
+    admin_email: Optional[str] = None
+    smtp_host: Optional[str] = None
+    smtp_port: Optional[int] = 587
+
+
+@router.post("/save-email-settings")
+def save_email_settings_endpoint(data: SaveEmailSettingsRequest, admin: dict = Depends(require_admin)):
+    if not data.smtp_user or not data.smtp_password:
+        raise HTTPException(status_code=400, detail="Gmail address and App Password are required")
+
+    save_smtp_config(
+        user=data.smtp_user,
+        password=data.smtp_password,
+        admin_email=data.admin_email or data.smtp_user,
+        host=data.smtp_host,
+        port=data.smtp_port,
+    )
+    test_res = test_smtp_connection(data.admin_email or data.smtp_user)
+    return {
+        "message": "Email settings saved successfully!",
+        "test_result": test_res,
+        "config": get_smtp_config(),
+    }
 
 
 
