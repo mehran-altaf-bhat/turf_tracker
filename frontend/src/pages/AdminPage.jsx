@@ -1052,7 +1052,7 @@ export default function AdminPage({ setActiveTab }) {
                   </span>
                 )}
               </h4>
-              <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.2rem 0 0 0;">
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0.2rem 0 0 0' }}>
                 Sender: <strong>{emailStatus?.smtp_user || 'Not Configured'}</strong> &bull; Admin Alerts To: <strong>{emailStatus?.admin_email || 'mehranbhat010@gmail.com'}</strong>
               </p>
             </div>
