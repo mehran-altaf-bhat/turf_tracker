@@ -469,3 +469,558 @@ Log in to your dashboard here: {cfg['app_url']}/app
 </html>
 """
     _dispatch_async(_send_email_sync, player_email, subject, html_content, text_content)
+
+
+import json
+from datetime import timezone, timedelta
+
+IST = timezone(timedelta(hours=5, minutes=30))
+
+
+def format_turf_time(t: str) -> str:
+    if not t:
+        return ""
+    t = str(t).strip()
+    if "am" in t.lower() or "pm" in t.lower():
+        return t
+    parts = t.split(":")
+    if parts:
+        try:
+            hour = int(parts[0])
+            min_str = parts[1].zfill(2) if len(parts) > 1 else "00"
+            if hour >= 12:
+                ampm = "PM"
+                if hour > 12:
+                    hour -= 12
+            elif 1 <= hour <= 11:
+                ampm = "PM"  # Football turf matches are evening
+            else:
+                hour = 12
+                ampm = "AM"
+            return f"{hour}:{min_str} {ampm}"
+        except Exception:
+            return t
+    return t
+
+
+def parse_match_datetime_ist(date_str: str, time_str: str) -> datetime:
+    parts = str(time_str).strip().split(":")
+    hour = 20
+    minute = 0
+    if parts:
+        try:
+            h = int(parts[0])
+            m = int(parts[1][:2]) if len(parts) > 1 and parts[1][:2].isdigit() else 0
+            if "pm" in time_str.lower() and h < 12:
+                h += 12
+            elif "am" in time_str.lower() and h == 12:
+                h = 0
+            elif "am" not in time_str.lower() and "pm" not in time_str.lower():
+                if 1 <= h <= 11:
+                    h += 12  # turf matches are evening
+            hour = h
+            minute = m
+        except Exception:
+            pass
+    try:
+        dt_naive = datetime.strptime(date_str, "%Y-%m-%d")
+    except Exception:
+        dt_naive = datetime.now()
+    return dt_naive.replace(hour=hour, minute=minute, second=0, microsecond=0, tzinfo=IST)
+
+
+def send_match_reminder_email(
+    player_name: str,
+    player_email: str,
+    session_info: dict,
+    payment_info: dict,
+    reminder_type: str = "1day",
+):
+    """
+    Sends a personalized match reminder email to a squad player.
+    Supports '1day' (24 hours prior) and '3hours' (match day final alert).
+    """
+    cfg = get_smtp_config()
+
+    ground_name = session_info.get("ground_name") or "Elite Football Turf"
+    session_date = session_info.get("session_date") or ""
+    start_time = session_info.get("start_time") or "20:00"
+    end_time = session_info.get("end_time") or "22:00"
+
+    formatted_start = format_turf_time(start_time)
+    formatted_end = format_turf_time(end_time)
+    formatted_time = f"{formatted_start} – {formatted_end}" if formatted_start and formatted_end else "8:00 PM – 10:00 PM"
+
+    try:
+        dt_obj = datetime.strptime(session_date, "%Y-%m-%d")
+        formatted_date = dt_obj.strftime("%A, %d %B %Y")
+    except Exception:
+        formatted_date = f"Friday, {session_date}"
+
+    is_paid = payment_info.get("is_paid", False)
+    amount_paid = payment_info.get("amount_paid", 0)
+    balance = payment_info.get("balance", 0)
+    payable = payment_info.get("payable", 200)
+
+    try:
+        from backend.database import UPI_VPA, UPI_NAME
+    except ImportError:
+        UPI_VPA = "7006869014@hdfc"
+        UPI_NAME = "FAISAL RASHID BHAT"
+
+    upi_pay_url = (
+        f"upi://pay?pa={UPI_VPA}&pn={UPI_NAME.replace(' ', '%20')}&am={balance}&cu=INR"
+        f"&tn=Turf%20Match%20Fee%20{session_date}"
+    )
+
+    if reminder_type == "3hours":
+        badge_text = "🔥 3-HOUR MATCH COUNTDOWN"
+        badge_bg = "rgba(239, 68, 68, 0.15)"
+        badge_border = "rgba(239, 68, 68, 0.35)"
+        badge_color = "#f87171"
+        headline = f"Kickoff in 3 Hours, {player_name}!"
+        subject = f"🔥 Kickoff in 3 Hours! Match Tonight at {ground_name} ({formatted_time})"
+        urgency_note = (
+            f"The countdown is on! The match kicks off tonight at <strong style='color:#ffffff;'>{formatted_start}</strong>. "
+            f"Please arrive at the ground 15 minutes before whistle for kit up and team warm-ups."
+        )
+    else:
+        badge_text = "📅 24-HOUR MATCH REMINDER"
+        badge_bg = "rgba(16, 185, 129, 0.15)"
+        badge_border = "rgba(16, 185, 129, 0.35)"
+        badge_color = "#34d399"
+        headline = f"Match Day is Tomorrow, {player_name}!"
+        subject = f"⚽ Match Tomorrow: ASEEF XI Friday Football at {ground_name} ({formatted_time})"
+        urgency_note = (
+            f"The pitch is booked and your squad spot is ready! We play tomorrow, <strong style='color:#ffffff;'>{formatted_date}</strong>. "
+            f"Review the match details below and ensure your gear and payment are set."
+        )
+
+    # Payment Status Box
+    if is_paid:
+        payment_box_html = f"""
+        <div style="background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.3); border-radius:12px; padding:18px 20px; margin-bottom:24px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-size:22px;">✅</span>
+                <div>
+                    <strong style="color:#10b981; font-size:15px; display:block;">Squad Spot Confirmed & Paid</strong>
+                    <span style="color:#cbd5e1; font-size:13px;">Match fee of ₹{amount_paid} is fully settled. Just bring your boots and game face!</span>
+                </div>
+            </div>
+        </div>
+        """
+        payment_text = f"Payment Status: Paid in Full (₹{amount_paid}) - Squad Confirmed"
+    else:
+        payment_box_html = f"""
+        <div style="background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.35); border-radius:12px; padding:18px 20px; margin-bottom:24px;">
+            <div style="margin-bottom:12px;">
+                <strong style="color:#fbbf24; font-size:15px; display:block; margin-bottom:4px;">⚠️ Match Fee Pending: ₹{balance} Due</strong>
+                <span style="color:#cbd5e1; font-size:13px;">Please settle your match fee via UPI or submit your payment proof to confirm your spot without pitch-side delays.</span>
+            </div>
+            <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                    <td align="center">
+                        <a href="{upi_pay_url}" style="display:inline-block; background:#fbbf24; color:#0f172a; font-weight:800; font-size:14px; text-decoration:none; padding:10px 24px; border-radius:8px; margin-right:8px;">
+                            ⚡ Pay ₹{balance} via UPI App
+                        </a>
+                        <a href="{cfg['app_url']}/app" style="display:inline-block; background:rgba(255,255,255,0.08); color:#f1f5f9; font-weight:600; font-size:13px; text-decoration:none; padding:10px 18px; border-radius:8px; border:1px solid rgba(255,255,255,0.15);">
+                            Submit Screenshot →
+                        </a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        """
+        payment_text = f"Payment Status: Outstanding (₹{balance} due). Settle via UPI ({UPI_VPA}) or at {cfg['app_url']}/app"
+
+    text_content = f"""
+{headline}
+
+{urgency_note}
+
+Match Details:
+- Ground: {ground_name}
+- Date: {formatted_date}
+- Timing: {formatted_time} (Arrive 15 min prior)
+- Match Fee: ₹{payable}
+
+{payment_text}
+
+Open Match Hub: {cfg['app_url']}/app
+"""
+
+    html_content = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{subject}</title>
+</head>
+<body style="margin:0; padding:0; background-color:#070b14; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color:#f8fafc;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#070b14; padding:35px 15px;">
+    <tr>
+      <td align="center">
+        <table width="100%" max-width="590" border="0" cellspacing="0" cellpadding="0" style="max-width:590px; background:linear-gradient(180deg, #0f172a 0%, #090d16 100%); border:1px solid #1e293b; border-radius:20px; overflow:hidden; box-shadow:0 30px 60px -15px rgba(0,0,0,0.7);">
+          
+          <!-- Top Badge & Header Banner -->
+          <tr>
+            <td style="padding:36px 36px 28px; text-align:center; background:radial-gradient(ellipse at top, rgba(16,185,129,0.18) 0%, transparent 70%); border-bottom:1px solid rgba(255,255,255,0.06);">
+              <div style="display:inline-block; padding:5px 16px; background:{badge_bg}; border:1px solid {badge_border}; border-radius:999px; font-size:12px; font-weight:800; color:{badge_color}; text-transform:uppercase; letter-spacing:1.2px; margin-bottom:14px;">
+                {badge_text}
+              </div>
+              <h1 style="margin:0; font-size:26px; font-weight:900; color:#ffffff; letter-spacing:-0.5px; text-shadow:0 2px 8px rgba(0,0,0,0.4);">
+                {headline}
+              </h1>
+              <p style="margin:8px 0 0; font-size:14px; color:#94a3b8;">
+                ASEEF XI &bull; Friday Night Football
+              </p>
+            </td>
+          </tr>
+
+          <!-- Main Body -->
+          <tr>
+            <td style="padding:32px 36px;">
+              <p style="margin:0 0 22px; font-size:15px; line-height:1.65; color:#cbd5e1;">
+                {urgency_note}
+              </p>
+
+              <!-- Payment Box -->
+              {payment_box_html}
+
+              <!-- Match Venue Details Card -->
+              <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background:#0a0f1d; border:1px solid #1e293b; border-radius:14px; margin-bottom:26px; overflow:hidden;">
+                <tr>
+                  <td style="padding:16px 20px; border-bottom:1px solid rgba(255,255,255,0.04);">
+                    <table border="0" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td style="font-size:22px; padding-right:14px; vertical-align:top;">📍</td>
+                        <td>
+                          <span style="font-size:11px; text-transform:uppercase; letter-spacing:0.8px; color:#64748b; font-weight:700; display:block;">Match Ground</span>
+                          <strong style="color:#ffffff; font-size:16px;">{ground_name}</strong>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:16px 20px; border-bottom:1px solid rgba(255,255,255,0.04);">
+                    <table border="0" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td style="font-size:22px; padding-right:14px; vertical-align:top;">📅</td>
+                        <td>
+                          <span style="font-size:11px; text-transform:uppercase; letter-spacing:0.8px; color:#64748b; font-weight:700; display:block;">Date</span>
+                          <strong style="color:#10b981; font-size:15px;">{formatted_date}</strong>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:16px 20px; border-bottom:1px solid rgba(255,255,255,0.04);">
+                    <table border="0" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td style="font-size:22px; padding-right:14px; vertical-align:top;">⏰</td>
+                        <td>
+                          <span style="font-size:11px; text-transform:uppercase; letter-spacing:0.8px; color:#64748b; font-weight:700; display:block;">Timing Slot</span>
+                          <strong style="color:#38bdf8; font-size:15px;">{formatted_time}</strong>
+                          <span style="color:#94a3b8; font-size:12px; margin-left:6px;">(Whistle at {formatted_start})</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:16px 20px;">
+                    <table border="0" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td style="font-size:22px; padding-right:14px; vertical-align:top;">⏱️</td>
+                        <td>
+                          <span style="font-size:11px; text-transform:uppercase; letter-spacing:0.8px; color:#64748b; font-weight:700; display:block;">Arrival Guidance</span>
+                          <strong style="color:#fbbf24; font-size:14px;">Please arrive 15 minutes before kickoff</strong>
+                          <span style="color:#94a3b8; font-size:12px; display:block; margin-top:2px;">Allows time for bib allocation, boots, and team warm-up.</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Match Checklist -->
+              <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:14px 18px; margin-bottom:26px;">
+                <tr>
+                  <td>
+                    <strong style="color:#ffffff; font-size:13px; text-transform:uppercase; letter-spacing:0.5px; display:block; margin-bottom:8px;">Match Checklist</strong>
+                    <div style="font-size:13px; color:#94a3b8; line-height:1.7;">
+                      ⚽ Turf studs / football boots &bull; 🛡️ Shin pads recommended &bull; 💧 Water bottle &bull; ⏱️ On-time arrival
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Hub CTA -->
+              <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-bottom:20px;">
+                <tr>
+                  <td align="center">
+                    <a href="{cfg['app_url']}/app" style="display:inline-block; background:linear-gradient(135deg, #10b981 0%, #059669 100%); color:#ffffff; text-decoration:none; font-size:15px; font-weight:800; padding:14px 38px; border-radius:12px; box-shadow:0 8px 22px rgba(16,185,129,0.35);">
+                      View Match Squad & Live Lineup →
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:0; font-size:12px; color:#64748b; text-align:center;">
+                Questions or unable to attend? Message the team group or contact the admin.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:22px 36px; background:#05080e; border-top:1px solid rgba(255,255,255,0.05); text-align:center;">
+              <p style="margin:0 0 4px; font-size:12px; font-weight:700; color:#cbd5e1;">
+                ASEEF XI — Friday Night Football
+              </p>
+              <p style="margin:0; font-size:11px; color:#64748b;">
+                Automated match reminder dispatched to registered squad players.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+"""
+    _dispatch_async(_send_email_sync, player_email, subject, html_content, text_content)
+
+
+def dispatch_session_reminders(
+    session_id: int, reminder_type: str = "1day", force: bool = False
+) -> dict:
+    """
+    Dispatches reminder emails to all active approved squad players for a match session.
+    Prevents duplicate sending unless force=True.
+    """
+    try:
+        from backend.database import service_client
+    except ImportError:
+        from database import service_client
+
+    db = service_client()
+
+    # 1. Fetch Session
+    session_res = db.table("turf_sessions").select("*").eq("id", session_id).single().execute()
+    if not session_res.data:
+        return {"success": False, "message": f"Session with ID {session_id} not found."}
+    session = session_res.data
+
+    # 2. Check duplicate prevention in system_settings
+    setting_key = f"reminder_sent:{session_id}:{reminder_type}"
+    existing_setting = db.table("system_settings").select("value").eq("key", setting_key).execute().data
+    if existing_setting and not force:
+        val_str = existing_setting[0].get("value", "")
+        try:
+            info = json.loads(val_str)
+        except Exception:
+            info = {"sent_at": val_str}
+        return {
+            "success": True,
+            "already_sent": True,
+            "message": f"{'1-Day' if reminder_type == '1day' else '3-Hour'} reminder was already sent for this match.",
+            "sent_info": info,
+        }
+
+    # 3. Recalculate and fetch squad roster
+    try:
+        from backend.squad_service import recalculate_session_squad_split
+        split_info = recalculate_session_squad_split(session_id)
+        cost_per_person = split_info.get("split_cost", session.get("cost_per_person", 200))
+    except Exception:
+        cost_per_person = session.get("cost_per_person", 200)
+
+    # Payments for this session
+    payments = db.table("payments").select("*").eq("session_id", session_id).execute().data or []
+    payments_by_user = {p["user_id"]: p for p in payments}
+
+    # All registered profiles and users
+    profiles = db.table("profiles").select("*").execute().data or []
+    profile_map = {p["id"]: p for p in profiles}
+
+    users = db.table("users").select("id, email, name, role").execute().data or []
+    user_map = {u["id"]: u for u in users}
+
+    # Collect target players:
+    # If payments exist, include all non-admin users in payments.
+    # Otherwise include all active, approved players.
+    target_user_ids = set()
+    if payments:
+        for p in payments:
+            u_id = p["user_id"]
+            prof = profile_map.get(u_id)
+            if prof and prof.get("role") != "admin":
+                target_user_ids.add(u_id)
+    else:
+        for p in profiles:
+            if p.get("role") != "admin" and p.get("is_approved") is True and p.get("is_active", True) is not False:
+                target_user_ids.add(p["id"])
+
+    recipients = []
+    for u_id in target_user_ids:
+        u_info = user_map.get(u_id)
+        p_info = profile_map.get(u_id)
+        if not u_info or not u_info.get("email"):
+            continue
+
+        email = u_info["email"].strip()
+        if not email or "@" not in email:
+            continue
+
+        name = p_info.get("name") if p_info else (u_info.get("name") or "Player")
+
+        # Payment details
+        pay = payments_by_user.get(u_id)
+        p_status = pay.get("status", "unpaid") if pay else "unpaid"
+        amt_paid = pay.get("amount", 0) if pay and p_status in ["confirmed", "partial", "pending"] else 0
+        balance = max(0, cost_per_person - amt_paid)
+        is_paid = (p_status == "confirmed" and balance == 0)
+
+        payment_data = {
+            "is_paid": is_paid,
+            "status": p_status,
+            "amount_paid": amt_paid,
+            "balance": balance,
+            "payable": cost_per_person,
+        }
+
+        send_match_reminder_email(
+            player_name=name,
+            player_email=email,
+            session_info=session,
+            payment_info=payment_data,
+            reminder_type=reminder_type,
+        )
+        recipients.append({"id": u_id, "name": name, "email": email, "is_paid": is_paid})
+
+    # 4. Save record of sent reminder in system_settings
+    now_iso = datetime.now(IST).isoformat()
+    record = {
+        "sent_at": now_iso,
+        "count": len(recipients),
+        "reminder_type": reminder_type,
+        "session_id": session_id,
+        "recipients": recipients,
+    }
+    db.table("system_settings").upsert({
+        "key": setting_key,
+        "value": json.dumps(record),
+    }, on_conflict="key").execute()
+
+    return {
+        "success": True,
+        "already_sent": False,
+        "message": f"Dispatched {reminder_type} match reminder to {len(recipients)} player(s) successfully!",
+        "recipients_count": len(recipients),
+        "session_id": session_id,
+        "reminder_type": reminder_type,
+        "sent_at": now_iso,
+    }
+
+
+def get_session_reminder_status(session_id: int) -> dict:
+    """
+    Returns the status of both 1-day and 3-hour match reminders for a session.
+    """
+    try:
+        from backend.database import service_client
+    except ImportError:
+        from database import service_client
+
+    db = service_client()
+    key_1day = f"reminder_sent:{session_id}:1day"
+    key_3hours = f"reminder_sent:{session_id}:3hours"
+
+    settings = (
+        db.table("system_settings")
+        .select("key, value")
+        .in_("key", [key_1day, key_3hours])
+        .execute()
+        .data or []
+    )
+    settings_map = {s["key"]: s["value"] for s in settings}
+
+    def parse_info(val):
+        if not val:
+            return None
+        try:
+            return json.loads(val)
+        except Exception:
+            return {"sent_at": val}
+
+    return {
+        "session_id": session_id,
+        "reminder_1day": {
+            "sent": key_1day in settings_map,
+            "details": parse_info(settings_map.get(key_1day)),
+        },
+        "reminder_3hours": {
+            "sent": key_3hours in settings_map,
+            "details": parse_info(settings_map.get(key_3hours)),
+        },
+    }
+
+
+def check_and_send_scheduled_reminders() -> list:
+    """
+    Evaluates upcoming match sessions against current IST time.
+    Automatically triggers 1-day and 3-hour reminders if within window and not yet sent.
+    """
+    now_ist = datetime.now(IST)
+    today_str = now_ist.strftime("%Y-%m-%d")
+
+    try:
+        from backend.database import service_client
+    except ImportError:
+        from database import service_client
+
+    db = service_client()
+
+    upcoming_sessions = (
+        db.table("turf_sessions")
+        .select("*")
+        .gte("session_date", today_str)
+        .order("session_date", desc=False)
+        .limit(3)
+        .execute()
+        .data or []
+    )
+
+    actions = []
+    for s in upcoming_sessions:
+        s_id = s["id"]
+        s_date = s["session_date"]
+        s_start = s.get("start_time") or "20:00"
+
+        kickoff_dt = parse_match_datetime_ist(s_date, s_start)
+        hours_until = (kickoff_dt - now_ist).total_seconds() / 3600.0
+
+        # Check 1-day reminder (18 to 30 hours before match)
+        if 18.0 <= hours_until <= 30.0:
+            key_1day = f"reminder_sent:{s_id}:1day"
+            exists = db.table("system_settings").select("key").eq("key", key_1day).execute().data
+            if not exists:
+                print(f"[REMINDER CRON] Triggering 1-day reminder for session {s_id} ({s_date})")
+                res = dispatch_session_reminders(s_id, reminder_type="1day", force=False)
+                actions.append(res)
+
+        # Check 3-hour reminder (1.5 to 4.0 hours before match)
+        if 1.5 <= hours_until <= 4.0:
+            key_3hours = f"reminder_sent:{s_id}:3hours"
+            exists = db.table("system_settings").select("key").eq("key", key_3hours).execute().data
+            if not exists:
+                print(f"[REMINDER CRON] Triggering 3-hour reminder for session {s_id} ({s_date})")
+                res = dispatch_session_reminders(s_id, reminder_type="3hours", force=False)
+                actions.append(res)
+
+    return actions

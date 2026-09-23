@@ -14,6 +14,34 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState(0);
+  const [matchSlotText, setMatchSlotText] = useState('Friday Match');
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchConfig = async () => {
+      try {
+        const cfg = await api.getPaymentConfig();
+        if (isMounted && cfg?.turf_slot) {
+          setMatchSlotText(cfg.turf_slot);
+        }
+      } catch (err) {
+        // Silently continue
+      }
+    };
+    fetchConfig();
+
+    const handleSlotUpdate = (e) => {
+      if (e.detail?.turf_slot) {
+        setMatchSlotText(e.detail.turf_slot);
+      }
+    };
+    window.addEventListener('turf_slot_updated', handleSlotUpdate);
+    return () => {
+      isMounted = false;
+      window.removeEventListener('turf_slot_updated', handleSlotUpdate);
+    };
+  }, []);
+
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -200,7 +228,7 @@ export default function App() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <div className="header-status-pill">
               <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: 'var(--green-500)', display: 'inline-block', flexShrink: 0 }} className="pulse-dot" />
-              <span>Friday 8:00 PM – 10:00 PM</span>
+              <span>{matchSlotText}</span>
             </div>
 
             {user.role === 'admin' && activeTab !== 'admin' && activeTab !== 'users' && (
@@ -254,7 +282,7 @@ export default function App() {
           marginTop: 'auto',
           backdropFilter: 'blur(10px)',
         }}>
-          <div>⚽ <strong style={{ color: 'var(--text-secondary)' }}>Elite Football Turf</strong> — Every Friday, 8:00 PM to 10:00 PM</div>
+          <div>⚽ <strong style={{ color: 'var(--text-secondary)' }}>Elite Football Turf</strong> — {matchSlotText}</div>
         </footer>
       </div>
     </div>

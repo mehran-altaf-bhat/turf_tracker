@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../services/api';
+import { api, formatSlotTime } from '../services/api';
 import SquadModal from '../components/SquadModal';
 import {
   ShieldCheck,
@@ -28,6 +28,7 @@ import {
   Key,
   ExternalLink,
   MapPin,
+  Bell,
 } from 'lucide-react';
 
 export default function AdminPage({ setActiveTab }) {
@@ -93,6 +94,50 @@ export default function AdminPage({ setActiveTab }) {
   const [sessionError, setSessionError] = useState(null);
   const [batchAddingPast, setBatchAddingPast] = useState(false);
 
+  // Match Day Email Reminders state
+  const [reminderModalOpen, setReminderModalOpen] = useState(false);
+  const [reminderStatus, setReminderStatus] = useState(null);
+  const [loadingReminderStatus, setLoadingReminderStatus] = useState(false);
+  const [sendingReminderType, setSendingReminderType] = useState(null);
+
+  const loadReminderStatus = async (sessionId) => {
+    if (!sessionId) return;
+    try {
+      setLoadingReminderStatus(true);
+      const res = await api.getReminderStatus(sessionId);
+      setReminderStatus(res);
+    } catch (e) {
+      console.error('Failed to load reminder status:', e);
+    } finally {
+      setLoadingReminderStatus(false);
+    }
+  };
+
+  const handleSendReminder = async (type, force = false) => {
+    const label = type === '1day' ? '1-Day Before Match' : '3-Hours Before Kickoff';
+    if (!force && reminderStatus?.[`reminder_${type}`]?.sent) {
+      if (!window.confirm(`${label} reminder was already dispatched. Do you want to force re-send to all squad players?`)) {
+        return;
+      }
+      force = true;
+    }
+    setSendingReminderType(type);
+    try {
+      const res = await api.sendMatchReminder(selectedSessionId, type, force);
+      if (res.success) {
+        setToast(res.message || `${label} reminder emails sent!`);
+        setTimeout(() => setToast(null), 5000);
+        await loadReminderStatus(selectedSessionId);
+      } else {
+        alert(res.message || 'Failed to dispatch reminders');
+      }
+    } catch (err) {
+      alert(err.message || 'Failed to dispatch reminders');
+    } finally {
+      setSendingReminderType(null);
+    }
+  };
+
   const openEditGroundModal = () => {
     setGroundInput(currentSessionObj?.ground_name || 'Elite Football Turf');
     setStartTimeInput(currentSessionObj?.start_time || '20:00');
@@ -115,6 +160,10 @@ export default function AdminPage({ setActiveTab }) {
         end_time: endTimeInput.trim() || '22:00',
         save_as_default: saveAsDefault,
       });
+
+      const formattedSlot = `Friday ${formatSlotTime(startTimeInput)} – ${formatSlotTime(endTimeInput)}`;
+      window.dispatchEvent(new CustomEvent('turf_slot_updated', { detail: { turf_slot: formattedSlot } }));
+
       setToast('Ground designation & match timing updated successfully!');
       setTimeout(() => setToast(null), 4000);
       setEditGroundModalOpen(false);
@@ -543,6 +592,17 @@ export default function AdminPage({ setActiveTab }) {
   const currentSessionObj = sessions.find((s) => s.session.id === selectedSessionId)?.session;
   const currentSquadCount = rosterData?.roster?.length || 0;
 
+  // Sync top header timing pill with selected session timing
+  useEffect(() => {
+    if (currentSessionObj) {
+      const sTime = currentSessionObj.start_time || '20:00';
+      const eTime = currentSessionObj.end_time || '22:00';
+      const formattedSlot = `Friday ${formatSlotTime(sTime)} – ${formatSlotTime(eTime)}`;
+      window.dispatchEvent(new CustomEvent('turf_slot_updated', { detail: { turf_slot: formattedSlot } }));
+    }
+  }, [selectedSessionId, currentSessionObj?.start_time, currentSessionObj?.end_time]);
+
+
   return (
     <div>
       {/* Toast Notification */}
@@ -700,6 +760,29 @@ export default function AdminPage({ setActiveTab }) {
             >
               <MapPin size={16} color="var(--green-400)" />
               <span>Edit Ground & Timing</span>
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                padding: '0.65rem 1rem',
+                border: '1px solid rgba(16, 185, 129, 0.4)',
+                background: 'rgba(16, 185, 129, 0.08)',
+                color: 'var(--green-400)',
+                fontWeight: 600,
+              }}
+              onClick={() => {
+                setReminderModalOpen(true);
+                loadReminderStatus(selectedSessionId);
+              }}
+              title="Manage automated & manual match email reminders (1-day & 3-hour alerts)"
+            >
+              <Bell size={16} color="var(--green-400)" />
+              <span>Match Reminders</span>
             </button>
 
             <button
@@ -2404,6 +2487,281 @@ export default function AdminPage({ setActiveTab }) {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MATCH DAY REMINDERS MODAL ================= */}
+      {reminderModalOpen && (
+        <div className="modal-backdrop" onClick={() => !sendingReminderType && setReminderModalOpen(false)}>
+          <div
+            className="modal-content"
+            style={{ maxWidth: '580px', width: '95%', maxHeight: '90vh', overflowY: 'auto' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <div
+                  style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '10px',
+                    background: 'rgba(34, 197, 94, 0.15)',
+                    color: 'var(--green-400)',
+                    border: '1px solid rgba(34, 197, 94, 0.3)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Bell size={20} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                    Match Day Email Reminders
+                  </h3>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
+                    Automated & manual player email dispatches for Friday matches
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReminderModalOpen(false)}
+                disabled={!!sendingReminderType}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Target Match Summary Card */}
+            <div
+              style={{
+                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(14, 165, 233, 0.08) 100%)',
+                border: '1px solid rgba(16, 185, 129, 0.25)',
+                borderRadius: '12px',
+                padding: '1rem 1.15rem',
+                marginBottom: '1.25rem',
+              }}
+            >
+              <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--green-400)', fontWeight: 800, marginBottom: '0.35rem' }}>
+                Selected Match Session
+              </div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.4rem' }}>
+                Friday, {currentSessionObj?.session_date}
+              </div>
+              <div style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                <span>📍 <strong style={{ color: 'var(--text-primary)' }}>{currentSessionObj?.ground_name || 'Elite Football Turf'}</strong></span>
+                <span>⏰ <strong style={{ color: 'var(--blue-400)' }}>{formatSlotTime(currentSessionObj?.start_time || '20:00')} – {formatSlotTime(currentSessionObj?.end_time || '22:00')}</strong></span>
+                <span>👥 <strong style={{ color: 'var(--text-primary)' }}>{currentSquadCount} Squad Players</strong></span>
+              </div>
+            </div>
+
+            {/* Automation Explanation */}
+            <div
+              style={{
+                background: 'rgba(255, 255, 255, 0.03)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: '10px',
+                padding: '0.85rem 1rem',
+                marginBottom: '1.25rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.65rem',
+              }}
+            >
+              <Clock size={18} color="var(--amber-400)" style={{ flexShrink: 0 }} />
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                <strong style={{ color: 'var(--text-primary)' }}>Automatic Cron Engine Active:</strong> The server automatically dispatches the 1-day reminder 24 hours before kickoff, and the final alert 3 hours before game time. Duplicate sends are safely blocked.
+              </div>
+            </div>
+
+            {/* Reminder Cards */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
+              
+              {/* Card 1: 1-Day Before Match */}
+              <div
+                style={{
+                  background: 'var(--bg-layer-1)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: '12px',
+                  padding: '1.15rem',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.6rem' }}>
+                  <div>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                      <span>📅 1-Day Before Match Reminder</span>
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
+                      Dispatched ~24 hours before match kickoff with venue details, squad confirmation, and UPI payment link.
+                    </div>
+                  </div>
+                  {reminderStatus?.reminder_1day?.sent ? (
+                    <span style={{
+                      padding: '0.25rem 0.6rem',
+                      background: 'rgba(16, 185, 129, 0.15)',
+                      color: 'var(--green-400)',
+                      border: '1px solid rgba(16, 185, 129, 0.35)',
+                      borderRadius: '999px',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      flexShrink: 0,
+                    }}>
+                      ✅ Sent
+                    </span>
+                  ) : (
+                    <span style={{
+                      padding: '0.25rem 0.6rem',
+                      background: 'rgba(245, 158, 11, 0.12)',
+                      color: 'var(--amber-400)',
+                      border: '1px solid rgba(245, 158, 11, 0.3)',
+                      borderRadius: '999px',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      flexShrink: 0,
+                    }}>
+                      ⏳ Scheduled
+                    </span>
+                  )}
+                </div>
+
+                {reminderStatus?.reminder_1day?.sent && reminderStatus?.reminder_1day?.details && (
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
+                    Last dispatched: {reminderStatus.reminder_1day.details.sent_at ? new Date(reminderStatus.reminder_1day.details.sent_at).toLocaleString() : 'Yes'}
+                    {reminderStatus.reminder_1day.details.count ? ` (${reminderStatus.reminder_1day.details.count} player emails delivered)` : ''}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-primary"
+                    disabled={sendingReminderType === '1day' || loadingReminderStatus}
+                    onClick={() => handleSendReminder('1day', false)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      padding: '0.45rem 0.95rem',
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                    }}
+                  >
+                    {sendingReminderType === '1day' ? (
+                      <>
+                        <Clock size={14} className="spin" />
+                        <span>Sending 1-Day Reminder...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send size={14} />
+                        <span>{reminderStatus?.reminder_1day?.sent ? 'Re-send 1-Day Reminder' : 'Send 1-Day Reminder Now'}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Card 2: 3-Hours Before Kickoff */}
+              <div
+                style={{
+                  background: 'var(--bg-layer-1)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: '12px',
+                  padding: '1.15rem',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.6rem' }}>
+                  <div>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                      <span>🔥 3-Hours Before Kickoff Alert</span>
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
+                      Urgent countdown alert sent 3 hours prior to kickoff with mandatory -15 min arrival guidance and quick UPI payment.
+                    </div>
+                  </div>
+                  {reminderStatus?.reminder_3hours?.sent ? (
+                    <span style={{
+                      padding: '0.25rem 0.6rem',
+                      background: 'rgba(16, 185, 129, 0.15)',
+                      color: 'var(--green-400)',
+                      border: '1px solid rgba(16, 185, 129, 0.35)',
+                      borderRadius: '999px',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      flexShrink: 0,
+                    }}>
+                      ✅ Sent
+                    </span>
+                  ) : (
+                    <span style={{
+                      padding: '0.25rem 0.6rem',
+                      background: 'rgba(239, 68, 68, 0.12)',
+                      color: 'var(--rose-400)',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      borderRadius: '999px',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      flexShrink: 0,
+                    }}>
+                      ⏳ Scheduled
+                    </span>
+                  )}
+                </div>
+
+                {reminderStatus?.reminder_3hours?.sent && reminderStatus?.reminder_3hours?.details && (
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
+                    Last dispatched: {reminderStatus.reminder_3hours.details.sent_at ? new Date(reminderStatus.reminder_3hours.details.sent_at).toLocaleString() : 'Yes'}
+                    {reminderStatus.reminder_3hours.details.count ? ` (${reminderStatus.reminder_3hours.details.count} player emails delivered)` : ''}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-primary"
+                    disabled={sendingReminderType === '3hours' || loadingReminderStatus}
+                    onClick={() => handleSendReminder('3hours', false)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      padding: '0.45rem 0.95rem',
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                      background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+                      borderColor: '#ea580c',
+                    }}
+                  >
+                    {sendingReminderType === '3hours' ? (
+                      <>
+                        <Clock size={14} className="spin" />
+                        <span>Sending 3-Hour Alert...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send size={14} />
+                        <span>{reminderStatus?.reminder_3hours?.sent ? 'Re-send 3-Hour Alert' : 'Send 3-Hour Alert Now'}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setReminderModalOpen(false)}
+                disabled={!!sendingReminderType}
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -456,6 +456,8 @@ class PostgresAuthAdmin:
 
     def create_user(self, payload: dict):
         email = payload.get("email", "").strip().lower()
+        if not email or "@" not in email:
+            raise Exception("A valid email address is required.")
         password = payload.get("password", "")
         meta = payload.get("user_metadata", {})
         name = meta.get("name") or email.split("@")[0]
@@ -468,12 +470,23 @@ class PostgresAuthAdmin:
         conn = self.client.get_connection()
         try:
             cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            cur.execute("""
-                INSERT INTO users (email, password_hash, name, phone, role, is_approved, is_active)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-                RETURNING id, email, name, phone, role, is_approved, is_active;
-            """, (email, pw_hash, name, phone, role, is_approved, is_active))
-            u = cur.fetchone()
+            # Check if email is already registered
+            cur.execute("SELECT id, name FROM users WHERE LOWER(TRIM(email)) = %s;", (email,))
+            existing_user = cur.fetchone()
+            if existing_user:
+                cur.close()
+                raise Exception(f"An account with email '{email}' already exists. Please log in or reset your password.")
+
+            try:
+                cur.execute("""
+                    INSERT INTO users (email, password_hash, name, phone, role, is_approved, is_active)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id, email, name, phone, role, is_approved, is_active;
+                """, (email, pw_hash, name, phone, role, is_approved, is_active))
+                u = cur.fetchone()
+            except psycopg2.IntegrityError:
+                conn.rollback()
+                raise Exception(f"An account with email '{email}' already exists. Please log in or reset your password.")
 
             cur.execute("""
                 INSERT INTO profiles (id, name, role, phone, is_approved, is_active)

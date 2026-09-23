@@ -11,6 +11,9 @@ from backend.email_service import (
     get_smtp_config,
     save_smtp_config,
     test_smtp_connection,
+    dispatch_session_reminders,
+    get_session_reminder_status,
+    check_and_send_scheduled_reminders,
 )
 from backend.squad_service import recalculate_session_squad_split
 
@@ -885,6 +888,38 @@ def save_email_settings_endpoint(data: SaveEmailSettingsRequest, admin: dict = D
         "test_result": test_res,
         "config": get_smtp_config(),
     }
+
+
+class SendReminderRequest(BaseModel):
+    reminder_type: str = "1day"
+    force: bool = False
+
+
+@router.get("/session/{session_id}/reminder-status")
+def get_session_reminder_status_endpoint(session_id: int, admin: dict = Depends(require_admin)):
+    return get_session_reminder_status(session_id)
+
+
+@router.post("/session/{session_id}/send-reminder")
+def send_session_reminder_endpoint(
+    session_id: int,
+    data: SendReminderRequest = SendReminderRequest(),
+    admin: dict = Depends(require_admin),
+):
+    if data.reminder_type not in ["1day", "3hours"]:
+        raise HTTPException(status_code=400, detail="Invalid reminder_type. Must be '1day' or '3hours'")
+    return dispatch_session_reminders(
+        session_id=session_id,
+        reminder_type=data.reminder_type,
+        force=data.force,
+    )
+
+
+@router.post("/check-reminders")
+def check_reminders_endpoint(admin: dict = Depends(require_admin)):
+    actions = check_and_send_scheduled_reminders()
+    return {"checked": True, "actions": actions}
+
 
 
 

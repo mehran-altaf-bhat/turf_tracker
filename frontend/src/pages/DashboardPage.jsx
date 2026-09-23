@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import aseefLogo from '../assets/aseef-logo.svg';
-import { api } from '../services/api';
+import { api, formatSlotTime } from '../services/api';
 import PaymentModal from '../components/PaymentModal';
 import SquadModal from '../components/SquadModal';
 import {
@@ -413,7 +413,7 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                       Friday Turf Match Slot
                     </div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      {currentSession?.ground_name || config?.ground_name || 'Elite Football Turf'} • {currentSession?.start_time ? `${currentSession.start_time} – ${currentSession.end_time}` : (config?.turf_slot || '8:00 PM – 10:00 PM')}
+                      {currentSession?.ground_name || config?.ground_name || 'Elite Football Turf'} • {currentSession?.start_time ? `${formatSlotTime(currentSession.start_time)} – ${formatSlotTime(currentSession.end_time)}` : (config?.turf_slot || '8:00 PM – 10:00 PM')}
                     </div>
                   </div>
                 </div>
@@ -664,7 +664,7 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                       ₹{payableAmount} Paid in Full
                     </div>
                     <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', maxWidth: '340px', marginBottom: '1.25rem' }}>
-                      Your match fee for Friday {currentSession?.session_date} is fully settled. See you on the pitch at 8:00 PM!
+                      Your match fee for Friday {currentSession?.session_date} is fully settled. See you on the pitch at {currentSession?.start_time ? formatSlotTime(currentSession.start_time) : 'match time'}!
                     </p>
                     <button
                       type="button"
@@ -818,7 +818,7 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                 </span>
               </div>
               <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-                Friday, {currentSession?.session_date || 'Upcoming'} @ {currentSession?.ground_name || config?.ground_name || 'Elite Football Turf'} ({currentSession?.start_time ? `${currentSession.start_time} – ${currentSession.end_time}` : (config?.turf_slot || '8:00 PM – 10:00 PM')})
+                Friday, {currentSession?.session_date || 'Upcoming'} @ {currentSession?.ground_name || config?.ground_name || 'Elite Football Turf'} ({currentSession?.start_time ? `${formatSlotTime(currentSession.start_time)} – ${formatSlotTime(currentSession.end_time)}` : (config?.turf_slot || '8:00 PM – 10:00 PM')})
               </p>
             </div>
 
@@ -1138,7 +1138,7 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
             Upcoming Friday Matches
           </h3>
           <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
-            Schedule of forthcoming sessions at {currentSession?.ground_name || config?.ground_name || 'Elite Football Turf'} ({currentSession?.start_time ? `${currentSession.start_time} – ${currentSession.end_time}` : (config?.turf_slot || '8:00 PM – 10:00 PM')})
+            Schedule of forthcoming sessions at {currentSession?.ground_name || config?.ground_name || 'Elite Football Turf'} ({currentSession?.start_time ? `${formatSlotTime(currentSession.start_time)} – ${formatSlotTime(currentSession.end_time)}` : (config?.turf_slot || '8:00 PM – 10:00 PM')})
           </p>
 
           <div className="table-wrap">

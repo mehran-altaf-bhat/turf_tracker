@@ -12,6 +12,32 @@ from backend.squad_service import recalculate_session_squad_split
 router = APIRouter(prefix="/payments", tags=["payments"])
 
 
+def format_turf_time(t: str) -> str:
+    if not t:
+        return ""
+    t = str(t).strip()
+    if "am" in t.lower() or "pm" in t.lower():
+        return t
+    parts = t.split(":")
+    if parts:
+        try:
+            hour = int(parts[0])
+            min_str = parts[1].zfill(2) if len(parts) > 1 else "00"
+            if hour >= 12:
+                ampm = "PM"
+                if hour > 12:
+                    hour -= 12
+            elif 1 <= hour <= 11:
+                ampm = "PM"
+            else:
+                hour = 12
+                ampm = "AM"
+            return f"{hour}:{min_str} {ampm}"
+        except Exception:
+            return t
+    return t
+
+
 @router.get("/config")
 def get_payment_config():
     ensure_upcoming_sessions(1)
@@ -31,6 +57,10 @@ def get_payment_config():
     start_time = (session[0].get("start_time") if session else None) or "20:00"
     end_time = (session[0].get("end_time") if session else None) or "22:00"
 
+    formatted_start = format_turf_time(start_time)
+    formatted_end = format_turf_time(end_time)
+    turf_slot = f"Friday {formatted_start} – {formatted_end}"
+
     return {
         "vpa": UPI_VPA,
         "name": UPI_NAME,
@@ -39,7 +69,9 @@ def get_payment_config():
         "ground_name": ground_name,
         "start_time": start_time,
         "end_time": end_time,
-        "turf_slot": f"Friday {start_time} – {end_time}",
+        "formatted_start_time": formatted_start,
+        "formatted_end_time": formatted_end,
+        "turf_slot": turf_slot,
     }
 
 

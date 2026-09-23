@@ -26,20 +26,28 @@ def signup_endpoint(data: SignupRequest):
         # Notify admin of new registration asynchronously
         send_admin_new_user_notification(
             player_name=data.name,
-            player_email=data.email,
+            player_email=data.email.strip().lower(),
             player_phone=data.phone
         )
         return {
             "message": "Account created successfully! Your account is pending admin approval. You will be able to log in once approved by the turf admin.",
             "user": {
                 "id": res.user.id if res and res.user else None,
-                "email": data.email,
+                "email": data.email.strip().lower(),
                 "name": data.name,
                 "is_approved": False,
             },
         }
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        err_msg = str(e)
+        if "already exists" in err_msg.lower() or "unique" in err_msg.lower():
+            raise HTTPException(
+                status_code=400,
+                detail=f"An account with email '{data.email.strip().lower()}' already exists. Please log in or reset your password."
+            )
+        raise HTTPException(status_code=400, detail=err_msg)
 
 
 @router.post("/login")

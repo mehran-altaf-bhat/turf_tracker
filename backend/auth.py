@@ -5,19 +5,39 @@ COOKIE_NAME = "access_token"
 
 
 def signup(email: str, password: str, name: str, phone: str = None):
+    clean_email = (email or "").strip().lower()
+    if not clean_email or "@" not in clean_email:
+        raise HTTPException(status_code=400, detail="A valid email address is required.")
+
     db = service_client()
+
+    # Check if email is already registered (case-insensitive)
+    existing = db.table("users").select("id").ilike("email", clean_email).execute().data
+    if existing:
+        raise HTTPException(
+            status_code=400,
+            detail=f"An account with email '{clean_email}' already exists. Please log in or reset your password."
+        )
+
     user_data = {"name": name, "is_approved": False}
     if phone and phone.strip():
         user_data["phone"] = phone.strip()
 
-    # Use admin.create_user to directly create user with email_confirm=True,
-    # bypassing Supabase public SMTP rate limits, gating login strictly via is_approved=False
-    result = db.auth.admin.create_user({
-        "email": email,
-        "password": password,
-        "user_metadata": user_data,
-        "email_confirm": True,
-    })
+    try:
+        result = db.auth.admin.create_user({
+            "email": clean_email,
+            "password": password,
+            "user_metadata": user_data,
+            "email_confirm": True,
+        })
+    except Exception as e:
+        err_msg = str(e)
+        if "already exists" in err_msg.lower() or "unique" in err_msg.lower():
+            raise HTTPException(
+                status_code=400,
+                detail=f"An account with email '{clean_email}' already exists. Please log in or reset your password."
+            )
+        raise HTTPException(status_code=400, detail=err_msg)
 
     if result and result.user:
         try:

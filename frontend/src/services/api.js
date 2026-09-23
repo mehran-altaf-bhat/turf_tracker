@@ -303,5 +303,49 @@ export const api = {
       body: JSON.stringify({ smtp_user, smtp_password, admin_email }),
     });
   },
+
+  getReminderStatus: async (sessionId) => {
+    return request(`/admin/session/${sessionId}/reminder-status`);
+  },
+
+  sendMatchReminder: async (sessionId, reminderType = '1day', force = false) => {
+    return request(`/admin/session/${sessionId}/send-reminder`, {
+      method: 'POST',
+      body: JSON.stringify({ reminder_type: reminderType, force }),
+    });
+  },
+
+  checkScheduledReminders: async () => {
+    return request('/admin/check-reminders', {
+      method: 'POST',
+    });
+  },
 };
+
+export function formatSlotTime(t) {
+  if (!t) return '';
+  t = String(t).trim();
+  if (t.toLowerCase().includes('am') || t.toLowerCase().includes('pm')) {
+    return t;
+  }
+  const parts = t.split(':');
+  if (parts.length >= 1) {
+    let hour = parseInt(parts[0], 10);
+    const min = parts[1] ? parts[1].padStart(2, '0') : '00';
+    if (isNaN(hour)) return t;
+    let ampm = 'AM';
+    if (hour >= 12) {
+      ampm = 'PM';
+      if (hour > 12) hour -= 12;
+    } else if (hour >= 1 && hour <= 11) {
+      ampm = 'PM';
+    } else if (hour === 0) {
+      hour = 12;
+      ampm = 'AM';
+    }
+    return `${hour}:${min} ${ampm}`;
+  }
+  return t;
+}
+
 

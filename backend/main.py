@@ -76,6 +76,15 @@ def health_check():
         "turf": "Elite Football Turf",
     }
 
+
+@app.get("/api/cron/reminders")
+@app.get("/cron/reminders")
+def cron_reminders():
+    from backend.email_service import check_and_send_scheduled_reminders
+    actions = check_and_send_scheduled_reminders()
+    return {"status": "ok", "actions": actions}
+
+
 # Static SPA fallback for Vercel and production deployments
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 public_dir = os.path.join(root_dir, "public")
