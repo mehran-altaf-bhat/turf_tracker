@@ -255,6 +255,18 @@ export const api = {
     });
   },
 
+  deactivateUser: async (userId) => {
+    return request(`/admin/users/${userId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  reactivateUser: async (userId) => {
+    return request(`/admin/users/${userId}/reactivate`, {
+      method: 'POST',
+    });
+  },
+
   deleteUser: async (userId) => {
     return request(`/admin/users/${userId}`, {
       method: 'DELETE',

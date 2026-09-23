@@ -107,8 +107,8 @@ def get_session_roster(session_id: int, admin: dict = Depends(require_admin)):
     # All profiles (separate players from admin)
     profiles = db.table("profiles").select("*").order("name").execute().data
     profile_map = {p["id"]: p for p in profiles}
-    # Only approved players are eligible for squad roster
-    player_profiles = [p for p in profiles if p.get("role") != "admin" and p.get("is_approved") is True]
+    # Only active, approved players are eligible for squad roster
+    player_profiles = [p for p in profiles if p.get("role") != "admin" and p.get("is_approved") is True and p.get("is_active", True) is not False]
 
     # Recalculate dynamic equal split for this squad (using persisted total turf cost)
     split_info = recalculate_session_squad_split(session_id)
@@ -174,7 +174,8 @@ def get_session_roster(session_id: int, admin: dict = Depends(require_admin)):
     # Sort roster alphabetically by player name
     roster.sort(key=lambda r: r["name"].lower())
 
-    # All registered squad players (Admin is strictly excluded from match players list)
+    # All registered squad players eligible for this match:
+    # Players already in payments OR active approved players
     all_registered_players = [
         {
             "id": user["id"],
@@ -182,8 +183,12 @@ def get_session_roster(session_id: int, admin: dict = Depends(require_admin)):
             "role": "user",
             "is_selected": user["id"] in payments_by_user,
             "status": payments_by_user.get(user["id"], {}).get("status", "not_selected"),
+            "is_active": user.get("is_active", True) is not False,
         }
-        for user in player_profiles
+        for user in profiles
+        if user.get("role") != "admin" and (
+            user["id"] in payments_by_user or (user.get("is_approved") is True and user.get("is_active", True) is not False)
+        )
     ]
 
     # Generate WhatsApp share message for the selected squad
@@ -542,24 +547,76 @@ def approve_user(user_id: str, admin: dict = Depends(require_admin)):
 
 @router.delete("/users/{user_id}")
 def delete_user(user_id: str, admin: dict = Depends(require_admin)):
+    """Soft delete (deactivate) a player. All match history and payment records are preserved."""
     if user_id == admin["id"]:
-        raise HTTPException(status_code=400, detail="The administrator cannot delete their own account.")
+        raise HTTPException(status_code=400, detail="The administrator cannot delete or deactivate their own account.")
     db = service_client()
-    target_prof = db.table("profiles").select("role").eq("id", user_id).execute().data
-    if target_prof and target_prof[0].get("role") == "admin":
-        raise HTTPException(status_code=400, detail="The dedicated administrator account cannot be deleted.")
+    target_prof = db.table("profiles").select("*").eq("id", user_id).execute().data
+    if not target_prof:
+        raise HTTPException(status_code=404, detail="Player not found.")
+    if target_prof[0].get("role") == "admin":
+        raise HTTPException(status_code=400, detail="The dedicated administrator account cannot be deleted or deactivated.")
+
+    player_name = target_prof[0].get("name") or "Player"
 
     try:
-        # 1. Delete associated payments
-        db.table("payments").delete().eq("user_id", user_id).execute()
-        # 2. Delete profile
-        db.table("profiles").delete().eq("id", user_id).execute()
-        # 3. Delete from Supabase auth
+        # 1. Soft-delete in profiles table
+        db.table("profiles").update({"is_active": False}).eq("id", user_id).execute()
+
+        # 2. Soft-delete in users table and auth metadata
         try:
-            db.auth.admin.delete_user(user_id)
+            db.auth.admin.update_user_by_id(user_id, {
+                "user_metadata": {"is_active": False},
+            })
         except Exception as auth_err:
-            print("Auth delete warning:", auth_err)
-        return {"message": "User and all associated records removed successfully"}
+            print("Auth soft-delete sync warning:", auth_err)
+
+        # 3. Clean up any unpaid or rejected payments in upcoming sessions (so active squad split is accurate)
+        today_str = date.today().isoformat()
+        upcoming_sessions = db.table("turf_sessions").select("id").gte("session_date", today_str).execute().data or []
+        for s in upcoming_sessions:
+            sid = s["id"]
+            db.table("payments").delete().eq("session_id", sid).eq("user_id", user_id).in_("status", ["unpaid", "rejected"]).execute()
+            recalculate_session_squad_split(sid)
+
+        return {
+            "message": f"Player '{player_name}' has been deactivated (soft-deleted). All match history and payment records are preserved.",
+            "is_active": False,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/users/{user_id}/reactivate")
+def reactivate_user(user_id: str, admin: dict = Depends(require_admin)):
+    """Reactivate a previously deactivated player account."""
+    db = service_client()
+    target_prof = db.table("profiles").select("*").eq("id", user_id).execute().data
+    if not target_prof:
+        raise HTTPException(status_code=404, detail="Player not found.")
+
+    player_name = target_prof[0].get("name") or "Player"
+
+    try:
+        # 1. Reactivate in profiles table
+        db.table("profiles").update({"is_active": True}).eq("id", user_id).execute()
+
+        # 2. Reactivate in users table and auth metadata
+        try:
+            db.auth.admin.update_user_by_id(user_id, {
+                "user_metadata": {"is_active": True},
+            })
+        except Exception as auth_err:
+            print("Auth reactivate sync warning:", auth_err)
+
+        return {
+            "message": f"Player '{player_name}' has been reactivated successfully! They can now log in and join match squads.",
+            "is_active": True,
+        }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -605,7 +662,7 @@ def get_all_users_detailed(admin: dict = Depends(require_admin)):
     db = service_client()
     profiles = db.table("profiles").select("*").order("name").execute().data
 
-    # Map auth metadata (phone, email, is_no_email_user, is_approved)
+    # Map auth metadata (phone, email, is_no_email_user, is_approved, is_active)
     auth_users_map = {}
     try:
         auth_users = db.auth.admin.list_users()
@@ -616,6 +673,7 @@ def get_all_users_detailed(admin: dict = Depends(require_admin)):
                 "phone": meta.get("phone") or getattr(u, "phone", None),
                 "is_no_email_user": meta.get("is_no_email_user") or (getattr(u, "email", "") and "@turftracker.local" in getattr(u, "email", "")),
                 "is_approved": meta.get("is_approved"),
+                "is_active": meta.get("is_active"),
             }
     except Exception as e:
         print("Auth list error:", e)
@@ -639,6 +697,13 @@ def get_all_users_detailed(admin: dict = Depends(require_admin)):
         # Admin is always approved; regular users depend on is_approved in metadata (defaults to False if None)
         is_admin_user = (p.get("role") == "admin")
         is_approved = True if is_admin_user else (auth_info.get("is_approved") is True)
+        
+        # Check is_active
+        is_active = p.get("is_active")
+        if is_active is None:
+            is_active = auth_info.get("is_active", True)
+        if is_active is None:
+            is_active = True
 
         result.append({
             "id": uid,
@@ -649,6 +714,7 @@ def get_all_users_detailed(admin: dict = Depends(require_admin)):
             "phone": auth_info.get("phone"),
             "is_no_email_user": auth_info.get("is_no_email_user", False),
             "is_approved": is_approved,
+            "is_active": is_active,
             "total_paid": stats["total_paid"],
             "matches_count": stats["matches_count"],
         })
@@ -657,11 +723,15 @@ def get_all_users_detailed(admin: dict = Depends(require_admin)):
     player_list = [u for u in result if u.get("role") != "admin"]
     admin_user = next((u for u in result if u.get("role") == "admin"), None)
     pending_count = sum(1 for u in player_list if not u.get("is_approved"))
+    active_count = sum(1 for u in player_list if u.get("is_active") is not False and u.get("is_approved") is True)
+    deactivated_count = sum(1 for u in player_list if u.get("is_active") is False)
 
     return {
         "users": player_list,
         "admin_user": admin_user,
         "total": len(player_list),
+        "active_count": active_count,
+        "deactivated_count": deactivated_count,
         "pending_count": pending_count,
     }
 

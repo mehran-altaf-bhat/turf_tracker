@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   Lock,
   Key,
+  RotateCcw,
 } from 'lucide-react';
 
 export default function UserManagementPage({ currentUser }) {
@@ -26,9 +27,10 @@ export default function UserManagementPage({ currentUser }) {
   const [adminUser, setAdminUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState('all'); // 'all' | 'pending' | 'approved'
+  const [roleFilter, setRoleFilter] = useState('all'); // 'all' | 'active' | 'deactivated' | 'pending'
   const [toast, setToast] = useState(null);
   const [approvingId, setApprovingId] = useState(null);
+  const [reactivatingId, setReactivatingId] = useState(null);
 
   // Edit Modal State
   const [editingUser, setEditingUser] = useState(null);
@@ -46,7 +48,7 @@ export default function UserManagementPage({ currentUser }) {
   const [savingAdmin, setSavingAdmin] = useState(false);
   const [adminError, setAdminError] = useState(null);
 
-  // Delete Modal State
+  // Delete / Deactivate Modal State
   const [deletingUser, setDeletingUser] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -121,6 +123,20 @@ export default function UserManagementPage({ currentUser }) {
     }
   };
 
+  // Reactivate Player Account (Restore from soft-delete)
+  const handleReactivateUser = async (u) => {
+    setReactivatingId(u.id);
+    try {
+      const res = await api.reactivateUser(u.id);
+      showToast(res.message || `Player "${u.name}" reactivated successfully!`);
+      await loadUsers();
+    } catch (err) {
+      showToast(err.message || 'Failed to reactivate player', 'error');
+    } finally {
+      setReactivatingId(null);
+    }
+  };
+
   // Open Edit Modal
   const handleOpenEdit = (u) => {
     setEditingUser(u);
@@ -154,22 +170,22 @@ export default function UserManagementPage({ currentUser }) {
     }
   };
 
-  // Confirm Delete
+  // Confirm Soft-Delete / Deactivate
   const handleConfirmDelete = async () => {
     if (!deletingUser) return;
     if (currentUser && currentUser.id === deletingUser.id) {
-      alert('You cannot delete your own logged-in admin account.');
+      alert('You cannot deactivate your own logged-in admin account.');
       setDeletingUser(null);
       return;
     }
     setIsDeleting(true);
     try {
-      const res = await api.deleteUser(deletingUser.id);
-      showToast(res.message || `Removed "${deletingUser.name}" successfully`);
+      const res = await api.deactivateUser(deletingUser.id);
+      showToast(res.message || `Player "${deletingUser.name}" deactivated (soft-deleted). All history is preserved.`);
       setDeletingUser(null);
       await loadUsers();
     } catch (err) {
-      alert(err.message || 'Failed to delete player');
+      alert(err.message || 'Failed to deactivate player');
     } finally {
       setIsDeleting(false);
     }
@@ -179,7 +195,10 @@ export default function UserManagementPage({ currentUser }) {
   const totalCount = users.length;
   const pendingUsers = users.filter((u) => !u.is_approved);
   const pendingCount = pendingUsers.length;
-  const approvedCount = totalCount - pendingCount;
+  const activeUsers = users.filter((u) => u.is_approved && u.is_active !== false);
+  const activeCount = activeUsers.length;
+  const deactivatedUsers = users.filter((u) => u.is_active === false);
+  const deactivatedCount = deactivatedUsers.length;
 
   // Filtering (strictly squad players only)
   const filteredUsers = users.filter((u) => {
@@ -193,8 +212,9 @@ export default function UserManagementPage({ currentUser }) {
 
     if (!matchesQuery) return false;
 
+    if (roleFilter === 'active') return u.is_approved && u.is_active !== false;
+    if (roleFilter === 'deactivated') return u.is_active === false;
     if (roleFilter === 'pending') return !u.is_approved;
-    if (roleFilter === 'approved') return u.is_approved;
 
     return true;
   });
@@ -531,7 +551,16 @@ export default function UserManagementPage({ currentUser }) {
             style={{ fontSize: '0.78rem', borderRadius: '9999px', padding: '0.35rem 0.85rem' }}
             onClick={() => setRoleFilter('all')}
           >
-            All Users ({totalCount})
+            All Players ({totalCount})
+          </button>
+
+          <button
+            type="button"
+            className={`btn btn-sm ${roleFilter === 'active' ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ fontSize: '0.78rem', borderRadius: '9999px', padding: '0.35rem 0.85rem' }}
+            onClick={() => setRoleFilter('active')}
+          >
+            Active ({activeCount})
           </button>
 
           <button
@@ -559,11 +588,25 @@ export default function UserManagementPage({ currentUser }) {
 
           <button
             type="button"
-            className={`btn btn-sm ${roleFilter === 'approved' ? 'btn-primary' : 'btn-secondary'}`}
-            style={{ fontSize: '0.78rem', borderRadius: '9999px', padding: '0.35rem 0.85rem' }}
-            onClick={() => setRoleFilter('approved')}
+            className={`btn btn-sm ${roleFilter === 'deactivated' ? 'btn-primary' : 'btn-secondary'}`}
+            style={{
+              fontSize: '0.78rem',
+              borderRadius: '9999px',
+              padding: '0.35rem 0.85rem',
+              background: roleFilter === 'deactivated'
+                ? 'linear-gradient(135deg, #ef4444, #dc2626)'
+                : (deactivatedCount > 0 ? 'rgba(239, 68, 68, 0.1)' : undefined),
+              color: roleFilter === 'deactivated'
+                ? '#ffffff'
+                : (deactivatedCount > 0 ? '#f87171' : undefined),
+              border: deactivatedCount > 0 && roleFilter !== 'deactivated'
+                ? '1px solid rgba(239, 68, 68, 0.3)'
+                : undefined,
+              fontWeight: deactivatedCount > 0 ? 700 : 500,
+            }}
+            onClick={() => setRoleFilter('deactivated')}
           >
-            Approved ({approvedCount})
+            Deactivated ({deactivatedCount})
           </button>
         </div>
       </div>
@@ -591,7 +634,7 @@ export default function UserManagementPage({ currentUser }) {
                   <th>Player Name</th>
                   <th>Phone / WhatsApp</th>
                   <th>Email</th>
-                  <th>Approval Status</th>
+                  <th>Account Status</th>
                   <th>Role</th>
                   <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
@@ -601,13 +644,23 @@ export default function UserManagementPage({ currentUser }) {
                   const isCurrentAdmin = currentUser && currentUser.id === u.id;
                   const cleanPhone = (u.phone || '').replace(/[^0-9]/g, '');
                   const isPending = !u.is_approved;
+                  const isDeactivated = u.is_active === false;
 
                   return (
                     <tr
                       key={u.id || idx}
                       style={{
-                        backgroundColor: isPending ? 'rgba(245, 158, 11, 0.04)' : undefined,
-                        borderLeft: isPending ? '3px solid var(--amber-400)' : '3px solid transparent',
+                        backgroundColor: isDeactivated
+                          ? 'rgba(239, 68, 68, 0.03)'
+                          : isPending
+                          ? 'rgba(245, 158, 11, 0.04)'
+                          : undefined,
+                        borderLeft: isDeactivated
+                          ? '3px solid #ef4444'
+                          : isPending
+                          ? '3px solid var(--amber-400)'
+                          : '3px solid transparent',
+                        opacity: isDeactivated ? 0.78 : 1,
                       }}
                     >
                       {/* Player Avatar & Name */}
@@ -620,10 +673,18 @@ export default function UserManagementPage({ currentUser }) {
                               borderRadius: '50%',
                               background: u.role === 'admin'
                                 ? 'rgba(245, 158, 11, 0.15)'
-                                : (isPending ? 'rgba(245, 158, 11, 0.15)' : 'rgba(34, 197, 94, 0.12)'),
+                                : isDeactivated
+                                ? 'rgba(239, 68, 68, 0.15)'
+                                : isPending
+                                ? 'rgba(245, 158, 11, 0.15)'
+                                : 'rgba(34, 197, 94, 0.12)',
                               color: u.role === 'admin'
                                 ? 'var(--amber-400)'
-                                : (isPending ? 'var(--amber-400)' : 'var(--green-400)'),
+                                : isDeactivated
+                                ? '#f87171'
+                                : isPending
+                                ? 'var(--amber-400)'
+                                : 'var(--green-400)',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
@@ -631,7 +692,11 @@ export default function UserManagementPage({ currentUser }) {
                               fontSize: '1rem',
                               border: u.role === 'admin'
                                 ? '1.5px solid rgba(245, 158, 11, 0.35)'
-                                : (isPending ? '1.5px solid rgba(245, 158, 11, 0.35)' : '1.5px solid rgba(34, 197, 94, 0.3)'),
+                                : isDeactivated
+                                ? '1.5px solid rgba(239, 68, 68, 0.35)'
+                                : isPending
+                                ? '1.5px solid rgba(245, 158, 11, 0.35)'
+                                : '1.5px solid rgba(34, 197, 94, 0.3)',
                               flexShrink: 0,
                             }}
                           >
@@ -655,6 +720,21 @@ export default function UserManagementPage({ currentUser }) {
                                   }}
                                 >
                                   You
+                                </span>
+                              )}
+                              {isDeactivated && (
+                                <span
+                                  style={{
+                                    fontSize: '0.68rem',
+                                    background: 'rgba(239, 68, 68, 0.15)',
+                                    color: '#f87171',
+                                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                                    padding: '0.1rem 0.45rem',
+                                    borderRadius: '4px',
+                                    fontWeight: 700,
+                                  }}
+                                >
+                                  Inactive
                                 </span>
                               )}
                             </div>
@@ -728,9 +808,27 @@ export default function UserManagementPage({ currentUser }) {
                         </span>
                       </td>
 
-                      {/* Approval Status */}
+                      {/* Account & Approval Status */}
                       <td>
-                        {isPending ? (
+                        {isDeactivated ? (
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.35rem',
+                              fontSize: '0.75rem',
+                              padding: '0.25rem 0.65rem',
+                              borderRadius: '9999px',
+                              background: 'rgba(239, 68, 68, 0.12)',
+                              color: '#f87171',
+                              fontWeight: 700,
+                              border: '1px solid rgba(239, 68, 68, 0.3)',
+                            }}
+                          >
+                            <UserX size={12} />
+                            <span>Deactivated</span>
+                          </span>
+                        ) : isPending ? (
                           <span
                             style={{
                               display: 'inline-flex',
@@ -751,7 +849,7 @@ export default function UserManagementPage({ currentUser }) {
                         ) : (
                           <span className="badge badge-paid" style={{ fontSize: '0.75rem' }}>
                             <ShieldCheck size={12} />
-                            <span>Approved</span>
+                            <span>Active</span>
                           </span>
                         )}
                       </td>
@@ -845,6 +943,50 @@ export default function UserManagementPage({ currentUser }) {
                                 <span>Deny</span>
                               </button>
                             </>
+                          ) : isDeactivated ? (
+                            <>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-secondary"
+                                onClick={() => handleOpenEdit(u)}
+                                title="Edit Player"
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.3rem',
+                                  fontSize: '0.78rem',
+                                  padding: '0.35rem 0.7rem',
+                                }}
+                              >
+                                <Pencil size={13} />
+                                <span>Edit</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                className="btn btn-sm"
+                                disabled={reactivatingId === u.id}
+                                onClick={() => handleReactivateUser(u)}
+                                title="Reactivate this player account"
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.35rem',
+                                  fontSize: '0.78rem',
+                                  fontWeight: 700,
+                                  padding: '0.35rem 0.75rem',
+                                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                  color: '#ffffff',
+                                  border: 'none',
+                                  borderRadius: '6px',
+                                  cursor: 'pointer',
+                                  boxShadow: '0 2px 8px rgba(16, 185, 129, 0.25)',
+                                }}
+                              >
+                                {reactivatingId === u.id ? <RefreshCw size={13} className="spin" /> : <RotateCcw size={13} />}
+                                <span>Reactivate</span>
+                              </button>
+                            </>
                           ) : (
                             <>
                               <button
@@ -869,7 +1011,7 @@ export default function UserManagementPage({ currentUser }) {
                                 className="btn btn-sm"
                                 disabled={isCurrentAdmin}
                                 onClick={() => setDeletingUser(u)}
-                                title={isCurrentAdmin ? 'Cannot delete yourself' : 'Delete Player'}
+                                title={isCurrentAdmin ? 'Cannot deactivate yourself' : 'Deactivate Player (Soft Delete)'}
                                 style={{
                                   display: 'inline-flex',
                                   alignItems: 'center',
@@ -882,8 +1024,8 @@ export default function UserManagementPage({ currentUser }) {
                                   cursor: isCurrentAdmin ? 'not-allowed' : 'pointer',
                                 }}
                               >
-                                <Trash2 size={13} />
-                                <span>Delete</span>
+                                <UserX size={13} />
+                                <span>Deactivate</span>
                               </button>
                             </>
                           )}
@@ -1064,18 +1206,18 @@ export default function UserManagementPage({ currentUser }) {
         </div>
       )}
 
-      {/* ================= DELETE CONFIRMATION MODAL ================= */}
+      {/* ================= DEACTIVATE / SOFT-DELETE CONFIRMATION MODAL ================= */}
       {deletingUser && (
         <div className="modal-backdrop" onClick={() => !isDeleting && setDeletingUser(null)}>
           <div
             className="modal-content"
-            style={{ maxWidth: '440px', width: '100%', textAlign: 'center' }}
+            style={{ maxWidth: '460px', width: '100%', textAlign: 'center' }}
             onClick={(e) => e.stopPropagation()}
           >
             <div
               style={{
-                width: '48px',
-                height: '48px',
+                width: '52px',
+                height: '52px',
                 borderRadius: '50%',
                 background: 'rgba(248, 113, 113, 0.15)',
                 color: 'var(--rose-400)',
@@ -1086,26 +1228,33 @@ export default function UserManagementPage({ currentUser }) {
                 margin: '0 auto 1rem',
               }}
             >
-              <Trash2 size={24} />
+              {!deletingUser.is_approved ? <X size={26} /> : <UserX size={26} />}
             </div>
 
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-              {!deletingUser.is_approved ? `Deny Registration for ${deletingUser.name}?` : `Remove ${deletingUser.name}?`}
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.65rem' }}>
+              {!deletingUser.is_approved ? `Deny Registration for ${deletingUser.name}?` : `Deactivate ${deletingUser.name}?`}
             </h3>
 
-            <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '1.5rem', lineHeight: 1.5 }}>
+            <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '1.5rem', lineHeight: 1.6, textAlign: 'left', background: 'rgba(255, 255, 255, 0.03)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
               {!deletingUser.is_approved ? (
-                <>
+                <div>
                   Are you sure you want to deny <strong style={{ color: 'var(--text-primary)' }}>{deletingUser.name}</strong>'s registration request?
                   They will not be granted access to the system or Friday match squads.
-                </>
+                </div>
               ) : (
-                <>
-                  Are you sure you want to permanently remove <strong style={{ color: 'var(--text-primary)' }}>{deletingUser.name}</strong>?
-                  All associated match payment records for this player will also be cleaned up.
-                </>
+                <div>
+                  <div style={{ marginBottom: '0.5rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    Soft Delete (Account Deactivation):
+                  </div>
+                  <ul style={{ margin: 0, paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                    <li><strong style={{ color: 'var(--text-primary)' }}>Access Blocked:</strong> {deletingUser.name} will not be able to log in.</li>
+                    <li><strong style={{ color: 'var(--text-primary)' }}>Squad Excluded:</strong> They will no longer appear in new match squad selections.</li>
+                    <li><strong style={{ color: 'var(--green-400)' }}>100% History Preserved:</strong> All past match records, payments, and financial calculations are safely kept.</li>
+                    <li><strong style={{ color: 'var(--blue-400)' }}>Reversible:</strong> You can reactivate this player at any time with one click.</li>
+                  </ul>
+                </div>
               )}
-            </p>
+            </div>
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
               <button
@@ -1136,8 +1285,8 @@ export default function UserManagementPage({ currentUser }) {
                   gap: '0.35rem',
                 }}
               >
-                {isDeleting ? <RefreshCw size={14} className="spin" /> : <Trash2 size={14} />}
-                <span>{!deletingUser.is_approved ? 'Deny Request' : 'Yes, Delete'}</span>
+                {isDeleting ? <RefreshCw size={14} className="spin" /> : (!deletingUser.is_approved ? <X size={14} /> : <UserX size={14} />)}
+                <span>{!deletingUser.is_approved ? 'Deny Request' : 'Deactivate Player'}</span>
               </button>
             </div>
           </div>

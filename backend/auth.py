@@ -97,11 +97,17 @@ def get_current_user(request: Request) -> dict:
     if not profile.data:
         raise HTTPException(status_code=401, detail="User profile not found")
 
+    user_role = profile.data.get("role", "user")
+    is_active = profile.data.get("is_active", True)
+    if user_role != "admin" and is_active is False:
+        raise HTTPException(status_code=403, detail="Your account has been deactivated by the administrator.")
+
     return {
         "id": user_id,
         "email": email,
         "name": profile.data.get("name") or (email.split("@")[0] if email else "User"),
-        "role": profile.data.get("role", "user"),
+        "role": user_role,
+        "is_active": is_active,
     }
 
 

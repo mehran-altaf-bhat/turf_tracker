@@ -337,7 +337,7 @@ class PostgresAuthAdmin:
         conn = self.client.get_connection()
         try:
             cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            cur.execute("SELECT id, email, name, phone, role, is_approved FROM users ORDER BY created_at ASC;")
+            cur.execute("SELECT id, email, name, phone, role, is_approved, is_active FROM users ORDER BY created_at ASC;")
             rows = cur.fetchall()
             cur.close()
             users = []
@@ -347,6 +347,7 @@ class PostgresAuthAdmin:
                     "phone": r["phone"],
                     "role": r["role"],
                     "is_approved": r["is_approved"],
+                    "is_active": r["is_active"] if r.get("is_active") is not None else True,
                 }
                 users.append(UserObj(r["id"], r["email"], meta))
             return users
@@ -357,7 +358,7 @@ class PostgresAuthAdmin:
         conn = self.client.get_connection()
         try:
             cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            cur.execute("SELECT id, email, name, phone, role, is_approved FROM users WHERE id = %s;", (str(user_id),))
+            cur.execute("SELECT id, email, name, phone, role, is_approved, is_active FROM users WHERE id = %s;", (str(user_id),))
             r = cur.fetchone()
             cur.close()
             if not r:
@@ -367,6 +368,7 @@ class PostgresAuthAdmin:
                 "phone": r["phone"],
                 "role": r["role"],
                 "is_approved": r["is_approved"],
+                "is_active": r["is_active"] if r.get("is_active") is not None else True,
             }
             return AuthResponse(user=UserObj(r["id"], r["email"], meta))
         finally:
@@ -400,15 +402,18 @@ class PostgresAuthAdmin:
             if "is_approved" in meta:
                 updates.append("is_approved = %s")
                 params.append(bool(meta["is_approved"]))
+            if "is_active" in meta:
+                updates.append("is_active = %s")
+                params.append(bool(meta["is_active"]))
 
             if updates:
                 updates.append("updated_at = NOW()")
-                query = f"UPDATE users SET {', '.join(updates)} WHERE id = %s RETURNING id, email, name, phone, role, is_approved;"
+                query = f"UPDATE users SET {', '.join(updates)} WHERE id = %s RETURNING id, email, name, phone, role, is_approved, is_active;"
                 params.append(str(user_id))
                 cur.execute(query, params)
                 r = cur.fetchone()
             else:
-                cur.execute("SELECT id, email, name, phone, role, is_approved FROM users WHERE id = %s;", (str(user_id),))
+                cur.execute("SELECT id, email, name, phone, role, is_approved, is_active FROM users WHERE id = %s;", (str(user_id),))
                 r = cur.fetchone()
 
             # Sync profiles table as well
@@ -418,9 +423,10 @@ class PostgresAuthAdmin:
                         name = %s,
                         role = %s,
                         phone = %s,
-                        is_approved = %s
+                        is_approved = %s,
+                        is_active = %s
                     WHERE id = %s;
-                """, (r["name"], r["role"], r["phone"], r["is_approved"], str(user_id)))
+                """, (r["name"], r["role"], r["phone"], r["is_approved"], r["is_active"], str(user_id)))
 
             conn.commit()
             cur.close()
@@ -431,6 +437,7 @@ class PostgresAuthAdmin:
                 "phone": r["phone"],
                 "role": r["role"],
                 "is_approved": r["is_approved"],
+                "is_active": r["is_active"],
             }
             return AuthResponse(user=UserObj(r["id"], r["email"], user_meta))
         finally:
@@ -455,27 +462,29 @@ class PostgresAuthAdmin:
         phone = meta.get("phone")
         role = meta.get("role", "user")
         is_approved = meta.get("is_approved", False)
+        is_active = meta.get("is_active", True)
 
         pw_hash = hash_password(password)
         conn = self.client.get_connection()
         try:
             cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
             cur.execute("""
-                INSERT INTO users (email, password_hash, name, phone, role, is_approved)
-                VALUES (%s, %s, %s, %s, %s, %s)
-                RETURNING id, email, name, phone, role, is_approved;
-            """, (email, pw_hash, name, phone, role, is_approved))
+                INSERT INTO users (email, password_hash, name, phone, role, is_approved, is_active)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                RETURNING id, email, name, phone, role, is_approved, is_active;
+            """, (email, pw_hash, name, phone, role, is_approved, is_active))
             u = cur.fetchone()
 
             cur.execute("""
-                INSERT INTO profiles (id, name, role, phone, is_approved)
-                VALUES (%s, %s, %s, %s, %s)
+                INSERT INTO profiles (id, name, role, phone, is_approved, is_active)
+                VALUES (%s, %s, %s, %s, %s, %s)
                 ON CONFLICT (id) DO UPDATE SET
                     name = EXCLUDED.name,
                     role = EXCLUDED.role,
                     phone = EXCLUDED.phone,
-                    is_approved = EXCLUDED.is_approved;
-            """, (u["id"], name, role, phone, is_approved))
+                    is_approved = EXCLUDED.is_approved,
+                    is_active = EXCLUDED.is_active;
+            """, (u["id"], name, role, phone, is_approved, is_active))
             conn.commit()
             cur.close()
             user_obj = UserObj(u["id"], u["email"], {
@@ -483,6 +492,7 @@ class PostgresAuthAdmin:
                 "phone": u["phone"],
                 "role": u["role"],
                 "is_approved": u["is_approved"],
+                "is_active": u["is_active"],
             })
             return AuthResponse(user=user_obj)
         finally:
@@ -501,7 +511,7 @@ class PostgresAuth:
         conn = self.client.get_connection()
         try:
             cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            cur.execute("SELECT id, email, password_hash, name, phone, role, is_approved FROM users WHERE LOWER(email) = LOWER(%s);", (email,))
+            cur.execute("SELECT id, email, password_hash, name, phone, role, is_approved, is_active FROM users WHERE LOWER(email) = LOWER(%s);", (email,))
             row = cur.fetchone()
             cur.close()
         finally:
@@ -509,6 +519,9 @@ class PostgresAuth:
 
         if not row:
             raise Exception("Invalid email or password")
+
+        if row.get("is_active") is False:
+            raise Exception("Your account has been deactivated by the administrator.")
 
         is_valid = verify_password(row["password_hash"], password)
 
@@ -540,6 +553,7 @@ class PostgresAuth:
             "phone": row["phone"],
             "role": row["role"],
             "is_approved": row["is_approved"],
+            "is_active": row.get("is_active", True),
         }
         token_payload = {
             "sub": user_id,
@@ -564,7 +578,7 @@ class PostgresAuth:
         conn = self.client.get_connection()
         try:
             cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            cur.execute("SELECT id, email, name, phone, role, is_approved FROM users WHERE id = %s;", (user_id,))
+            cur.execute("SELECT id, email, name, phone, role, is_approved, is_active FROM users WHERE id = %s;", (user_id,))
             row = cur.fetchone()
             cur.close()
         finally:
@@ -578,6 +592,7 @@ class PostgresAuth:
             "phone": row["phone"],
             "role": row["role"],
             "is_approved": row["is_approved"],
+            "is_active": row.get("is_active", True),
         }
         return AuthResponse(user=UserObj(row["id"], row["email"], meta))
 

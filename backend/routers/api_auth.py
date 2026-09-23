@@ -47,6 +47,9 @@ def login_endpoint(data: LoginRequest, response: Response):
     try:
         result = auth.login(email=data.email, password=data.password)
     except Exception as e:
+        err_msg = str(e)
+        if "deactivated" in err_msg.lower():
+            raise HTTPException(status_code=403, detail="Your account has been deactivated by the administrator.")
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     if not result or not result.session:
@@ -67,8 +70,19 @@ def login_endpoint(data: LoginRequest, response: Response):
     profile_data = profile.data or {}
     user_role = profile_data.get("role", "user")
 
-    # Check approval status: Admin is always approved. Regular users must be approved by admin.
+    # Check active status: deactivated users cannot log in
     user_meta = getattr(result.user, "user_metadata", {}) or {}
+    is_active = profile_data.get("is_active")
+    if is_active is None:
+        is_active = user_meta.get("is_active", True)
+
+    if user_role != "admin" and is_active is False:
+        raise HTTPException(
+            status_code=403,
+            detail="Your account has been deactivated by the administrator."
+        )
+
+    # Check approval status: Admin is always approved. Regular users must be approved by admin.
     is_approved = user_meta.get("is_approved", False)
 
     if user_role != "admin" and not is_approved:
@@ -83,6 +97,7 @@ def login_endpoint(data: LoginRequest, response: Response):
         "name": profile_data.get("name") or data.email.split("@")[0],
         "role": user_role,
         "is_approved": True,
+        "is_active": is_active,
     }
 
     # Set cookie as well for backward/browser compatibility

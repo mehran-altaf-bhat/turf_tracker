@@ -122,9 +122,10 @@ def create_session(data: CreateSessionRequest, admin: dict = Depends(require_adm
         )
         new_session = res.data[0] if res.data else None
 
-        # Optionally populate all registered approved players into this match's squad
+        # Optionally populate all registered active approved players into this match's squad
         if new_session and data.populate_all_players:
-            profiles = db.table("profiles").select("id, role").neq("role", "admin").eq("is_approved", True).execute().data
+            all_p = db.table("profiles").select("id, role, is_active").neq("role", "admin").eq("is_approved", True).execute().data or []
+            profiles = [p for p in all_p if p.get("is_active", True) is not False]
             for p in profiles:
                 try:
                     db.table("payments").insert({
@@ -165,7 +166,8 @@ def add_past_fridays(data: AddPastFridaysRequest, admin: dict = Depends(require_
 
     existing = db.table("turf_sessions").select("session_date").execute().data
     existing_dates = {s["session_date"] for s in existing}
-    profiles = db.table("profiles").select("id, role").neq("role", "admin").eq("is_approved", True).execute().data if data.populate_all_players else []
+    all_p = db.table("profiles").select("id, role, is_active").neq("role", "admin").eq("is_approved", True).execute().data or [] if data.populate_all_players else []
+    profiles = [p for p in all_p if p.get("is_active", True) is not False]
 
     created_count = 0
     for f_date in past_fridays:
