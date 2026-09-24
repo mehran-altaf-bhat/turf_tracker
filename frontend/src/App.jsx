@@ -6,7 +6,7 @@ import DashboardPage from './pages/DashboardPage';
 import AdminPage from './pages/AdminPage';
 import UserManagementPage from './pages/UserManagementPage';
 import { api, getStoredToken } from './services/api';
-import { Shield, Menu } from 'lucide-react';
+import { Shield, Menu, Sun, Moon } from 'lucide-react';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -15,6 +15,25 @@ export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState(0);
   const [matchSlotText, setMatchSlotText] = useState('Friday Match');
+  const [theme, setTheme] = useState(() => {
+    try {
+      return localStorage.getItem('turf_theme') || 'dark';
+    } catch (e) {
+      return 'dark';
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('turf_theme', theme);
+    } catch (e) {}
+    document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.style.colorScheme = theme;
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -148,7 +167,7 @@ export default function App() {
   }
 
   if (!user) {
-    return <LoginPage onLoginSuccess={handleLoginSuccess} />;
+    return <LoginPage onLoginSuccess={handleLoginSuccess} theme={theme} onToggleTheme={toggleTheme} />;
   }
 
   const getPageHeader = () => {
@@ -202,6 +221,8 @@ export default function App() {
         mobileOpen={mobileMenuOpen}
         onClose={() => setMobileMenuOpen(false)}
         pendingCount={pendingApprovalsCount}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
 
       {/* Main Content Area */}
@@ -225,11 +246,32 @@ export default function App() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
             <div className="header-status-pill">
               <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: 'var(--green-500)', display: 'inline-block', flexShrink: 0 }} className="pulse-dot" />
               <span>{matchSlotText}</span>
             </div>
+
+            {/* Dark / Light Theme Toggle */}
+            <button
+              type="button"
+              className="theme-toggle-btn"
+              onClick={toggleTheme}
+              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              aria-label="Toggle dark/light theme"
+            >
+              {theme === 'dark' ? (
+                <>
+                  <Sun size={15} className="sun-icon" />
+                  <span className="theme-toggle-label">Light</span>
+                </>
+              ) : (
+                <>
+                  <Moon size={15} className="moon-icon" />
+                  <span className="theme-toggle-label">Dark</span>
+                </>
+              )}
+            </button>
 
             {user.role === 'admin' && activeTab !== 'admin' && activeTab !== 'users' && (
               <button

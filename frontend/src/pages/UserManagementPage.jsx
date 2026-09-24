@@ -889,7 +889,7 @@ export default function UserManagementPage({ currentUser }) {
                               border: '1px solid rgba(34, 197, 94, 0.25)',
                             }}
                           >
-                            <span>⚽ Squad Player</span>
+                            <span>Player</span>
                           </span>
                         )}
                       </td>
@@ -1169,7 +1169,7 @@ export default function UserManagementPage({ currentUser }) {
                     fontWeight: 600,
                   }}
                 >
-                  {editingUser?.role === 'admin' ? '🛡️ System Administrator (Dedicated)' : '⚽ Squad Player'}
+                  {editingUser?.role === 'admin' ? '🛡️ System Administrator (Dedicated)' : 'Player'}
                 </div>
                 <div style={{ fontSize: '0.73rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>
                   {editingUser?.role === 'admin'

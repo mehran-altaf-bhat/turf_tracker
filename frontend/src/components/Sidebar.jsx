@@ -9,6 +9,8 @@ import {
   LogOut,
   UserCheck,
   X,
+  Sun,
+  Moon,
 } from 'lucide-react';
 
 export default function Sidebar({
@@ -19,6 +21,8 @@ export default function Sidebar({
   mobileOpen = false,
   onClose,
   pendingCount = 0,
+  theme = 'dark',
+  onToggleTheme,
 }) {
   if (!user) return null;
   const isAdmin = user.role === 'admin';
@@ -127,6 +131,38 @@ export default function Sidebar({
 
         {/* Footer */}
         <div className="sidebar-footer">
+          {/* Theme Switcher in Sidebar */}
+          {onToggleTheme && (
+            <button
+              type="button"
+              className="sidebar-theme-btn"
+              onClick={onToggleTheme}
+              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              aria-label="Toggle dark/light mode"
+            >
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.65rem' }}>
+                {theme === 'dark' ? (
+                  <Sun size={16} className="sun-icon" />
+                ) : (
+                  <Moon size={16} className="moon-icon" />
+                )}
+                <span>{theme === 'dark' ? 'Light Theme' : 'Dark Theme'}</span>
+              </div>
+              <span
+                style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  padding: '0.15rem 0.5rem',
+                  borderRadius: '9999px',
+                  background: theme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
+                  color: 'var(--text-secondary)',
+                }}
+              >
+                {theme === 'dark' ? '🌙 Dark' : '☀️ Light'}
+              </span>
+            </button>
+          )}
+
           {/* User Card */}
           <div className="sidebar-user-card">
             <div className="sidebar-avatar">

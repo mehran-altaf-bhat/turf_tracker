@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import aseefLogo from '../assets/aseef-logo.svg';
 import { api } from '../services/api';
-import { AlertCircle, ArrowRight, Loader2, CheckCircle, User, Mail, Lock, Phone } from 'lucide-react';
+import { AlertCircle, ArrowRight, Loader2, CheckCircle, User, Mail, Lock, Phone, Sun, Moon } from 'lucide-react';
 
-export default function LoginPage({ onLoginSuccess }) {
+export default function LoginPage({ onLoginSuccess, theme = 'dark', onToggleTheme }) {
   const [isLogin, setIsLogin] = useState(true);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -45,6 +45,31 @@ export default function LoginPage({ onLoginSuccess }) {
 
   return (
     <div className="login-wrapper">
+      {/* Theme Toggle Button on Login Screen */}
+      {onToggleTheme && (
+        <div style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', zIndex: 20 }}>
+          <button
+            type="button"
+            className="theme-toggle-btn"
+            onClick={onToggleTheme}
+            title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            aria-label="Toggle dark or light theme"
+          >
+            {theme === 'dark' ? (
+              <>
+                <Sun size={15} className="sun-icon" />
+                <span className="theme-toggle-label">Light</span>
+              </>
+            ) : (
+              <>
+                <Moon size={15} className="moon-icon" />
+                <span className="theme-toggle-label">Dark</span>
+              </>
+            )}
+          </button>
+        </div>
+      )}
+
       <div className="login-card">
         {/* Brand Header */}
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
