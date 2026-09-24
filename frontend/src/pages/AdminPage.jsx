@@ -1244,27 +1244,35 @@ export default function AdminPage({ setActiveTab }) {
       )}
 
       {/* Automated Email Notifications & Diagnostics Card */}
-      <div className="card" style={{ marginTop: '2rem', border: '1px solid rgba(16, 185, 129, 0.25)', background: 'linear-gradient(180deg, rgba(16, 185, 129, 0.04) 0%, rgba(15, 23, 42, 0.6) 100%)' }}>
+      <div
+        className="card"
+        style={{
+          marginTop: '2rem',
+          border: '1px solid rgba(16, 185, 129, 0.28)',
+          background: 'linear-gradient(180deg, rgba(16, 185, 129, 0.05) 0%, var(--bg-card) 100%)',
+          boxShadow: 'var(--shadow-card)',
+        }}
+      >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Mail size={20} color="var(--pitch-green-light)" />
+            <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Mail size={20} color="var(--green-500)" />
             </div>
             <div>
               <h4 style={{ fontSize: '1.05rem', margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 Automated Email Notification System
                 {emailStatus?.configured ? (
-                  <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.55rem', borderRadius: '999px', background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.3)', fontWeight: 600 }}>
+                  <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.55rem', borderRadius: '999px', background: 'rgba(16, 185, 129, 0.12)', color: 'var(--green-500)', border: '1px solid rgba(16, 185, 129, 0.3)', fontWeight: 700 }}>
                     Active &bull; Gmail Connected
                   </span>
                 ) : (
-                  <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.55rem', borderRadius: '999px', background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.3)', fontWeight: 600 }}>
+                  <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.55rem', borderRadius: '999px', background: 'rgba(245, 158, 11, 0.15)', color: 'var(--amber-400)', border: '1px solid rgba(245, 158, 11, 0.3)', fontWeight: 700 }}>
                     Setup Required &bull; Mock Mode
                   </span>
                 )}
               </h4>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0.2rem 0 0 0' }}>
-                Sender: <strong>{emailStatus?.smtp_user || 'Not Configured'}</strong> &bull; Admin Alerts To: <strong>{emailStatus?.admin_email || 'mehranbhat010@gmail.com'}</strong>
+                Sender: <strong style={{ color: 'var(--text-secondary)' }}>{emailStatus?.smtp_user || 'Not Configured'}</strong> &bull; Admin Alerts To: <strong style={{ color: 'var(--text-secondary)' }}>{emailStatus?.admin_email || 'mehranbhat010@gmail.com'}</strong>
               </p>
             </div>
           </div>
@@ -1273,7 +1281,7 @@ export default function AdminPage({ setActiveTab }) {
             <button
               type="button"
               className="btn btn-primary btn-sm"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.55rem 0.9rem', background: '#059669', borderColor: '#059669' }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.55rem 0.9rem' }}
               onClick={() => {
                 if (emailStatus?.smtp_user) setEmailFormUser(emailStatus.smtp_user);
                 if (emailStatus?.admin_email) setEmailFormAdmin(emailStatus.admin_email);
@@ -1294,7 +1302,7 @@ export default function AdminPage({ setActiveTab }) {
               disabled={testingEmail}
               title="Send a live test verification email to admin"
             >
-              <Send size={14} color="#34d399" />
+              <Send size={14} color="var(--green-500)" />
               <span>{testingEmail ? 'Sending...' : 'Test Send'}</span>
             </button>
           </div>
@@ -1308,28 +1316,28 @@ export default function AdminPage({ setActiveTab }) {
             fontSize: '0.85rem',
             background: emailTestResult.success ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
             border: `1px solid ${emailTestResult.success ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
-            color: emailTestResult.success ? '#34d399' : '#f87171',
+            color: emailTestResult.success ? 'var(--green-500)' : 'var(--rose-400)',
           }}>
             <strong>{emailTestResult.success ? '✅ Success:' : '⚠️ Notice:'}</strong> {emailTestResult.message}
           </div>
         )}
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', marginTop: '0.5rem' }}>
-          <div style={{ background: 'var(--bg-layer-1)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+          <div style={{ background: 'var(--bg-layer-2)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
             <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               <span>⚡</span> Player Signup Alert
             </div>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
-              Automatically sent to <strong>{emailStatus?.admin_email || 'mehranbhat010@gmail.com'}</strong> whenever a player registers and waits for approval.
+              Automatically sent to <strong style={{ color: 'var(--text-primary)' }}>{emailStatus?.admin_email || 'mehranbhat010@gmail.com'}</strong> whenever a player registers and waits for approval.
             </p>
           </div>
 
-          <div style={{ background: 'var(--bg-layer-1)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+          <div style={{ background: 'var(--bg-layer-2)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
             <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               <span>⚽</span> Player Approved Alert
             </div>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
-              Automatically sent to the player's email address with match schedules and instructions as soon as the admin clicks <strong>Approve</strong>.
+              Automatically sent to the player's email address with match schedules and instructions as soon as the admin clicks <strong style={{ color: 'var(--text-primary)' }}>Approve</strong>.
             </p>
           </div>
         </div>
@@ -1610,7 +1618,7 @@ export default function AdminPage({ setActiveTab }) {
               maxWidth: '650px',
               width: '100%',
               padding: '1.75rem',
-              background: 'linear-gradient(135deg, rgba(20, 29, 53, 0.98) 0%, rgba(15, 22, 41, 0.98) 100%)',
+              background: 'var(--bg-layer-2)',
               border: '1px solid var(--border-subtle)',
               borderRadius: 'var(--radius-lg)',
               boxShadow: 'var(--shadow-lg)',

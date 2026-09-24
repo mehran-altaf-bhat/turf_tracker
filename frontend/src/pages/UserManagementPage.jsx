@@ -253,9 +253,9 @@ export default function UserManagementPage({ currentUser }) {
         style={{
           marginBottom: '1.5rem',
           padding: '1.5rem 1.75rem',
-          background: 'linear-gradient(135deg, rgba(20, 29, 53, 0.9) 0%, rgba(15, 22, 41, 0.98) 100%)',
+          background: 'linear-gradient(135deg, var(--bg-card) 0%, var(--bg-layer-2) 100%)',
           border: '1px solid var(--border-subtle)',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.35)',
+          boxShadow: 'var(--shadow-card)',
         }}
       >
         <div
@@ -320,10 +320,10 @@ export default function UserManagementPage({ currentUser }) {
         style={{
           marginBottom: '1.5rem',
           padding: '1.25rem 1.5rem',
-          background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.75) 0%, rgba(15, 23, 42, 0.95) 100%)',
-          border: '1px solid rgba(245, 158, 11, 0.35)',
+          background: 'linear-gradient(135deg, var(--bg-card) 0%, var(--bg-layer-2) 100%)',
+          border: '1px solid rgba(245, 158, 11, 0.4)',
           borderRadius: '14px',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.35)',
+          boxShadow: 'var(--shadow-card)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
@@ -371,14 +371,15 @@ export default function UserManagementPage({ currentUser }) {
                 <span
                   style={{
                     fontSize: '0.7rem',
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    color: 'var(--text-muted)',
+                    background: 'var(--theme-toggle-bg)',
+                    color: 'var(--text-secondary)',
                     border: '1px solid var(--border-subtle)',
                     padding: '0.15rem 0.5rem',
                     borderRadius: '4px',
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '0.25rem',
+                    fontWeight: 600,
                   }}
                 >
                   <Lock size={11} /> Self-Deletion Blocked

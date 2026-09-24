@@ -580,7 +580,7 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                       maxWidth: '380px',
                       margin: '0 auto 1.25rem',
                     }}>
-                      <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--border-subtle)', borderRadius: '10px', padding: '0.65rem 0.5rem', textAlign: 'center' }}>
+                      <div style={{ background: 'var(--bg-layer-2)', border: '1px solid var(--border-subtle)', borderRadius: '10px', padding: '0.65rem 0.5rem', textAlign: 'center' }}>
                         <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Turf Cost</div>
                         <div style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--text-primary)' }}>₹3,800</div>
                       </div>
@@ -687,7 +687,7 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                       maxWidth: '380px',
                       margin: '0 auto 1.25rem',
                     }}>
-                      <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--border-subtle)', borderRadius: '10px', padding: '0.65rem 0.5rem', textAlign: 'center' }}>
+                      <div style={{ background: 'var(--bg-layer-2)', border: '1px solid var(--border-subtle)', borderRadius: '10px', padding: '0.65rem 0.5rem', textAlign: 'center' }}>
                         <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Match Fee</div>
                         <div style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--text-primary)' }}>₹{payableAmount}</div>
                       </div>
@@ -696,7 +696,7 @@ export default function DashboardPage({ user, activeTab = 'dashboard', setActive
                         <div style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--green-400)' }}>-₹{amountPaid}</div>
                       </div>
                       <div style={{
-                        background: balanceDue > 0 ? 'rgba(245, 158, 11, 0.1)' : 'rgba(255, 255, 255, 0.03)',
+                        background: balanceDue > 0 ? 'rgba(245, 158, 11, 0.1)' : 'var(--bg-layer-2)',
                         border: balanceDue > 0 ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid var(--border-subtle)',
                         borderRadius: '10px',
                         padding: '0.65rem 0.5rem',

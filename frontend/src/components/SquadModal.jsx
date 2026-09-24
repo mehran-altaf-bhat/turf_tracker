@@ -188,7 +188,7 @@ export default function SquadModal({
             gridTemplateColumns: 'repeat(3, 1fr)',
             gap: '0.75rem',
             textAlign: 'center',
-            background: 'rgba(0, 0, 0, 0.25)',
+            background: 'var(--bg-layer-2)',
             padding: '0.75rem',
             borderRadius: '8px',
             border: '1px solid var(--border-dim)',
@@ -209,7 +209,7 @@ export default function SquadModal({
             </div>
           </div>
           {count > 0 && (
-            <div style={{ fontSize: '0.75rem', color: 'var(--green-300)', marginTop: '0.5rem', textAlign: 'center', fontWeight: 500 }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--green-400)', marginTop: '0.5rem', textAlign: 'center', fontWeight: 600 }}>
               💡 ₹{costNum} ÷ {count} players = ₹{splitPerPlayer} per confirmed player for this match.
             </div>
           )}
@@ -222,7 +222,7 @@ export default function SquadModal({
           alignItems: 'center',
           flexWrap: 'wrap',
           gap: '0.75rem',
-          background: 'rgba(255, 255, 255, 0.03)',
+          background: 'var(--bg-layer-2)',
           padding: '0.65rem 0.85rem',
           borderRadius: 'var(--radius-sm)',
           marginBottom: '0.75rem',
