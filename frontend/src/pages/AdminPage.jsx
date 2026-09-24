@@ -440,6 +440,18 @@ export default function AdminPage({ setActiveTab }) {
     }
   }, [selectedSessionId]);
 
+  // Sync top header timing pill with selected session timing (called before any early return)
+  useEffect(() => {
+    const sessionList = overview?.sessions || [];
+    const currentSess = sessionList.find((s) => s.session.id === selectedSessionId)?.session;
+    if (currentSess) {
+      const sTime = currentSess.start_time || '20:00';
+      const eTime = currentSess.end_time || '22:00';
+      const formattedSlot = `Friday ${formatSlotTime(sTime)} – ${formatSlotTime(eTime)}`;
+      window.dispatchEvent(new CustomEvent('turf_slot_updated', { detail: { turf_slot: formattedSlot } }));
+    }
+  }, [selectedSessionId, overview]);
+
   const handleConfirm = async (paymentId) => {
     try {
       await api.confirmPayment(paymentId);
@@ -591,16 +603,6 @@ export default function AdminPage({ setActiveTab }) {
   const sessions = overview?.sessions || [];
   const currentSessionObj = sessions.find((s) => s.session.id === selectedSessionId)?.session;
   const currentSquadCount = rosterData?.roster?.length || 0;
-
-  // Sync top header timing pill with selected session timing
-  useEffect(() => {
-    if (currentSessionObj) {
-      const sTime = currentSessionObj.start_time || '20:00';
-      const eTime = currentSessionObj.end_time || '22:00';
-      const formattedSlot = `Friday ${formatSlotTime(sTime)} – ${formatSlotTime(eTime)}`;
-      window.dispatchEvent(new CustomEvent('turf_slot_updated', { detail: { turf_slot: formattedSlot } }));
-    }
-  }, [selectedSessionId, currentSessionObj?.start_time, currentSessionObj?.end_time]);
 
 
   return (
